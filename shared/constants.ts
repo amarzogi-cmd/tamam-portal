@@ -613,3 +613,157 @@ export const REQUEST_TRACKS = {
     stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'closed'],
   },
 } as const;
+
+
+// ==================== الشروط المسبقة للانتقال بين المراحل ====================
+export type PrerequisiteType = 
+  | 'field_inspection_report'  // تقرير المعاينة الميدانية
+  | 'quick_response_report'    // تقرير الاستجابة السريعة
+  | 'technical_eval_decision'  // قرار التقييم الفني
+  | 'boq_created'              // جدول الكميات
+  | 'quotes_received'          // عروض الأسعار
+  | 'supplier_selected'        // اختيار المورد
+  | 'contract_signed'          // توقيع العقد
+  | 'final_report'             // التقرير الختامي
+  | 'satisfaction_survey';     // استبيان الرضا
+
+export interface StagePrerequisite {
+  type: PrerequisiteType;
+  name: string;
+  description: string;
+  required: boolean;
+  checkField?: string;  // الحقل الذي يتم التحقق منه في قاعدة البيانات
+  checkTable?: string;  // الجدول الذي يتم التحقق منه
+}
+
+export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
+  // من تقديم الطلب إلى المراجعة الأولية - لا توجد شروط
+  submitted_to_initial_review: [],
+  
+  // من المراجعة الأولية إلى الزيارة الميدانية - لا توجد شروط
+  initial_review_to_field_visit: [],
+  
+  // من الزيارة الميدانية إلى التقييم الفني - يجب وجود تقرير المعاينة
+  field_visit_to_technical_eval: [
+    {
+      type: 'field_inspection_report',
+      name: 'تقرير المعاينة الميدانية',
+      description: 'يجب رفع تقرير المعاينة الميدانية قبل الانتقال للتقييم الفني',
+      required: true,
+      checkTable: 'field_inspection_reports',
+      checkField: 'requestId',
+    },
+  ],
+  
+  // من التقييم الفني إلى التقييم المالي (مسار المشروع)
+  technical_eval_to_financial_eval: [
+    {
+      type: 'technical_eval_decision',
+      name: 'قرار التقييم الفني',
+      description: 'يجب اختيار "التحويل إلى مشروع" للانتقال للتقييم المالي',
+      required: true,
+      checkField: 'technicalEvalDecision',
+      checkTable: 'mosque_requests',
+    },
+  ],
+  
+  // من التقييم الفني إلى التنفيذ (مسار الاستجابة السريعة)
+  technical_eval_to_execution_quick: [
+    {
+      type: 'technical_eval_decision',
+      name: 'قرار التقييم الفني',
+      description: 'يجب اختيار "التحويل إلى الاستجابة السريعة" للانتقال للتنفيذ',
+      required: true,
+      checkField: 'technicalEvalDecision',
+      checkTable: 'mosque_requests',
+    },
+  ],
+  
+  // من التقييم المالي إلى التنفيذ (مسار المشروع)
+  financial_eval_to_execution: [
+    {
+      type: 'boq_created',
+      name: 'جدول الكميات',
+      description: 'يجب إعداد جدول الكميات قبل الانتقال للتنفيذ',
+      required: true,
+      checkTable: 'boq_items',
+      checkField: 'projectId',
+    },
+    {
+      type: 'supplier_selected',
+      name: 'اختيار المورد',
+      description: 'يجب ترشيح واختيار المورد المناسب',
+      required: true,
+      checkTable: 'quotes',
+      checkField: 'status',
+    },
+  ],
+  
+  // من التنفيذ إلى الإغلاق (مسار الاستجابة السريعة)
+  execution_to_closed_quick: [
+    {
+      type: 'quick_response_report',
+      name: 'تقرير الاستجابة السريعة',
+      description: 'يجب رفع تقرير الاستجابة السريعة قبل إغلاق الطلب',
+      required: true,
+      checkTable: 'quick_response_reports',
+      checkField: 'requestId',
+    },
+  ],
+  
+  // من التنفيذ إلى الإغلاق (مسار المشروع)
+  execution_to_closed_project: [
+    {
+      type: 'contract_signed',
+      name: 'العقد الموقع',
+      description: 'يجب وجود عقد موقع مع المورد',
+      required: true,
+      checkTable: 'contracts',
+      checkField: 'projectId',
+    },
+    {
+      type: 'final_report',
+      name: 'التقرير الختامي',
+      description: 'يجب رفع التقرير الختامي للمشروع',
+      required: false,
+      checkTable: 'final_reports',
+      checkField: 'projectId',
+    },
+  ],
+};
+
+// دالة للحصول على الشروط المسبقة بناءً على المرحلة الحالية والتالية والمسار
+export function getPrerequisites(
+  currentStage: string,
+  nextStage: string,
+  requestTrack: string = 'standard'
+): StagePrerequisite[] {
+  const key = `${currentStage}_to_${nextStage}`;
+  
+  // التحقق من المسار للحالات الخاصة
+  if (currentStage === 'execution' && nextStage === 'closed') {
+    if (requestTrack === 'quick_response') {
+      return STAGE_PREREQUISITES['execution_to_closed_quick'] || [];
+    }
+    return STAGE_PREREQUISITES['execution_to_closed_project'] || [];
+  }
+  
+  if (currentStage === 'technical_eval' && nextStage === 'execution') {
+    return STAGE_PREREQUISITES['technical_eval_to_execution_quick'] || [];
+  }
+  
+  return STAGE_PREREQUISITES[key] || [];
+}
+
+// رسائل الخطأ للشروط المسبقة
+export const PREREQUISITE_ERROR_MESSAGES: Record<PrerequisiteType, string> = {
+  field_inspection_report: 'يجب رفع تقرير المعاينة الميدانية قبل الانتقال للمرحلة التالية',
+  quick_response_report: 'يجب رفع تقرير الاستجابة السريعة قبل إغلاق الطلب',
+  technical_eval_decision: 'يجب اتخاذ قرار التقييم الفني (أحد الخيارات الأربعة)',
+  boq_created: 'يجب إعداد جدول الكميات قبل الانتقال للتنفيذ',
+  quotes_received: 'يجب استلام عروض الأسعار من الموردين',
+  supplier_selected: 'يجب اختيار المورد المناسب من العروض المقدمة',
+  contract_signed: 'يجب توقيع العقد مع المورد قبل إغلاق المشروع',
+  final_report: 'يجب رفع التقرير الختامي للمشروع',
+  satisfaction_survey: 'يجب إكمال استبيان رضا المستفيد',
+};

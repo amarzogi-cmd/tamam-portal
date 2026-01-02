@@ -292,10 +292,13 @@ export default function RequestDetails() {
 
             {/* التبويبات */}
             <Tabs defaultValue="history" className="space-y-4">
-              <TabsList>
+              <TabsList className="flex-wrap h-auto gap-1">
                 <TabsTrigger value="history">سجل الطلب</TabsTrigger>
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
+                {(request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                  <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="history">
@@ -437,6 +440,85 @@ export default function RequestDetails() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* تبويب التقييم المالي */}
+              {(request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                <TabsContent value="financial">
+                  <div className="space-y-6">
+                    {/* جدول الكميات */}
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          جدول الكميات (BOQ)
+                        </CardTitle>
+                        <CardDescription>تفاصيل البنود والكميات المطلوبة</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
+                          <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground mb-4">لم يتم إعداد جدول الكميات بعد</p>
+                          <Button variant="outline" onClick={() => toast.info('سيتم إضافة هذه الميزة قريباً')}>
+                            <FileText className="w-4 h-4 ml-2" />
+                            إعداد جدول الكميات
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* عروض الأسعار */}
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="w-5 h-5" />
+                          عروض الأسعار
+                        </CardTitle>
+                        <CardDescription>العروض المقدمة من الموردين</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
+                          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground mb-4">لا توجد عروض أسعار حتى الآن</p>
+                          <Button variant="outline" onClick={() => toast.info('سيتم إضافة هذه الميزة قريباً')}>
+                            <Send className="w-4 h-4 ml-2" />
+                            طلب عروض أسعار
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* ملخص التكلفة */}
+                    <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-800">
+                          <CheckCircle2 className="w-5 h-5" />
+                          ملخص التكلفة
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="p-4 bg-white rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">تكلفة المواد</p>
+                            <p className="text-xl font-bold text-green-700">-</p>
+                          </div>
+                          <div className="p-4 bg-white rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">تكلفة العمالة</p>
+                            <p className="text-xl font-bold text-green-700">-</p>
+                          </div>
+                          <div className="p-4 bg-white rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
+                            <p className="text-xl font-bold text-green-700">-</p>
+                          </div>
+                          <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
+                            <p className="text-sm text-muted-foreground">الإجمالي</p>
+                            <p className="text-xl font-bold text-green-700">-</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
 
@@ -490,9 +572,11 @@ export default function RequestDetails() {
                   </>
                 )}
 
-                {(user?.role === "quick_response" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
+                {/* زر تقرير الاستجابة السريعة - يظهر فقط في مسار الاستجابة السريعة */}
+                {(user?.role === "quick_response" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office" || user?.role === "field_team") && (
                   <>
-                    {(request.programType === "enaya" || request.currentStage === "execution") && (
+                    {/* يظهر فقط إذا كان الطلب في مسار الاستجابة السريعة وفي مرحلة التنفيذ */}
+                    {request.requestTrack === "quick_response" && request.currentStage === "execution" && (
                       <Button 
                         className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
                         onClick={() => navigate(`/requests/${requestId}/quick-response`)}
@@ -500,6 +584,16 @@ export default function RequestDetails() {
                         <Zap className="w-4 h-4 ml-2" />
                         إنشاء تقرير الاستجابة السريعة
                       </Button>
+                    )}
+                    {/* رسالة توضيحية إذا كان الطلب في مسار الاستجابة السريعة ولكن ليس في مرحلة التنفيذ */}
+                    {request.requestTrack === "quick_response" && request.currentStage !== "execution" && request.currentStage !== "closed" && (
+                      <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <p className="text-sm text-orange-700 flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          هذا الطلب في مسار الاستجابة السريعة
+                        </p>
+                        <p className="text-xs text-orange-600 mt-1">سيتم تفعيل زر التقرير عند الوصول لمرحلة التنفيذ</p>
+                      </div>
                     )}
                   </>
                 )}
@@ -584,62 +678,109 @@ export default function RequestDetails() {
 
                       {/* الخيارات الأربعة للتقييم الفني */}
                       {request.currentStage === "technical_eval" && canTransition && (
-                        <div className="space-y-3">
-                          <p className="text-sm font-medium text-center text-muted-foreground">اتخاذ قرار التقييم الفني</p>
-                          
-                          {/* التحويل إلى مشروع */}
-                          <Button 
-                            className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                            onClick={() => {
-                              setSelectedDecision('convert_to_project');
-                              setShowTechnicalEvalDialog(true);
-                            }}
-                            disabled={technicalEvalMutation.isPending}
-                          >
-                            <FolderKanban className="w-4 h-4 ml-2" />
-                            التحويل إلى مشروع
-                          </Button>
+                        <div className="space-y-4">
+                          {/* عنوان القسم */}
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+                            <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center">
+                              <ClipboardList className="w-4 h-4 ml-2" />
+                              قرار التقييم الفني
+                            </h4>
+                            <p className="text-xs text-blue-600">اختر أحد الخيارات التالية بناءً على نتائج الدراسة الفنية</p>
+                          </div>
 
-                          {/* التحويل للاستجابة السريعة */}
-                          <Button 
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
-                            onClick={() => {
-                              setSelectedDecision('quick_response');
-                              setShowTechnicalEvalDialog(true);
-                            }}
-                            disabled={technicalEvalMutation.isPending}
-                          >
-                            <Zap className="w-4 h-4 ml-2" />
-                            التحويل إلى الاستجابة السريعة
-                          </Button>
+                          {/* الخيارات الإيجابية */}
+                          <div className="grid grid-cols-1 gap-3">
+                            {/* التحويل إلى مشروع */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('convert_to_project');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-green-500 rounded-lg text-white">
+                                  <FolderKanban className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-green-800">التحويل إلى مشروع</h5>
+                                  <p className="text-xs text-green-600 mt-1">للطلبات التي تحتاج تقييم مالي وعقود موردين</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-green-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
 
-                          {/* تعليق الطلب */}
-                          <Button 
-                            variant="outline"
-                            className="w-full border-amber-500 text-amber-600 hover:bg-amber-50" 
-                            onClick={() => {
-                              setSelectedDecision('suspend');
-                              setShowTechnicalEvalDialog(true);
-                            }}
-                            disabled={technicalEvalMutation.isPending}
-                          >
-                            <PauseCircle className="w-4 h-4 ml-2" />
-                            تعليق الطلب
-                          </Button>
+                            {/* التحويل للاستجابة السريعة */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('quick_response');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-purple-500 rounded-lg text-white">
+                                  <Zap className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-purple-800">التحويل إلى الاستجابة السريعة</h5>
+                                  <p className="text-xs text-purple-600 mt-1">للحالات البسيطة التي يمكن تنفيذها مباشرة</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
+                          </div>
 
-                          {/* الاعتذار عن الطلب */}
-                          <Button 
-                            variant="outline"
-                            className="w-full border-red-500 text-red-600 hover:bg-red-50" 
-                            onClick={() => {
-                              setSelectedDecision('apologize');
-                              setShowTechnicalEvalDialog(true);
-                            }}
-                            disabled={technicalEvalMutation.isPending}
-                          >
-                            <XCircle className="w-4 h-4 ml-2" />
-                            الاعتذار عن الطلب
-                          </Button>
+                          {/* فاصل */}
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-white px-2 text-gray-400">أو</span>
+                            </div>
+                          </div>
+
+                          {/* الخيارات الأخرى */}
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* تعليق الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('suspend');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <PauseCircle className="w-5 h-5 text-amber-600" />
+                                <div>
+                                  <h5 className="font-bold text-amber-800 text-sm">تعليق الطلب</h5>
+                                  <p className="text-xs text-amber-600">مع ذكر المبررات</p>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* الاعتذار عن الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('apologize');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-5 h-5 text-red-600" />
+                                <div>
+                                  <h5 className="font-bold text-red-800 text-sm">الاعتذار</h5>
+                                  <p className="text-xs text-red-600">رفض الطلب نهائياً</p>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
                         </div>
                       )}
 

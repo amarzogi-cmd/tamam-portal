@@ -23,6 +23,9 @@ import {
   STAGE_LABELS,
   TECHNICAL_EVAL_OPTIONS,
   TECHNICAL_EVAL_OPTION_LABELS,
+  getPrerequisites,
+  PREREQUISITE_ERROR_MESSAGES,
+  type PrerequisiteType,
 } from "@shared/constants";
 
 // دالة إنشاء رقم طلب فريد
@@ -359,6 +362,7 @@ export const requestsRouter = router({
       requestId: z.number(),
       newStage: z.enum(requestStages),
       notes: z.string().optional(),
+      skipPrerequisites: z.boolean().optional(), // للاستخدام في حالات خاصة فقط
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -370,6 +374,7 @@ export const requestsRouter = router({
       }
 
       const oldStage = request[0].currentStage;
+      const requestTrack = request[0].requestTrack || 'standard';
 
       // التحقق من صلاحية تحويل المرحلة حسب المرحلة الحالية والدور
       const allowedRoles = STAGE_TRANSITION_PERMISSIONS[oldStage] || [];
@@ -392,6 +397,46 @@ export const requestsRouter = router({
           code: "BAD_REQUEST", 
           message: "يمكن فقط التحويل للمرحلة التالية مباشرة" 
         });
+      }
+
+      // التحقق من الشروط المسبقة للانتقال (إذا لم يتم تجاوزها)
+      if (!input.skipPrerequisites) {
+        const prerequisites = getPrerequisites(oldStage, input.newStage, requestTrack);
+        const missingPrerequisites: string[] = [];
+
+        for (const prereq of prerequisites) {
+          if (!prereq.required) continue;
+
+          let isMet = false;
+
+          // التحقق من تقرير المعاينة الميدانية
+          if (prereq.type === 'field_inspection_report') {
+            const reports = await db.select().from(fieldVisitReports)
+              .where(eq(fieldVisitReports.requestId, input.requestId)).limit(1);
+            isMet = reports.length > 0;
+          }
+          // التحقق من تقرير الاستجابة السريعة
+          else if (prereq.type === 'quick_response_report') {
+            const reports = await db.select().from(quickResponseReports)
+              .where(eq(quickResponseReports.requestId, input.requestId)).limit(1);
+            isMet = reports.length > 0;
+          }
+          // التحقق من قرار التقييم الفني
+          else if (prereq.type === 'technical_eval_decision') {
+            isMet = !!request[0].technicalEvalDecision;
+          }
+
+          if (!isMet) {
+            missingPrerequisites.push(PREREQUISITE_ERROR_MESSAGES[prereq.type]);
+          }
+        }
+
+        if (missingPrerequisites.length > 0) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: `لا يمكن الانتقال للمرحلة التالية. الشروط المطلوبة:\n- ${missingPrerequisites.join('\n- ')}`,
+          });
+        }
       }
 
       await db.update(mosqueRequests).set({
@@ -831,6 +876,41 @@ export const requestsRouter = router({
         relatedType: "request",
         relatedId: input.requestId,
       });
+
+      // إرسال إشعارات للفريق المختص حسب المسار
+      if (input.decision === 'quick_response') {
+        // إشعار فريق الاستجابة السريعة
+        const quickResponseTeam = await db.select({ id: users.id })
+          .from(users)
+          .where(eq(users.role, 'quick_response'));
+        
+        for (const member of quickResponseTeam) {
+          await db.insert(notifications).values({
+            userId: member.id,
+            title: 'طلب جديد للاستجابة السريعة',
+            message: `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مسار الاستجابة السريعة`,
+            type: 'info',
+            relatedType: 'request',
+            relatedId: input.requestId,
+          });
+        }
+      } else if (input.decision === 'convert_to_project') {
+        // إشعار الإدارة المالية ومكتب المشاريع
+        const financialTeam = await db.select({ id: users.id })
+          .from(users)
+          .where(inArray(users.role, ['financial', 'projects_office']));
+        
+        for (const member of financialTeam) {
+          await db.insert(notifications).values({
+            userId: member.id,
+            title: 'مشروع جديد للتقييم المالي',
+            message: `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مشروع ويحتاج للتقييم المالي`,
+            type: 'info',
+            relatedType: 'request',
+            relatedId: input.requestId,
+          });
+        }
+      }
 
       return { 
         success: true, 
