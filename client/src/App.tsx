@@ -54,6 +54,9 @@ import ContractForm from "./pages/ContractForm";
 import ContractPreview from "./pages/ContractPreview";
 import FieldInspectionForm from "./pages/FieldInspectionForm";
 import QuickResponseReportForm from "./pages/QuickResponseReportForm";
+import BOQ from "./pages/BOQ";
+import Quotations from "./pages/Quotations";
+import FinancialApproval from "./pages/FinancialApproval";
 
 function Router() {
   return (
@@ -112,6 +115,11 @@ function Router() {
       <Route path="/contracts/new" component={ContractForm} />
       <Route path="/contracts/new/:projectId" component={ContractForm} />
       <Route path="/contracts/:id/preview" component={ContractPreview} />
+      
+      {/* التقييم المالي */}
+      <Route path="/boq" component={BOQ} />
+      <Route path="/quotations" component={Quotations} />
+      <Route path="/financial-approval" component={FinancialApproval} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

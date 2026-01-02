@@ -1,0 +1,528 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  Calculator,
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  FileText,
+  Loader2,
+  Building2,
+} from "lucide-react";
+
+// تصنيفات البنود
+const ITEM_CATEGORIES = [
+  { value: "construction", label: "أعمال إنشائية" },
+  { value: "electrical", label: "أعمال كهربائية" },
+  { value: "plumbing", label: "أعمال سباكة" },
+  { value: "hvac", label: "تكييف وتبريد" },
+  { value: "finishing", label: "تشطيبات" },
+  { value: "carpentry", label: "نجارة" },
+  { value: "painting", label: "دهانات" },
+  { value: "flooring", label: "أرضيات" },
+  { value: "other", label: "أخرى" },
+];
+
+// وحدات القياس
+const UNITS = [
+  { value: "m2", label: "متر مربع" },
+  { value: "m3", label: "متر مكعب" },
+  { value: "m", label: "متر طولي" },
+  { value: "unit", label: "وحدة" },
+  { value: "kg", label: "كيلوجرام" },
+  { value: "ton", label: "طن" },
+  { value: "lump_sum", label: "مقطوعية" },
+];
+
+export default function BOQ() {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string>("");
+  
+  // حالة النموذج
+  const [formData, setFormData] = useState({
+    category: "",
+    itemName: "",
+    description: "",
+    unit: "",
+    quantity: "",
+    unitPrice: "",
+  });
+
+  // جلب الطلبات في مرحلة التقييم المالي
+  const { data: requests } = trpc.requests.search.useQuery({
+    currentStage: "financial_eval",
+  });
+
+  // جلب جداول الكميات
+  const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
+    { projectId: parseInt(selectedRequestId) || 0 },
+    { enabled: !!selectedRequestId }
+  );
+  const boqData = boqResult?.items || [];
+
+  // إضافة بند
+  const addItemMutation = trpc.projects.addBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم إضافة البند بنجاح");
+      setShowAddDialog(false);
+      resetForm();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء إضافة البند");
+    },
+  });
+
+  // تعديل بند
+  const updateItemMutation = trpc.projects.updateBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم تعديل البند بنجاح");
+      setShowEditDialog(false);
+      setSelectedItem(null);
+      resetForm();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تعديل البند");
+    },
+  });
+
+  // حذف بند
+  const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف البند بنجاح");
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف البند");
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      category: "",
+      itemName: "",
+      description: "",
+      unit: "",
+      quantity: "",
+      unitPrice: "",
+    });
+  };
+
+  const handleAddItem = () => {
+    if (!selectedRequestId) {
+      toast.error("يرجى اختيار الطلب أولاً");
+      return;
+    }
+    addItemMutation.mutate({
+      projectId: parseInt(selectedRequestId),
+      category: formData.category,
+      itemName: formData.itemName,
+      itemDescription: formData.description,
+      unit: formData.unit,
+      quantity: parseFloat(formData.quantity),
+      unitPrice: parseFloat(formData.unitPrice),
+    });
+  };
+
+  const handleEditItem = () => {
+    if (!selectedItem) return;
+    updateItemMutation.mutate({
+      id: selectedItem.id,
+      category: formData.category,
+      itemName: formData.itemName,
+      itemDescription: formData.description,
+      unit: formData.unit,
+      quantity: parseFloat(formData.quantity),
+      unitPrice: parseFloat(formData.unitPrice),
+    });
+  };
+
+  const handleDeleteItem = (id: number) => {
+    if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+      deleteItemMutation.mutate({ id });
+    }
+  };
+
+  const openEditDialog = (item: any) => {
+    setSelectedItem(item);
+    setFormData({
+      category: item.category || "",
+      itemName: item.itemName || "",
+      description: item.description || "",
+      unit: item.unit || "",
+      quantity: item.quantity?.toString() || "",
+      unitPrice: item.unitPrice?.toString() || "",
+    });
+    setShowEditDialog(true);
+  };
+
+  // حساب الإجمالي
+  const totalAmount = boqResult?.total || 0;
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* العنوان */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">جداول الكميات (BOQ)</h1>
+            <p className="text-muted-foreground">إدارة جداول الكميات للطلبات والمشاريع</p>
+          </div>
+        </div>
+
+        {/* اختيار الطلب */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              اختيار الطلب
+            </CardTitle>
+            <CardDescription>اختر الطلب لعرض أو إنشاء جدول الكميات</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <Label>الطلب</Label>
+                <Select value={selectedRequestId} onValueChange={setSelectedRequestId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الطلب..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {requests?.requests?.map((request: any) => (
+                      <SelectItem key={request.id} value={request.id.toString()}>
+                        {request.requestNumber} - {request.mosqueName || "طلب جديد"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedRequestId && (
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة بند
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* جدول الكميات */}
+        {selectedRequestId && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                بنود جدول الكميات
+              </CardTitle>
+              <CardDescription>
+                إجمالي التكلفة: {totalAmount.toLocaleString("ar-SA")} ريال
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : boqData && boqData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>التصنيف</TableHead>
+                      <TableHead>البند</TableHead>
+                      <TableHead>الوحدة</TableHead>
+                      <TableHead>الكمية</TableHead>
+                      <TableHead>سعر الوحدة</TableHead>
+                      <TableHead>الإجمالي</TableHead>
+                      <TableHead>الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {boqData.map((item: any) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.itemName}</p>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {UNITS.find(u => u.value === item.unit)?.label || item.unit}
+                        </TableCell>
+                        <TableCell>{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
+                        <TableCell>{parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال</TableCell>
+                        <TableCell className="font-medium">
+                          {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString("ar-SA")} ريال
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteItem(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>لا توجد بنود في جدول الكميات</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setShowAddDialog(true)}
+                  >
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة أول بند
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dialog إضافة بند */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>إضافة بند جديد</DialogTitle>
+              <DialogDescription>أدخل تفاصيل البند المراد إضافته لجدول الكميات</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>التصنيف</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر التصنيف..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ITEM_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>اسم البند</Label>
+                <Input
+                  value={formData.itemName}
+                  onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                  placeholder="مثال: بلاط سيراميك"
+                />
+              </div>
+              <div>
+                <Label>الوصف (اختياري)</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="وصف تفصيلي للبند..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>الوحدة</Label>
+                  <Select
+                    value={formData.unit}
+                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الكمية</Label>
+                  <Input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>سعر الوحدة (ريال)</Label>
+                <Input
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={handleAddItem} disabled={addItemMutation.isPending}>
+                {addItemMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                إضافة
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog تعديل بند */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>تعديل البند</DialogTitle>
+              <DialogDescription>تعديل تفاصيل البند</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>التصنيف</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر التصنيف..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ITEM_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>اسم البند</Label>
+                <Input
+                  value={formData.itemName}
+                  onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>الوصف (اختياري)</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>الوحدة</Label>
+                  <Select
+                    value={formData.unit}
+                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الكمية</Label>
+                  <Input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>سعر الوحدة (ريال)</Label>
+                <Input
+                  type="number"
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={handleEditItem} disabled={updateItemMutation.isPending}>
+                {updateItemMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                حفظ التعديلات
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DashboardLayout>
+  );
+}

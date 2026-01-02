@@ -38,6 +38,10 @@ import {
   Palette,
   UserCog,
   ChevronDown,
+  Calculator,
+  Truck,
+  Receipt,
+  CheckSquare,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -66,6 +70,10 @@ const getMenuItems = (role: string) => {
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: "الطلبات", path: "/requests" },
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
+      { icon: Calculator, label: "جداول الكميات", path: "/boq" },
+      { icon: Truck, label: "الموردين", path: "/suppliers" },
+      { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+      { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
     );
   }
 
@@ -88,6 +96,10 @@ const getMenuItems = (role: string) => {
   // للإدارة المالية
   if (role === "financial") {
     items.push(
+      { icon: Calculator, label: "جداول الكميات", path: "/boq" },
+      { icon: Truck, label: "الموردين", path: "/suppliers" },
+      { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+      { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: Wallet, label: "الدفعات", path: "/payments" },
       { icon: BarChart3, label: "التقارير المالية", path: "/financial-reports" },
     );
