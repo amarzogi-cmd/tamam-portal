@@ -72,6 +72,7 @@ const getMenuItems = (role: string) => {
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
       { icon: Calculator, label: "جداول الكميات", path: "/boq" },
       { icon: Truck, label: "الموردين", path: "/suppliers" },
+      { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
     );
@@ -98,6 +99,7 @@ const getMenuItems = (role: string) => {
     items.push(
       { icon: Calculator, label: "جداول الكميات", path: "/boq" },
       { icon: Truck, label: "الموردين", path: "/suppliers" },
+      { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: Wallet, label: "الدفعات", path: "/payments" },

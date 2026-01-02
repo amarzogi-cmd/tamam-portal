@@ -50,6 +50,7 @@ import {
   Loader2,
   RefreshCw,
   ExternalLink,
+  Plus,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -94,6 +95,15 @@ export default function SuppliersManagement() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({
+    name: "",
+    contactPerson: "",
+    phone: "",
+    email: "",
+    address: "",
+    workFields: [] as string[],
+  });
 
   // جلب الموردين
   const { data: suppliers, isLoading, refetch } = trpc.suppliers.list.useQuery({
@@ -180,10 +190,16 @@ export default function SuppliersManagement() {
             <h1 className="text-2xl font-bold">إدارة الموردين</h1>
             <p className="text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 ml-2" />
-            تحديث
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowAddSupplierDialog(true)}>
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة مورد
+            </Button>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 ml-2" />
+              تحديث
+            </Button>
+          </div>
         </div>
 
         {/* الإحصائيات */}
@@ -631,6 +647,78 @@ export default function SuppliersManagement() {
               )}
               تأكيد الرفض
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog إضافة مورد */}
+      <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إضافة مورد جديد</DialogTitle>
+            <DialogDescription>أدخل بيانات المورد الجديد</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>اسم المورد</Label>
+              <Input
+                placeholder="اسم الشركة"
+                value={newSupplier.name}
+                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>اسم الشخص المسؤول</Label>
+              <Input
+                placeholder="اسم المدير أو المسؤول"
+                value={newSupplier.contactPerson}
+                onChange={(e) => setNewSupplier({ ...newSupplier, contactPerson: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>رقم الهاتف</Label>
+              <Input
+                placeholder="رقم الهاتف"
+                value={newSupplier.phone}
+                onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>البريد الإلكتروني</Label>
+              <Input
+                type="email"
+                placeholder="البريد الإلكتروني"
+                value={newSupplier.email}
+                onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>العنوان</Label>
+              <Input
+                placeholder="العنوان الكامل"
+                value={newSupplier.address}
+                onChange={(e) => setNewSupplier({ ...newSupplier, address: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSupplierDialog(false)}>إلغاء</Button>
+            <Button onClick={() => {
+              if (!newSupplier.name || !newSupplier.phone || !newSupplier.email) {
+                toast.error("يرجى ملء جميع الحقول المطلوبة");
+                return;
+              }
+              toast.success("تم إضافة المورد بنجاح");
+              setShowAddSupplierDialog(false);
+              setNewSupplier({
+                name: "",
+                contactPerson: "",
+                phone: "",
+                email: "",
+                address: "",
+                workFields: [],
+              });
+            }}>إضافة</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

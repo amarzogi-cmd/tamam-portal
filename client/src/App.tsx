@@ -57,6 +57,7 @@ import QuickResponseReportForm from "./pages/QuickResponseReportForm";
 import BOQ from "./pages/BOQ";
 import Quotations from "./pages/Quotations";
 import FinancialApproval from "./pages/FinancialApproval";
+import CategoriesManagement from "./pages/CategoriesManagement";
 
 function Router() {
   return (
@@ -120,6 +121,9 @@ function Router() {
       <Route path="/boq" component={BOQ} />
       <Route path="/quotations" component={Quotations} />
       <Route path="/financial-approval" component={FinancialApproval} />
+      
+      {/* إدارة التصنيفات */}
+      <Route path="/categories" component={CategoriesManagement} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />
