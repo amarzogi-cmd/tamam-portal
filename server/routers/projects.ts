@@ -310,6 +310,8 @@ export const projectsRouter = router({
     .input(z.object({
       projectId: z.number(),
       requestId: z.number().optional(),
+      boqCode: z.string().optional(),
+      boqName: z.string().optional(),
       itemName: z.string().min(1),
       itemDescription: z.string().optional(),
       unit: z.string().min(1),
@@ -326,6 +328,8 @@ export const projectsRouter = router({
       const [item] = await db.insert(quantitySchedules).values({
         projectId: input.projectId,
         requestId: input.requestId,
+        boqCode: input.boqCode,
+        boqName: input.boqName,
         itemName: input.itemName,
         itemDescription: input.itemDescription,
         unit: input.unit,
