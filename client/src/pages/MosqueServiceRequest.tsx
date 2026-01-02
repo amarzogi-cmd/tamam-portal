@@ -104,8 +104,8 @@ export default function MosqueServiceRequest() {
   // mutation لإنشاء الطلب
   const createRequest = trpc.requests.create.useMutation({
     onSuccess: (data) => {
-      toast.success("تم تقديم طلبك بنجاح!");
-      navigate(`/requester/requests/${data.requestId}`);
+      toast.success(`تم تقديم طلبك بنجاح! رقم الطلب: ${data.requestNumber}`);
+      navigate(`/requests/${data.requestId}`);
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تقديم الطلب");
@@ -206,7 +206,7 @@ export default function MosqueServiceRequest() {
 
     try {
       await createRequest.mutateAsync({
-        mosqueId: selectedMosque ?? 0,
+        mosqueId: selectedService === "bunyan" ? null : selectedMosque,
         programType: programTypeMap[selectedService!] as "bunyan" | "daaem" | "enaya" | "emdad" | "ethraa" | "sedana" | "taqa" | "miyah" | "suqya",
         programData,
       });

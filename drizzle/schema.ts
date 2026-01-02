@@ -160,7 +160,7 @@ export const mosqueImages = mysqlTable("mosque_images", {
 export const mosqueRequests = mysqlTable("mosque_requests", {
   id: int("id").autoincrement().primaryKey(),
   requestNumber: varchar("requestNumber", { length: 50 }).notNull().unique(),
-  mosqueId: int("mosqueId").notNull().references(() => mosques.id),
+  mosqueId: int("mosqueId").references(() => mosques.id), // nullable لبرنامج بنيان
   userId: int("userId").notNull().references(() => users.id),
   programType: mysqlEnum("programType", programTypes).notNull(),
   currentStage: mysqlEnum("currentStage", requestStages).default("submitted").notNull(),

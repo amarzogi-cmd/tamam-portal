@@ -69,6 +69,7 @@ function Router() {
       <Route path="/requests/new" component={RequestForm} />
       <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:id/edit" component={RequestForm} />
+      <Route path="/requester/requests/:id" component={RequestDetails} />
       
       {/* المستخدمون */}
       <Route path="/users" component={Users} />

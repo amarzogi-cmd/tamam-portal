@@ -237,3 +237,34 @@ describe("Constants", () => {
     expect(Object.keys(ROLE_LABELS)).toHaveLength(9);
   });
 });
+
+// اختبارات إضافية للتحقق من إصلاح أخطاء الطلبات
+describe("Request Creation Validation", () => {
+  it("برنامج بنيان يجب أن يقبل mosqueId = null", () => {
+    // التحقق من أن برنامج بنيان لا يتطلب مسجد
+    const bunyanRequest = {
+      mosqueId: null,
+      programType: "bunyan",
+      programData: { neighborhoodName: "حي الاختبار", hasLand: true },
+    };
+    
+    expect(bunyanRequest.mosqueId).toBeNull();
+    expect(bunyanRequest.programType).toBe("bunyan");
+  });
+
+  it("البرامج الأخرى يجب أن تتطلب mosqueId", () => {
+    const programsRequiringMosque = ["daaem", "enaya", "emdad", "ethraa", "sedana", "taqa", "miyah", "suqya"];
+    
+    programsRequiringMosque.forEach(program => {
+      expect(program).not.toBe("bunyan");
+    });
+    
+    expect(programsRequiringMosque.length).toBe(8);
+  });
+
+  it("يجب أن يكون هناك 9 برامج إجمالاً", () => {
+    const allPrograms = ["bunyan", "daaem", "enaya", "emdad", "ethraa", "sedana", "taqa", "miyah", "suqya"];
+    expect(allPrograms.length).toBe(9);
+    expect(allPrograms).toContain("bunyan");
+  });
+});

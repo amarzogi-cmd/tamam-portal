@@ -15,6 +15,13 @@
       "when": 1767357107650,
       "tag": "0001_wooden_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1767364791520,
+      "tag": "0002_serious_sally_floyd",
+      "breakpoints": true
     }
   ]
 }

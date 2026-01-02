@@ -46,7 +46,7 @@ const requestStatuses = [
 
 // مخطط إنشاء طلب جديد
 const createRequestSchema = z.object({
-  mosqueId: z.number(),
+  mosqueId: z.number().optional().nullable(), // اختياري لبرنامج بنيان
   programType: z.enum(programTypes),
   priority: z.enum(["urgent", "medium", "normal"]).default("normal"),
   programData: z.record(z.string(), z.any()).optional(),
@@ -74,14 +74,23 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من وجود المسجد
-      const mosque = await db.select().from(mosques).where(eq(mosques.id, input.mosqueId)).limit(1);
-      if (mosque.length === 0) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      // التحقق من وجود المسجد (برنامج بنيان لا يتطلب مسجد)
+      let mosqueData = null;
+      if (input.programType !== "bunyan") {
+        // البرامج الأخرى تتطلب مسجد موجود
+        if (!input.mosqueId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "يجب اختيار مسجد لهذا البرنامج" });
+        }
+        const mosque = await db.select().from(mosques).where(eq(mosques.id, input.mosqueId)).limit(1);
+        if (mosque.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+        }
+        mosqueData = mosque[0];
       }
+      // برنامج بنيان - لا يتطلب مسجد موجود
 
-      // التحقق من اعتماد المسجد
-      if (mosque[0].approvalStatus !== "approved" && ctx.user.role === "service_requester") {
+      // التحقق من اعتماد المسجد (فقط إذا كان البرنامج يتطلب مسجد)
+      if (mosqueData && mosqueData.approvalStatus !== "approved" && ctx.user.role === "service_requester") {
         throw new TRPCError({ code: "FORBIDDEN", message: "المسجد غير معتمد بعد" });
       }
 
@@ -90,7 +99,7 @@ export const requestsRouter = router({
 
       const result = await db.insert(mosqueRequests).values({
         requestNumber,
-        mosqueId: input.mosqueId,
+        mosqueId: input.programType === "bunyan" ? null : input.mosqueId,
         userId: ctx.user.id,
         programType: input.programType,
         currentStage: "submitted",
@@ -159,8 +168,12 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
-      // الحصول على بيانات المسجد
-      const mosque = await db.select().from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1);
+      // الحصول على بيانات المسجد (قد يكون null في حالة برنامج بنيان)
+      let mosque: typeof mosques.$inferSelect | null = null;
+      if (request.mosqueId) {
+        const mosqueResult = await db.select().from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1);
+        mosque = mosqueResult[0] || null;
+      }
 
       // الحصول على بيانات مقدم الطلب
       const requester = await db.select({
@@ -214,7 +227,7 @@ export const requestsRouter = router({
 
       return {
         ...request,
-        mosque: mosque[0] || null,
+        mosque: mosque,
         requester: requester[0] || null,
         attachments,
         comments,
