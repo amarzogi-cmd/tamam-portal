@@ -1,6 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Building2, 
   Hammer, 
@@ -20,17 +20,17 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
-// البرامج التسعة
-const programs = [
-  { key: "bunyan", name: "بنيان", description: "بناء مسجد جديد", icon: Building2, color: "bg-[#1E40AF]" },
-  { key: "daaem", name: "دعائم", description: "استكمال المساجد المتعثرة", icon: Hammer, color: "bg-[#7C3AED]" },
-  { key: "enaya", name: "عناية", description: "الصيانة والترميم", icon: Wrench, color: "bg-[#059669]" },
-  { key: "emdad", name: "إمداد", description: "توفير تجهيزات المساجد", icon: Package, color: "bg-[#D97706]" },
-  { key: "ethraa", name: "إثراء", description: "سداد فواتير الخدمات", icon: Receipt, color: "bg-[#DC2626]" },
-  { key: "sedana", name: "سدانة", description: "خدمات التشغيل والنظافة", icon: Sparkles, color: "bg-[#0891B2]" },
-  { key: "taqa", name: "طاقة", description: "الطاقة الشمسية", icon: Sun, color: "bg-[#F59E0B]" },
-  { key: "miyah", name: "مياه", description: "أنظمة المياه", icon: Droplets, color: "bg-[#0284C7]" },
-  { key: "suqya", name: "سقيا", description: "توفير ماء الشرب", icon: GlassWater, color: "bg-[#06B6D4]" },
+// خدمات المساجد التسعة
+const services = [
+  { key: "bunyan", name: "بنيان", description: "بناء مسجد جديد", icon: Building2, color: "bg-emerald-500" },
+  { key: "daaem", name: "دعائم", description: "استكمال المساجد المتعثرة", icon: Hammer, color: "bg-blue-500" },
+  { key: "enaya", name: "عناية", description: "الصيانة والترميم", icon: Wrench, color: "bg-orange-500" },
+  { key: "emdad", name: "إمداد", description: "توفير تجهيزات المساجد", icon: Package, color: "bg-purple-500" },
+  { key: "ethraa", name: "إثراء", description: "سداد فواتير الخدمات", icon: Receipt, color: "bg-pink-500" },
+  { key: "sedana", name: "سدانة", description: "خدمات التشغيل والنظافة", icon: Sparkles, color: "bg-cyan-500" },
+  { key: "taqa", name: "طاقة", description: "الطاقة الشمسية", icon: Sun, color: "bg-yellow-500" },
+  { key: "miyah", name: "مياه", description: "أنظمة المياه", icon: Droplets, color: "bg-sky-500" },
+  { key: "suqya", name: "سقيا", description: "توفير ماء الشرب", icon: GlassWater, color: "bg-teal-500" },
 ];
 
 // الإحصائيات
@@ -42,7 +42,7 @@ const stats = [
 ];
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,7 +61,7 @@ export default function Home() {
             </div>
             
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#programs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">البرامج</a>
+              <a href="#services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">خدمات المساجد</a>
               <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">عن البوابة</a>
               <a href="#contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">تواصل معنا</a>
             </nav>
@@ -101,9 +101,9 @@ export default function Home() {
               منصة متكاملة لإدارة خدمات المساجد من خلال تسعة برامج متخصصة تغطي جميع احتياجات بيوت الله
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 px-8">
-                  قدم طلبك الآن
+              <Link href={isAuthenticated ? "/service-request" : "/login"}>
+                <Button size="lg" className="bg-white text-primary hover:bg-white/90 px-8 text-lg font-semibold">
+                  تقدم بطلبك الآن
                   <ArrowLeft className="w-5 h-5 mr-2" />
                 </Button>
               </Link>
@@ -142,42 +142,45 @@ export default function Home() {
         </div>
       </section>
 
-      {/* قسم البرامج */}
-      <section id="programs" className="py-16 lg:py-24 bg-muted/30">
+      {/* قسم خدمات المساجد */}
+      <section id="services" className="py-16 lg:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">البرامج التسعة</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">خدمات المساجد</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              تسعة برامج متخصصة تغطي جميع احتياجات المساجد من البناء والصيانة إلى التشغيل والخدمات
+              تسعة خدمات متخصصة تغطي جميع احتياجات المساجد من البناء والصيانة إلى التشغيل والخدمات
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {programs.map((program) => (
-              <Card key={program.key} className="card-hover border-0 shadow-sm overflow-hidden">
-                <CardHeader className={`${program.color} text-white pb-4`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                      <program.icon className="w-6 h-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            {services.map((service) => (
+              <Card key={service.key} className="card-hover border-0 shadow-sm overflow-hidden group">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-14 h-14 rounded-xl ${service.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                      <service.icon className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">{program.name}</CardTitle>
+                      <h3 className="text-xl font-bold text-foreground mb-1">{service.name}</h3>
+                      <p className="text-muted-foreground">{service.description}</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <CardDescription className="text-base text-foreground/80">
-                    {program.description}
-                  </CardDescription>
-                  <Link href={isAuthenticated ? `/requests/new?program=${program.key}` : "/login"}>
-                    <Button variant="ghost" className="mt-4 text-primary hover:text-primary/80 p-0">
-                      تقديم طلب
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                    </Button>
-                  </Link>
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* زر تقديم الطلب الموحد */}
+          <div className="text-center">
+            <Link href={isAuthenticated ? "/service-request" : "/login"}>
+              <Button size="lg" className="gradient-primary text-white px-12 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow">
+                تقدم بطلبك الآن
+                <ArrowLeft className="w-6 h-6 mr-2" />
+              </Button>
+            </Link>
+            <p className="text-sm text-muted-foreground mt-4">
+              اختر الخدمة المناسبة من داخل النموذج الموحد
+            </p>
           </div>
         </div>
       </section>
@@ -196,7 +199,7 @@ export default function Home() {
             {[
               { step: 1, title: "إنشاء حساب", description: "سجل في البوابة وأنشئ حسابك الخاص" },
               { step: 2, title: "تسجيل المسجد", description: "أضف بيانات المسجد وموقعه على الخريطة" },
-              { step: 3, title: "تقديم الطلب", description: "اختر البرنامج المناسب وقدم طلبك" },
+              { step: 3, title: "تقديم الطلب", description: "اختر الخدمة المناسبة وقدم طلبك" },
               { step: 4, title: "متابعة الطلب", description: "تابع حالة طلبك عبر المراحل السبع" },
             ].map((item, index) => (
               <div key={index} className="text-center">
@@ -256,7 +259,7 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">روابط سريعة</h4>
               <ul className="space-y-2 text-sm opacity-70">
-                <li><a href="#programs" className="hover:opacity-100 transition-opacity">البرامج</a></li>
+                <li><a href="#services" className="hover:opacity-100 transition-opacity">خدمات المساجد</a></li>
                 <li><a href="#about" className="hover:opacity-100 transition-opacity">عن البوابة</a></li>
                 <li><Link href="/login" className="hover:opacity-100 transition-opacity">تسجيل الدخول</Link></li>
                 <li><Link href="/register" className="hover:opacity-100 transition-opacity">إنشاء حساب</Link></li>
@@ -264,11 +267,11 @@ export default function Home() {
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">البرامج</h4>
+              <h4 className="font-semibold mb-4">الخدمات</h4>
               <ul className="space-y-2 text-sm opacity-70">
-                {programs.slice(0, 5).map((program) => (
-                  <li key={program.key}>
-                    <span className="hover:opacity-100 transition-opacity cursor-pointer">{program.name}</span>
+                {services.slice(0, 5).map((service) => (
+                  <li key={service.key}>
+                    <span className="hover:opacity-100 transition-opacity cursor-pointer">{service.name}</span>
                   </li>
                 ))}
               </ul>

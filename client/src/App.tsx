@@ -25,6 +25,7 @@ import Requests from "./pages/Requests";
 import RequestDetails from "./pages/RequestDetails";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
+import MosqueServiceRequest from "./pages/MosqueServiceRequest";
 
 // صفحات المستخدمين
 import Users from "./pages/Users";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/track" component={TrackRequest} />
+      <Route path="/service-request" component={MosqueServiceRequest} />
       
       {/* لوحات التحكم */}
       <Route path="/dashboard" component={Dashboard} />
