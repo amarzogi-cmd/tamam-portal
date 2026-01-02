@@ -373,20 +373,94 @@ export const donations = mysqlTable("donations", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// الموردين والمقاولين
+// أنواع الكيانات
+export const entityTypes = [
+  "company",          // شركة
+  "establishment",    // مؤسسة
+] as const;
+
+// حالات اعتماد المورد
+export const supplierApprovalStatuses = [
+  "pending",          // قيد المراجعة
+  "approved",         // معتمد
+  "rejected",         // مرفوض
+  "suspended",        // موقوف
+] as const;
+
+// مجالات العمل
+export const workFields = [
+  "construction",           // بناء وتشييد
+  "engineering_consulting", // استشارات هندسية
+  "electrical",             // أعمال كهربائية
+  "plumbing",               // أعمال سباكة
+  "hvac",                   // تكييف وتبريد
+  "finishing",              // تشطيبات
+  "carpentry",              // نجارة
+  "aluminum",               // ألمنيوم
+  "painting",               // دهانات
+  "flooring",               // أرضيات
+  "landscaping",            // تنسيق حدائق
+  "cleaning",               // نظافة
+  "maintenance",            // صيانة
+  "security_systems",       // أنظمة أمنية
+  "sound_systems",          // أنظمة صوتية
+  "solar_energy",           // طاقة شمسية
+  "water_systems",          // أنظمة مياه
+  "furniture",              // أثاث
+  "carpets",                // سجاد
+  "supplies",               // توريدات
+  "other",                  // أخرى
+] as const;
+
+// الموردين والمقاولين - الجدول المحسن
 export const suppliers = mysqlTable("suppliers", {
   id: int("id").autoincrement().primaryKey(),
+  
+  // ==================== الصفحة 1: معلومات الكيان ====================
   name: varchar("name", { length: 255 }).notNull(),
   type: mysqlEnum("type", ["contractor", "supplier", "service_provider"]).default("supplier"),
-  contactPerson: varchar("contactPerson", { length: 255 }),
-  phone: varchar("phone", { length: 20 }),
-  email: varchar("email", { length: 320 }),
+  entityType: mysqlEnum("entityType", entityTypes).default("establishment"),
+  commercialRegister: varchar("commercialRegister", { length: 50 }).notNull(),
+  commercialActivity: varchar("commercialActivity", { length: 500 }), // النشاط حسب السجل
+  yearsOfExperience: int("yearsOfExperience"), // عدد سنوات الخبرة
+  workFields: json("workFields").$type<string[]>(), // مجالات العمل
+  
+  // ==================== الصفحة 2: معلومات التواصل ====================
   address: text("address"),
-  commercialRegister: varchar("commercialRegister", { length: 50 }),
+  city: varchar("city", { length: 100 }),
+  googleMapsUrl: varchar("googleMapsUrl", { length: 500 }), // موقع الكيان على خرائط Google
+  googleMapsLat: decimal("googleMapsLat", { precision: 10, scale: 7 }),
+  googleMapsLng: decimal("googleMapsLng", { precision: 10, scale: 7 }),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  phoneSecondary: varchar("phoneSecondary", { length: 20 }),
+  contactPerson: varchar("contactPerson", { length: 255 }).notNull(), // اسم مسؤول التواصل
+  contactPersonTitle: varchar("contactPersonTitle", { length: 100 }), // وظيفته في الكيان
+  
+  // ==================== الصفحة 3: معلومات الحساب البنكي ====================
+  bankAccountName: varchar("bankAccountName", { length: 255 }),
+  bankName: varchar("bankName", { length: 255 }),
+  iban: varchar("iban", { length: 50 }),
   taxNumber: varchar("taxNumber", { length: 50 }),
-  rating: int("rating"), // 1-5
+  
+  // ==================== الصفحة 4: المرفقات ====================
+  commercialRegisterDoc: varchar("commercialRegisterDoc", { length: 500 }), // إرفاق السجل التجاري
+  vatCertificateDoc: varchar("vatCertificateDoc", { length: 500 }), // شهادة ضريبة القيمة المضافة
+  nationalAddressDoc: varchar("nationalAddressDoc", { length: 500 }), // العنوان الوطني
+  
+  // ==================== بيانات الاعتماد ====================
+  approvalStatus: mysqlEnum("approvalStatus", supplierApprovalStatuses).default("pending"),
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvedAt: timestamp("approvedAt"),
+  rejectionReason: text("rejectionReason"),
+  
+  // ==================== بيانات إضافية ====================
   status: mysqlEnum("status", ["active", "inactive", "blacklisted"]).default("active"),
+  rating: int("rating"), // 1-5
   notes: text("notes"),
+  
+  // ==================== المنشئ والتواريخ ====================
+  createdBy: int("createdBy").references(() => users.id),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -534,6 +608,158 @@ export const partners = mysqlTable("partners", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// ==================== إعدادات الجمعية ====================
+
+// إعدادات الجمعية (الطرف الأول في العقود)
+export const organizationSettings = mysqlTable("organization_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationName: varchar("organizationName", { length: 255 }).notNull(),
+  organizationNameShort: varchar("organizationNameShort", { length: 100 }),
+  licenseNumber: varchar("licenseNumber", { length: 50 }),
+  authorizedSignatory: varchar("authorizedSignatory", { length: 255 }),
+  signatoryTitle: varchar("signatoryTitle", { length: 100 }),
+  signatoryPhone: varchar("signatoryPhone", { length: 20 }),
+  signatoryEmail: varchar("signatoryEmail", { length: 320 }),
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  website: varchar("website", { length: 255 }),
+  logoUrl: varchar("logoUrl", { length: 500 }),
+  stampUrl: varchar("stampUrl", { length: 500 }),
+  // البيانات البنكية
+  bankName: varchar("bankName", { length: 100 }),
+  bankAccountName: varchar("bankAccountName", { length: 255 }),
+  iban: varchar("iban", { length: 34 }),
+  // إعدادات العقود
+  contractPrefix: varchar("contractPrefix", { length: 10 }).default("CON"),
+  contractFooterText: text("contractFooterText"),
+  contractTermsAndConditions: text("contractTermsAndConditions"),
+  updatedBy: int("updatedBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// أنواع العقود
+export const contractTypes = [
+  "supervision",      // إشراف هندسي
+  "construction",     // مقاولات
+  "supply",           // توريد
+  "maintenance",      // صيانة
+  "consulting",       // استشارات
+] as const;
+
+// حالات العقد الموسعة
+export const contractStatuses = [
+  "draft",            // مسودة
+  "pending_approval", // بانتظار الاعتماد
+  "approved",         // معتمد
+  "active",           // نشط
+  "completed",        // مكتمل
+  "terminated",       // منتهي
+  "cancelled",        // ملغي
+] as const;
+
+// وحدات المدة
+export const durationUnits = [
+  "days",             // أيام
+  "weeks",            // أسابيع
+  "months",           // شهور
+] as const;
+
+// جدول العقود المحسن
+export const contractsEnhanced = mysqlTable("contracts_enhanced", {
+  id: int("id").autoincrement().primaryKey(),
+  contractNumber: varchar("contractNumber", { length: 50 }).notNull().unique(),
+  contractYear: int("contractYear").notNull(),
+  contractSequence: int("contractSequence").notNull(),
+  
+  // نوع العقد
+  contractType: mysqlEnum("contractType", contractTypes).notNull(),
+  contractTitle: varchar("contractTitle", { length: 500 }).notNull(),
+  
+  // الربط بالمشروع والطلب
+  projectId: int("projectId").references(() => projects.id),
+  requestId: int("requestId").references(() => mosqueRequests.id),
+  
+  // بيانات الطرف الثاني (المقاول/المكتب الهندسي)
+  supplierId: int("supplierId").references(() => suppliers.id),
+  secondPartyName: varchar("secondPartyName", { length: 255 }).notNull(),
+  secondPartyCommercialRegister: varchar("secondPartyCommercialRegister", { length: 50 }),
+  secondPartyRepresentative: varchar("secondPartyRepresentative", { length: 255 }),
+  secondPartyTitle: varchar("secondPartyTitle", { length: 100 }),
+  secondPartyAddress: text("secondPartyAddress"),
+  secondPartyPhone: varchar("secondPartyPhone", { length: 20 }),
+  secondPartyEmail: varchar("secondPartyEmail", { length: 320 }),
+  secondPartyBankName: varchar("secondPartyBankName", { length: 255 }),
+  secondPartyIban: varchar("secondPartyIban", { length: 50 }),
+  secondPartyAccountName: varchar("secondPartyAccountName", { length: 255 }),
+  
+  // بيانات المسجد/المشروع
+  mosqueName: varchar("mosqueName", { length: 255 }),
+  mosqueNeighborhood: varchar("mosqueNeighborhood", { length: 255 }),
+  mosqueCity: varchar("mosqueCity", { length: 100 }),
+  
+  // قيمة العقد
+  contractAmount: decimal("contractAmount", { precision: 15, scale: 2 }).notNull(),
+  contractAmountText: varchar("contractAmountText", { length: 500 }),
+  
+  // مدة العقد
+  duration: int("duration").notNull(),
+  durationUnit: mysqlEnum("durationUnit", durationUnits).default("months"),
+  
+  // التواريخ
+  contractDate: timestamp("contractDate"),
+  contractDateHijri: varchar("contractDateHijri", { length: 50 }),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  
+  // الحالة
+  status: mysqlEnum("status", contractStatuses).default("draft"),
+  
+  // البنود الإضافية (قابلة للتخصيص)
+  customTerms: text("customTerms"),
+  customNotifications: text("customNotifications"),
+  customGeneralTerms: text("customGeneralTerms"),
+  
+  // الملفات
+  documentUrl: varchar("documentUrl", { length: 500 }),
+  signedDocumentUrl: varchar("signedDocumentUrl", { length: 500 }),
+  
+  // الاعتماد
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvedAt: timestamp("approvedAt"),
+  
+  // المنشئ
+  createdBy: int("createdBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول دفعات العقد
+export const contractPayments = mysqlTable("contract_payments", {
+  id: int("id").autoincrement().primaryKey(),
+  contractId: int("contractId").notNull().references(() => contractsEnhanced.id),
+  phaseName: varchar("phaseName", { length: 255 }).notNull(),
+  phaseOrder: int("phaseOrder").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  dueDate: timestamp("dueDate"),
+  status: mysqlEnum("status", ["pending", "due", "paid"]).default("pending"),
+  paidAt: timestamp("paidAt"),
+  paidBy: int("paidBy").references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// سجل ترقيم العقود
+export const contractNumberSequence = mysqlTable("contract_number_sequence", {
+  id: int("id").autoincrement().primaryKey(),
+  year: int("year").notNull().unique(),
+  lastSequence: int("lastSequence").notNull().default(0),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // ==================== جداول التدقيق ====================
 
 export const auditLogs = mysqlTable("audit_logs", {
@@ -622,6 +848,15 @@ export type BrandColor = typeof brandColors.$inferSelect;
 export type HomepageCustomization = typeof homepageCustomization.$inferSelect;
 export type Partner = typeof partners.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type OrganizationSettings = typeof organizationSettings.$inferSelect;
+export type ContractEnhanced = typeof contractsEnhanced.$inferSelect;
+export type ContractPayment = typeof contractPayments.$inferSelect;
+export type ContractType = typeof contractTypes[number];
+export type ContractStatus = typeof contractStatuses[number];
+export type DurationUnit = typeof durationUnits[number];
+export type EntityType = typeof entityTypes[number];
+export type SupplierApprovalStatus = typeof supplierApprovalStatuses[number];
+export type WorkField = typeof workFields[number];
 
 // تصدير الثوابت
 export type UserRole = typeof userRoles[number];

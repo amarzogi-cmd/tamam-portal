@@ -8,6 +8,8 @@ import { requestsRouter } from "./routers/requests";
 import { notificationsRouter } from "./routers/notifications";
 import { storageRouter } from "./routers/storage";
 import { projectsRouter } from "./routers/projects";
+import { suppliersRouter } from "./routers/suppliers";
+import { contractsRouter } from "./routers/contracts";
 
 export const appRouter = router({
   system: systemRouter,
@@ -29,6 +31,12 @@ export const appRouter = router({
   
   // إدارة المشاريع
   projects: projectsRouter,
+  
+  // إدارة الموردين
+  suppliers: suppliersRouter,
+  
+  // إدارة العقود
+  contracts: contractsRouter,
 });
 
 export type AppRouter = typeof appRouter;

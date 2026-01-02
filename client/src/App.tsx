@@ -46,6 +46,13 @@ import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import Reports from "./pages/Reports";
 
+// صفحات الموردين
+import SupplierRegistration from "./pages/SupplierRegistration";
+import SuppliersManagement from "./pages/SuppliersManagement";
+import OrganizationSettings from "./pages/OrganizationSettings";
+import ContractForm from "./pages/ContractForm";
+import ContractPreview from "./pages/ContractPreview";
+
 function Router() {
   return (
     <Switch>
@@ -92,6 +99,15 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/reports" component={Reports} />
+      
+      {/* الموردين */}
+      <Route path="/supplier/register" component={SupplierRegistration} />
+      <Route path="/supplier/dashboard" component={RequesterDashboard} />
+      <Route path="/suppliers" component={SuppliersManagement} />
+      <Route path="/organization-settings" component={OrganizationSettings} />
+      <Route path="/contracts/new" component={ContractForm} />
+      <Route path="/contracts/new/:projectId" component={ContractForm} />
+      <Route path="/contracts/:id/preview" component={ContractPreview} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

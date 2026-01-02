@@ -633,11 +633,11 @@ export const projectsRouter = router({
     .input(z.object({
       name: z.string().min(1),
       type: z.enum(["contractor", "supplier", "service_provider"]),
-      contactPerson: z.string().optional(),
-      phone: z.string().optional(),
-      email: z.string().email().optional(),
+      contactPerson: z.string().min(1),
+      phone: z.string().min(1),
+      email: z.string().email(),
+      commercialRegister: z.string().min(1),
       address: z.string().optional(),
-      commercialRegister: z.string().optional(),
       taxNumber: z.string().optional(),
       notes: z.string().optional(),
     }))
@@ -646,7 +646,15 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const [supplier] = await db.insert(suppliers).values({
-        ...input,
+        name: input.name,
+        type: input.type,
+        contactPerson: input.contactPerson,
+        phone: input.phone,
+        email: input.email,
+        commercialRegister: input.commercialRegister,
+        address: input.address,
+        taxNumber: input.taxNumber,
+        notes: input.notes,
         status: "active",
       });
 
