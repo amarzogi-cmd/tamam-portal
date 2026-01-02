@@ -231,7 +231,7 @@ export default function MosqueDetails() {
                   <CardContent className="p-8 text-center">
                     <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">لا توجد طلبات لهذا المسجد</p>
-                    <Link href={`/requests/new?mosqueId=${mosque.id}`}>
+                    <Link href={`/service-request?mosqueId=${mosque.id}`}>
                       <Button className="mt-4 gradient-primary text-white">تقديم طلب جديد</Button>
                     </Link>
                   </CardContent>
@@ -292,7 +292,7 @@ export default function MosqueDetails() {
                 <CardTitle>الإجراءات</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link href={`/requests/new?mosqueId=${mosque.id}`}>
+                <Link href={`/service-request?mosqueId=${mosque.id}`}>
                   <Button className="w-full gradient-primary text-white">
                     <FileText className="w-4 h-4 ml-2" />
                     تقديم طلب

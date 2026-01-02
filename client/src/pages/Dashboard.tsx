@@ -129,7 +129,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/requests/new">
+            <Link href="/service-request">
               <Button className="gradient-primary text-white">
                 <Plus className="w-4 h-4 ml-2" />
                 طلب جديد

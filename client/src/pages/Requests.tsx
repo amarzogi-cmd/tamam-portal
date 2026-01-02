@@ -77,7 +77,7 @@ export default function Requests() {
             <h1 className="text-2xl font-bold text-foreground">إدارة الطلبات</h1>
             <p className="text-muted-foreground">عرض ومتابعة جميع الطلبات</p>
           </div>
-          <Link href="/requests/new">
+          <Link href="/service-request">
             <Button className="gradient-primary text-white">
               <Plus className="w-4 h-4 ml-2" />
               طلب جديد
@@ -280,7 +280,7 @@ export default function Requests() {
               <div className="p-8 text-center">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">لا توجد طلبات</p>
-                <Link href="/requests/new">
+                <Link href="/service-request">
                   <Button className="mt-4 gradient-primary text-white">
                     تقديم طلب جديد
                   </Button>

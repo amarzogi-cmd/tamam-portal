@@ -182,7 +182,7 @@ export default function RequesterDashboard() {
 
         {/* أزرار الإجراءات */}
         <div className="flex flex-wrap gap-4 mb-8">
-          <Link href="/requests/new">
+          <Link href="/service-request">
             <Button className="gradient-primary text-white">
               <Plus className="w-4 h-4 ml-2" />
               تقديم طلب جديد
@@ -247,7 +247,7 @@ export default function RequesterDashboard() {
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">لا توجد طلبات حتى الآن</p>
-                  <Link href="/requests/new">
+                  <Link href="/service-request">
                     <Button className="mt-4 gradient-primary text-white">
                       تقديم طلب جديد
                     </Button>
@@ -314,7 +314,7 @@ export default function RequesterDashboard() {
           <CardContent>
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-4">
               {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                <Link key={key} href={`/requests/new?program=${key}`}>
+                <Link key={key} href={`/service-request?program=${key}`}>
                   <div className="flex flex-col items-center gap-2 p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer text-center">
                     <span className="text-3xl">{programIcons[key]}</span>
                     <span className="text-sm font-medium text-foreground">{label}</span>
