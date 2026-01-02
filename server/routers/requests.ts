@@ -17,6 +17,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { STAGE_TRANSITION_PERMISSIONS, STATUS_CHANGE_PERMISSIONS, STAGE_LABELS } from "@shared/constants";
 
 // دالة إنشاء رقم طلب فريد
 function generateRequestNumber(programType: string): string {
@@ -354,12 +355,6 @@ export const requestsRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من الصلاحية
-      const allowedRoles = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "project_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث مرحلة الطلب" });
-      }
-
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -370,32 +365,56 @@ export const requestsRouter = router({
 
       const oldStage = request[0].currentStage;
 
+      // التحقق من صلاحية تحويل المرحلة حسب المرحلة الحالية والدور
+      const allowedRoles = STAGE_TRANSITION_PERMISSIONS[oldStage] || [];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        const currentStageName = STAGE_LABELS[oldStage] || oldStage;
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: `ليس لديك صلاحية لتحويل الطلب من مرحلة "${currentStageName}". الأدوار المسموح لها: ${allowedRoles.map(r => r).join(', ')}` 
+        });
+      }
+
+      // التحقق من أن المرحلة الجديدة هي المرحلة التالية المنطقية
+      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+      const currentIndex = stages.indexOf(oldStage);
+      const newIndex = stages.indexOf(input.newStage);
+      
+      // السماح فقط بالتقدم للمرحلة التالية (وليس القفز)
+      if (newIndex !== currentIndex + 1) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: "يمكن فقط التحويل للمرحلة التالية مباشرة" 
+        });
+      }
+
       await db.update(mosqueRequests).set({
         currentStage: input.newStage,
         status: input.newStage === "closed" ? "completed" : "in_progress",
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب
+      const newStageName = STAGE_LABELS[input.newStage] || input.newStage;
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
         fromStage: oldStage,
         toStage: input.newStage,
         action: "stage_updated",
-        notes: input.notes || `تم نقل الطلب من ${oldStage} إلى ${input.newStage}`,
+        notes: input.notes || `تم تحويل الطلب إلى مرحلة ${newStageName}`,
       });
 
       // إرسال إشعار لمقدم الطلب
       await db.insert(notifications).values({
         userId: request[0].userId,
-        title: "تحديث حالة الطلب",
-        message: `تم تحديث مرحلة طلبك رقم ${request[0].requestNumber} إلى ${input.newStage}`,
+        title: "تحديث مرحلة الطلب",
+        message: `تم تحويل طلبك رقم ${request[0].requestNumber} إلى مرحلة ${newStageName}`,
         type: "request_update",
         relatedType: "request",
         relatedId: input.requestId,
       });
 
-      return { success: true, message: "تم تحديث مرحلة الطلب بنجاح" };
+      return { success: true, message: `تم تحويل الطلب إلى مرحلة ${newStageName} بنجاح` };
     }),
 
   // تحديث حالة الطلب

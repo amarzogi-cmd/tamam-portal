@@ -426,3 +426,63 @@ export const ROLE_PERMISSIONS = {
     canViewOwnRequests: true,
   },
 } as const;
+
+
+// ==================== صلاحيات تحويل المراحل ====================
+// تحديد الأدوار المسموح لها بتحويل الطلب من كل مرحلة إلى المرحلة التالية
+export const STAGE_TRANSITION_PERMISSIONS: Record<string, string[]> = {
+  // من تقديم الطلب إلى الفرز الأولي
+  submitted: ['super_admin', 'system_admin', 'projects_office'],
+  
+  // من الفرز الأولي إلى الزيارة الميدانية
+  initial_review: ['super_admin', 'system_admin', 'projects_office'],
+  
+  // من الزيارة الميدانية إلى الدراسة الفنية (الفريق الميداني يمكنه التحويل بعد تقديم تقرير المعاينة)
+  field_visit: ['super_admin', 'system_admin', 'projects_office', 'field_team'],
+  
+  // من الدراسة الفنية إلى الاعتماد المالي
+  technical_eval: ['super_admin', 'system_admin', 'projects_office'],
+  
+  // من الاعتماد المالي إلى التنفيذ (الإدارة المالية يمكنها الاعتماد)
+  financial_eval: ['super_admin', 'system_admin', 'financial'],
+  
+  // من التنفيذ إلى الإغلاق
+  execution: ['super_admin', 'system_admin', 'projects_office', 'quick_response'],
+  
+  // مرحلة الإغلاق - لا يمكن التحويل منها
+  closed: [],
+};
+
+// صلاحيات اعتماد/رفض الطلبات
+export const STATUS_CHANGE_PERMISSIONS: Record<string, string[]> = {
+  // اعتماد الطلب
+  approve: ['super_admin', 'system_admin', 'projects_office'],
+  
+  // رفض الطلب
+  reject: ['super_admin', 'system_admin', 'projects_office'],
+  
+  // تعليق الطلب
+  suspend: ['super_admin', 'system_admin', 'projects_office'],
+};
+
+// دالة للتحقق من صلاحية تحويل المرحلة
+export function canTransitionStage(userRole: string, currentStage: string): boolean {
+  const allowedRoles = STAGE_TRANSITION_PERMISSIONS[currentStage] || [];
+  return allowedRoles.includes(userRole);
+}
+
+// دالة للتحقق من صلاحية تغيير الحالة
+export function canChangeStatus(userRole: string, action: string): boolean {
+  const allowedRoles = STATUS_CHANGE_PERMISSIONS[action] || [];
+  return allowedRoles.includes(userRole);
+}
+
+// الحصول على اسم المرحلة التالية
+export function getNextStage(currentStage: string): string | null {
+  const stages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'financial_eval', 'execution', 'closed'];
+  const currentIndex = stages.indexOf(currentStage);
+  if (currentIndex >= 0 && currentIndex < stages.length - 1) {
+    return stages[currentIndex + 1];
+  }
+  return null;
+}

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, STAGE_TRANSITION_PERMISSIONS, STATUS_CHANGE_PERMISSIONS, ROLE_LABELS } from "@shared/constants";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
@@ -507,32 +507,72 @@ export default function RequestDetails() {
 
                 <hr className="my-2" />
 
-                <Button 
-                  className="w-full gradient-primary text-white" 
-                  onClick={handleApprove}
-                  disabled={updateStatusMutation.isPending || request.status === "approved"}
-                >
-                  <CheckCircle2 className="w-4 h-4 ml-2" />
-                  {updateStatusMutation.isPending ? "جاري..." : "اعتماد الطلب"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={handleAdvanceStage}
-                  disabled={updateStageMutation.isPending || request.currentStage === "closed"}
-                >
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                  {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  className="w-full" 
-                  onClick={handleReject}
-                  disabled={updateStatusMutation.isPending || request.status === "rejected"}
-                >
-                  <XCircle className="w-4 h-4 ml-2" />
-                  {updateStatusMutation.isPending ? "جاري..." : "رفض الطلب"}
-                </Button>
+                {/* أزرار الإجراءات حسب الصلاحيات */}
+                {(() => {
+                  const canTransition = user?.role && STAGE_TRANSITION_PERMISSIONS[request.currentStage]?.includes(user.role);
+                  const canApprove = user?.role && STATUS_CHANGE_PERMISSIONS.approve?.includes(user.role);
+                  const canReject = user?.role && STATUS_CHANGE_PERMISSIONS.reject?.includes(user.role);
+                  const allowedRolesForStage = STAGE_TRANSITION_PERMISSIONS[request.currentStage] || [];
+                  
+                  return (
+                    <>
+                      {/* زر اعتماد الطلب */}
+                      {canApprove ? (
+                        <Button 
+                          className="w-full gradient-primary text-white" 
+                          onClick={handleApprove}
+                          disabled={updateStatusMutation.isPending || request.status === "approved"}
+                        >
+                          <CheckCircle2 className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "اعتماد الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية اعتماد الطلب</p>
+                        </div>
+                      )}
+
+                      {/* زر تحويل المرحلة */}
+                      {request.currentStage !== "closed" && (
+                        canTransition ? (
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={handleAdvanceStage}
+                            disabled={updateStageMutation.isPending}
+                          >
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                            {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
+                          </Button>
+                        ) : (
+                          <div className="p-3 bg-amber-50 rounded-lg">
+                            <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
+                            <p className="text-xs text-amber-600">
+                              الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                            </p>
+                          </div>
+                        )
+                      )}
+
+                      {/* زر رفض الطلب */}
+                      {canReject ? (
+                        <Button 
+                          variant="destructive" 
+                          className="w-full" 
+                          onClick={handleReject}
+                          disabled={updateStatusMutation.isPending || request.status === "rejected"}
+                        >
+                          <XCircle className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "رفض الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية رفض الطلب</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
