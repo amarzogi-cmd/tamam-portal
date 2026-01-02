@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, UserRole } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -18,7 +18,16 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
+interface OAuthUserData {
+  openId: string;
+  name?: string | null;
+  email?: string | null;
+  loginMethod?: string | null;
+  lastSignedIn?: Date;
+  role?: UserRole;
+}
+
+export async function upsertUser(user: OAuthUserData): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
@@ -30,47 +39,39 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
 
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
+    // للمستخدمين القادمين من OAuth، نستخدم openId كمعرف فريد
+    const existingUser = await db.select().from(users).where(eq(users.openId, user.openId)).limit(1);
+    
+    if (existingUser.length > 0) {
+      // تحديث المستخدم الموجود
+      const updateSet: Record<string, unknown> = {
+        lastSignedIn: user.lastSignedIn || new Date(),
+      };
+      
+      if (user.name) updateSet.name = user.name;
+      if (user.email) updateSet.email = user.email;
+      if (user.loginMethod) updateSet.loginMethod = user.loginMethod;
+      
+      // تحديث الدور للمالك
+      if (user.openId === ENV.ownerOpenId) {
+        updateSet.role = 'super_admin' as UserRole;
+      }
+      
+      await db.update(users).set(updateSet).where(eq(users.openId, user.openId));
+    } else {
+      // إنشاء مستخدم جديد
+      const role: UserRole = user.openId === ENV.ownerOpenId ? 'super_admin' : 'service_requester';
+      
+      await db.insert(users).values({
+        openId: user.openId,
+        email: user.email || `${user.openId}@oauth.local`,
+        name: user.name || 'مستخدم جديد',
+        loginMethod: user.loginMethod || 'oauth',
+        role: role,
+        status: 'active',
+        lastSignedIn: user.lastSignedIn || new Date(),
+      });
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -89,4 +90,42 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ==================== دوال إدارة المستخدمين ====================
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUser(userData: InsertUser) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(users).values(userData);
+  return result;
+}
+
+export async function updateUser(id: number, userData: Partial<InsertUser>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set(userData).where(eq(users.id, id));
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(users);
+}

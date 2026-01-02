@@ -43,16 +43,28 @@
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
+  /* ألوان بوابة تمام - تركواز وبنفسجي */
+  --primary: oklch(0.55 0.15 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --sidebar-primary: oklch(0.55 0.15 175);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --chart-1: oklch(0.55 0.15 175);
+  --chart-2: oklch(0.65 0.18 85);
+  --chart-3: oklch(0.45 0.12 260);
+  --chart-4: oklch(0.6 0.15 145);
+  --chart-5: oklch(0.55 0.2 25);
+  --radius: 0.625rem;
+  
+  /* ألوان البرامج التسعة */
+  --bunyan: oklch(0.45 0.15 250);
+  --daaem: oklch(0.55 0.2 290);
+  --enaya: oklch(0.55 0.15 160);
+  --emdad: oklch(0.6 0.18 70);
+  --ethraa: oklch(0.55 0.2 25);
+  --sedana: oklch(0.55 0.15 200);
+  --taqa: oklch(0.7 0.18 85);
+  --miyah: oklch(0.55 0.15 220);
+  --suqya: oklch(0.6 0.15 190);
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
@@ -113,12 +125,40 @@
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
+@font-face {
+  font-family: 'Tajawal';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iura6YBj_oCad4k1nzGBC45I.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Tajawal';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l4qjHrRpiYlJ.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Tajawal';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l8KkHrRpiYlJ.woff2) format('woff2');
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    direction: rtl;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Tajawal', 'Inter', system-ui, sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -131,6 +171,150 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+}
+
+/* تأثيرات البطاقات */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+}
+
+/* خلفية متدرجة */
+.gradient-primary {
+  background: linear-gradient(135deg, oklch(0.55 0.15 175) 0%, oklch(0.45 0.12 260) 100%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, oklch(0.55 0.15 175) 0%, oklch(0.5 0.13 190) 50%, oklch(0.45 0.12 260) 100%);
+}
+
+/* نمط الزخرفة الإسلامية */
+.islamic-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* تنسيق النماذج */
+.form-input {
+  @apply w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-foreground mb-2;
+}
+
+/* تنسيق الجداول */
+.table-container {
+  @apply overflow-x-auto rounded-lg border border-border;
+}
+
+.table-container table {
+  @apply w-full;
+}
+
+.table-container th {
+  @apply bg-muted px-4 py-3 text-right text-sm font-semibold text-foreground;
+}
+
+.table-container td {
+  @apply px-4 py-3 text-sm text-foreground border-t border-border;
+}
+
+.table-container tr:hover {
+  @apply bg-muted/50;
+}
+
+/* تنسيق البطاقات الإحصائية */
+.stat-card {
+  @apply bg-card rounded-xl p-6 border border-border shadow-sm;
+}
+
+.stat-card-value {
+  @apply text-3xl font-bold text-foreground;
+}
+
+.stat-card-label {
+  @apply text-sm text-muted-foreground mt-1;
+}
+
+/* تنسيق الشارات */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-primary {
+  @apply bg-primary/10 text-primary;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+/* تأثير التحميل */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+}
+
+/* تنسيق القائمة الجانبية */
+.sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors duration-200;
+}
+
+.sidebar-link.active {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground;
+}
+
+/* تأثيرات الانتقال */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* تخصيص شريط التمرير */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* تنسيق البرامج */
+.program-card {
+  @apply relative overflow-hidden rounded-xl p-6 text-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+}
+
+.program-card::before {
+  content: '';
+  @apply absolute inset-0 opacity-10;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 @layer components {
