@@ -40,13 +40,13 @@ const programIcons: Record<string, string> = {
 };
 
 const stageSteps = [
-  { key: "submission", label: "تقديم الطلب" },
+  { key: "submitted", label: "تقديم الطلب" },
   { key: "initial_review", label: "الفرز الأولي" },
   { key: "field_visit", label: "الزيارة الميدانية" },
-  { key: "technical_study", label: "الدراسة الفنية" },
-  { key: "financial_approval", label: "الاعتماد المالي" },
+  { key: "technical_eval", label: "الدراسة الفنية" },
+  { key: "financial_eval", label: "الاعتماد المالي" },
   { key: "execution", label: "التنفيذ" },
-  { key: "completion", label: "الإغلاق" },
+  { key: "closed", label: "الإغلاق" },
 ];
 
 export default function RequestDetails() {
@@ -60,15 +60,72 @@ export default function RequestDetails() {
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
   // history and comments are included in the request data
 
+  const utils = trpc.useUtils();
+
   const addCommentMutation = trpc.requests.addComment.useMutation({
     onSuccess: () => {
       toast.success("تم إضافة التعليق");
       setComment("");
+      utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
+
+  const updateStageMutation = trpc.requests.updateStage.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث مرحلة الطلب بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateStatusMutation = trpc.requests.updateStatus.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة الطلب بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // دالة لتحويل الطلب للمرحلة التالية
+  const handleAdvanceStage = () => {
+    if (!request) return;
+    // المراحل السبع كما هي في الـ backend
+    const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+    const currentIndex = stages.indexOf(request.currentStage);
+    if (currentIndex < stages.length - 1) {
+      const nextStage = stages[currentIndex + 1] as any;
+      updateStageMutation.mutate({
+        requestId,
+        newStage: nextStage,
+        notes: `تم تحويل الطلب إلى مرحلة ${nextStage}`,
+      });
+    }
+  };
+
+  // دالة لاعتماد الطلب
+  const handleApprove = () => {
+    updateStatusMutation.mutate({
+      requestId,
+      newStatus: "approved",
+      notes: "تم اعتماد الطلب",
+    });
+  };
+
+  // دالة لرفض الطلب
+  const handleReject = () => {
+    updateStatusMutation.mutate({
+      requestId,
+      newStatus: "rejected",
+      notes: "تم رفض الطلب",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -450,16 +507,31 @@ export default function RequestDetails() {
 
                 <hr className="my-2" />
 
-                <Button className="w-full gradient-primary text-white" onClick={() => toast.info("قريباً")}>
+                <Button 
+                  className="w-full gradient-primary text-white" 
+                  onClick={handleApprove}
+                  disabled={updateStatusMutation.isPending || request.status === "approved"}
+                >
                   <CheckCircle2 className="w-4 h-4 ml-2" />
-                  اعتماد الطلب
+                  {updateStatusMutation.isPending ? "جاري..." : "اعتماد الطلب"}
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => toast.info("قريباً")}>
-                  تحويل للمرحلة التالية
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleAdvanceStage}
+                  disabled={updateStageMutation.isPending || request.currentStage === "closed"}
+                >
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
                 </Button>
-                <Button variant="destructive" className="w-full" onClick={() => toast.info("قريباً")}>
+                <Button 
+                  variant="destructive" 
+                  className="w-full" 
+                  onClick={handleReject}
+                  disabled={updateStatusMutation.isPending || request.status === "rejected"}
+                >
                   <XCircle className="w-4 h-4 ml-2" />
-                  رفض الطلب
+                  {updateStatusMutation.isPending ? "جاري..." : "رفض الطلب"}
                 </Button>
               </CardContent>
             </Card>
