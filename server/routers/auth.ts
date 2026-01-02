@@ -10,8 +10,10 @@ import { COOKIE_NAME } from "../../shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
 
 // دالة تشفير كلمة المرور
+import { pbkdf2Sync } from "crypto";
+
 function hashPassword(password: string, salt: string): string {
-  return createHash("sha256").update(password + salt).digest("hex");
+  return pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
 }
 
 // دالة إنشاء salt عشوائي
