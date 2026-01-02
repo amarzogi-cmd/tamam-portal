@@ -31,8 +31,11 @@ import {
   User,
   Phone,
   Mail,
-  Home
+  Home,
+  Upload,
+  FileText
 } from "lucide-react";
+import { FileUpload, type UploadedFile } from "@/components/FileUpload";
 import { PROGRAMS } from "@shared/constants";
 
 // تعريف الخدمات التسعة
@@ -68,6 +71,9 @@ export default function MosqueServiceRequest() {
   const [selectedMosque, setSelectedMosque] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // المرفقات
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+  
   // بيانات النموذج
   const [formData, setFormData] = useState({
     // حقول برنامج بنيان
@@ -100,6 +106,9 @@ export default function MosqueServiceRequest() {
     {},
     { enabled: isAuthenticated }
   );
+
+  // mutation لرفع المرفقات
+  const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
 
   // mutation لإنشاء الطلب
   const createRequest = trpc.requests.create.useMutation({
@@ -205,11 +214,29 @@ export default function MosqueServiceRequest() {
     }
 
     try {
-      await createRequest.mutateAsync({
+      const result = await createRequest.mutateAsync({
         mosqueId: selectedService === "bunyan" ? null : selectedMosque,
         programType: programTypeMap[selectedService!] as "bunyan" | "daaem" | "enaya" | "emdad" | "ethraa" | "sedana" | "taqa" | "miyah" | "suqya",
         programData,
       });
+
+      // رفع المرفقات إذا وجدت
+      if (attachments.length > 0 && result.requestId) {
+        try {
+          await uploadAttachments.mutateAsync({
+            requestId: result.requestId,
+            files: attachments.map(file => ({
+              fileName: file.fileName,
+              fileData: file.fileData,
+              mimeType: file.mimeType,
+              category: selectedService === "bunyan" ? "land_deed" : "site_photo",
+            })),
+          });
+        } catch (uploadError) {
+          console.error("خطأ في رفع المرفقات:", uploadError);
+          toast.warning("تم تقديم الطلب ولكن فشل رفع بعض المرفقات");
+        }
+      }
     } catch {
       // Error handled in onError
     }
@@ -558,6 +585,27 @@ export default function MosqueServiceRequest() {
                         </div>
                       </RadioGroup>
                     </div>
+
+                    <Separator />
+
+                    {/* رفع المرفقات */}
+                    <div>
+                      <Label className="flex items-center gap-2 mb-3">
+                        <Upload className="w-4 h-4" />
+                        المرفقات (اختياري)
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        يمكنك رفع صك الأرض أو صور الموقع أو أي مستندات داعمة
+                      </p>
+                      <FileUpload
+                        onFilesSelected={setAttachments}
+                        maxFiles={5}
+                        maxSizeMB={10}
+                        label="رفع المستندات"
+                        description="صك الأرض، صور الموقع، المخططات"
+                        existingFiles={attachments}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -786,6 +834,27 @@ export default function MosqueServiceRequest() {
                         </div>
                       </RadioGroup>
                     </div>
+
+                    <Separator />
+
+                    {/* رفع المرفقات */}
+                    <div>
+                      <Label className="flex items-center gap-2 mb-3">
+                        <Upload className="w-4 h-4" />
+                        المرفقات (اختياري)
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        يمكنك رفع صور المسجد أو المشكلة أو أي مستندات داعمة
+                      </p>
+                      <FileUpload
+                        onFilesSelected={setAttachments}
+                        maxFiles={5}
+                        maxSizeMB={10}
+                        label="رفع الصور والمستندات"
+                        description="صور المسجد، صور المشكلة، الفواتير"
+                        existingFiles={attachments}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -834,6 +903,27 @@ export default function MosqueServiceRequest() {
                         <p className="font-medium">
                           {userMosques.mosques.find(m => m.id === selectedMosque)?.name}
                         </p>
+                      </div>
+                    </>
+                  )}
+
+                  {attachments.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">المرفقات ({attachments.length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {attachments.map((file, index) => (
+                            <div key={index} className="flex items-center gap-2 bg-white border rounded px-3 py-1 text-sm">
+                              {file.mimeType.startsWith("image/") ? (
+                                <img src={file.preview} alt={file.fileName} className="w-6 h-6 object-cover rounded" />
+                              ) : (
+                                <FileText className="w-4 h-4 text-orange-500" />
+                              )}
+                              <span className="truncate max-w-[150px]">{file.fileName}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}

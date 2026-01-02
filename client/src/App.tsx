@@ -26,6 +26,7 @@ import RequestDetails from "./pages/RequestDetails";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
+import MyRequests from "./pages/MyRequests";
 
 // صفحات المستخدمين
 import Users from "./pages/Users";
@@ -34,6 +35,8 @@ import UserDetails from "./pages/UserDetails";
 // صفحات المشاريع
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
+import ProjectManagement from "./pages/ProjectManagement";
+import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 
 // صفحات أخرى
 import Partners from "./pages/Partners";
@@ -55,7 +58,9 @@ function Router() {
       
       {/* لوحات التحكم */}
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/requester" component={RequesterDashboard} />
       <Route path="/requester/dashboard" component={RequesterDashboard} />
+      <Route path="/my-requests" component={MyRequests} />
       
       {/* المساجد */}
       <Route path="/mosques" component={Mosques} />
@@ -77,7 +82,8 @@ function Router() {
       
       {/* المشاريع */}
       <Route path="/projects" component={Projects} />
-      <Route path="/projects/:id" component={ProjectDetails} />
+      <Route path="/projects/:id" component={ProjectDetailsPage} />
+      <Route path="/project-management" component={ProjectManagement} />
       
       {/* صفحات أخرى */}
       <Route path="/partners" component={Partners} />

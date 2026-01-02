@@ -6,6 +6,8 @@ import { authRouter } from "./routers/auth";
 import { mosquesRouter } from "./routers/mosques";
 import { requestsRouter } from "./routers/requests";
 import { notificationsRouter } from "./routers/notifications";
+import { storageRouter } from "./routers/storage";
+import { projectsRouter } from "./routers/projects";
 
 export const appRouter = router({
   system: systemRouter,
@@ -21,6 +23,12 @@ export const appRouter = router({
   
   // نظام الإشعارات
   notifications: notificationsRouter,
+  
+  // نظام التخزين والمرفقات
+  storage: storageRouter,
+  
+  // إدارة المشاريع
+  projects: projectsRouter,
 });
 
 export type AppRouter = typeof appRouter;

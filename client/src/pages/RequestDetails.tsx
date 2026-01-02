@@ -20,6 +20,7 @@ import { Link, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 import { useState } from "react";
+import { Image, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const programIcons: Record<string, string> = {
@@ -50,6 +51,7 @@ export default function RequestDetails() {
   const [comment, setComment] = useState("");
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
+  const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
   // history and comments are included in the request data
 
   const addCommentMutation = trpc.requests.addComment.useMutation({
@@ -286,10 +288,61 @@ export default function RequestDetails() {
 
               <TabsContent value="attachments">
                 <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <Paperclip className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد مرفقات</p>
-                    <Button variant="outline" className="mt-4">رفع مرفق</Button>
+                  <CardContent className="p-4">
+                    {attachments && attachments.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {attachments.map((attachment: any) => (
+                          <div key={attachment.id} className="border rounded-lg overflow-hidden">
+                            {attachment.fileType === "image" ? (
+                              <div className="relative aspect-video bg-muted">
+                                <img
+                                  src={attachment.fileUrl}
+                                  alt={attachment.fileName}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button size="icon" variant="secondary">
+                                      <ExternalLink className="w-4 h-4" />
+                                    </Button>
+                                  </a>
+                                  <a href={attachment.fileUrl} download={attachment.fileName}>
+                                    <Button size="icon" variant="secondary">
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="aspect-video bg-muted flex items-center justify-center">
+                                <FileText className="w-12 h-12 text-orange-500" />
+                              </div>
+                            )}
+                            <div className="p-3">
+                              <p className="text-sm font-medium truncate" title={attachment.fileName}>
+                                {attachment.fileName}
+                              </p>
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {attachment.fileSize ? `${(attachment.fileSize / 1024).toFixed(1)} KB` : ''}
+                                </span>
+                                <a href={attachment.fileUrl} download={attachment.fileName}>
+                                  <Button size="sm" variant="ghost">
+                                    <Download className="w-3 h-3 ml-1" />
+                                    تحميل
+                                  </Button>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Paperclip className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">لا توجد مرفقات</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
