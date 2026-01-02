@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, MapPin, Save } from "lucide-react";
+import { ArrowRight, Building2, MapPin, Save, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { LocationPicker } from "@/components/LocationPicker";
 
 const mosqueTypes = [
   { value: "jami", label: "جامع" },
@@ -62,6 +63,15 @@ export default function MosqueForm() {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLocationChange = (location: { lat: number; lng: number; address?: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: location.lat.toString(),
+      longitude: location.lng.toString(),
+      address: location.address || prev.address,
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -177,17 +187,27 @@ export default function MosqueForm() {
             </CardContent>
           </Card>
 
-          {/* الموقع */}
+          {/* الموقع على الخريطة */}
           <Card className="border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
                 الموقع الجغرافي
               </CardTitle>
-              <CardDescription>معلومات موقع المسجد</CardDescription>
+              <CardDescription>حدد موقع المسجد على الخريطة بالنقر أو البحث</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* مكون اختيار الموقع */}
+              <LocationPicker
+                value={formData.latitude && formData.longitude ? {
+                  lat: parseFloat(formData.latitude),
+                  lng: parseFloat(formData.longitude)
+                } : undefined}
+                onChange={handleLocationChange}
+              />
+
+              {/* حقول الموقع اليدوية */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <Label>المدينة *</Label>
                   <Input
@@ -230,6 +250,8 @@ export default function MosqueForm() {
                     value={formData.latitude}
                     onChange={(e) => handleChange("latitude", e.target.value)}
                     placeholder="مثال: 24.7136"
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
                 <div>
@@ -238,6 +260,8 @@ export default function MosqueForm() {
                     value={formData.longitude}
                     onChange={(e) => handleChange("longitude", e.target.value)}
                     placeholder="مثال: 46.6753"
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
               </div>
@@ -247,7 +271,10 @@ export default function MosqueForm() {
           {/* معلومات الإمام والمؤذن */}
           <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle>معلومات الإمام والمؤذن</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                معلومات الإمام والمؤذن
+              </CardTitle>
               <CardDescription>بيانات التواصل مع القائمين على المسجد</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

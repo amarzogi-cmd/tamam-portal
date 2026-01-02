@@ -63,6 +63,7 @@ const getMenuItems = (role: string) => {
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
     items.push(
       { icon: Building2, label: "المساجد", path: "/mosques" },
+      { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: "الطلبات", path: "/requests" },
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
     );

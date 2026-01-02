@@ -18,6 +18,7 @@ import RequesterDashboard from "./pages/RequesterDashboard";
 import Mosques from "./pages/Mosques";
 import MosqueDetails from "./pages/MosqueDetails";
 import MosqueForm from "./pages/MosqueForm";
+import MosquesMap from "./pages/MosquesMap";
 
 // صفحات الطلبات
 import Requests from "./pages/Requests";
@@ -56,6 +57,7 @@ function Router() {
       
       {/* المساجد */}
       <Route path="/mosques" component={Mosques} />
+      <Route path="/mosques/map" component={MosquesMap} />
       <Route path="/mosques/new" component={MosqueForm} />
       <Route path="/mosques/:id" component={MosqueDetails} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />

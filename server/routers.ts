@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { authRouter } from "./routers/auth";
 import { mosquesRouter } from "./routers/mosques";
 import { requestsRouter } from "./routers/requests";
+import { notificationsRouter } from "./routers/notifications";
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,6 +18,9 @@ export const appRouter = router({
   
   // إدارة الطلبات
   requests: requestsRouter,
+  
+  // نظام الإشعارات
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;
