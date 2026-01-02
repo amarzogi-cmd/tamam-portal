@@ -15,11 +15,15 @@ import {
   CheckCircle2,
   XCircle,
   Send,
+  ClipboardList,
+  Zap,
+  Eye,
 } from "lucide-react";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,8 +51,10 @@ const stageSteps = [
 
 export default function RequestDetails() {
   const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const requestId = parseInt(params.id || "0");
   const [comment, setComment] = useState("");
+  const { user } = useAuth();
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
@@ -384,6 +390,66 @@ export default function RequestDetails() {
                 <CardTitle>الإجراءات</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* أزرار النماذج الميدانية */}
+                {(user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
+                  <>
+                    {(request.currentStage === "field_visit" || request.currentStage === "initial_review") && (
+                      <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+                        onClick={() => navigate(`/requests/${requestId}/field-inspection`)}
+                      >
+                        <ClipboardList className="w-4 h-4 ml-2" />
+                        إنشاء تقرير المعاينة الميدانية
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {(user?.role === "quick_response" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
+                  <>
+                    {(request.programType === "enaya" || request.currentStage === "execution") && (
+                      <Button 
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
+                        onClick={() => navigate(`/requests/${requestId}/quick-response`)}
+                      >
+                        <Zap className="w-4 h-4 ml-2" />
+                        إنشاء تقرير الاستجابة السريعة
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {/* عرض التقارير الموجودة */}
+                {request.fieldReports && request.fieldReports.length > 0 && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-medium text-blue-800 mb-2">
+                      <Eye className="w-4 h-4 inline ml-1" />
+                      تقارير المعاينة ({request.fieldReports.length})
+                    </p>
+                    {request.fieldReports.map((report: any, index: number) => (
+                      <p key={report.id} className="text-xs text-blue-600">
+                        تقرير {index + 1}: {new Date(report.visitDate).toLocaleDateString("ar-SA")}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {request.quickReports && request.quickReports.length > 0 && (
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <p className="text-sm font-medium text-orange-800 mb-2">
+                      <Eye className="w-4 h-4 inline ml-1" />
+                      تقارير الاستجابة ({request.quickReports.length})
+                    </p>
+                    {request.quickReports.map((report: any, index: number) => (
+                      <p key={report.id} className="text-xs text-orange-600">
+                        تقرير {index + 1}: {new Date(report.responseDate).toLocaleDateString("ar-SA")} - {report.resolved ? "تم الحل" : "قيد المتابعة"}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <hr className="my-2" />
+
                 <Button className="w-full gradient-primary text-white" onClick={() => toast.info("قريباً")}>
                   <CheckCircle2 className="w-4 h-4 ml-2" />
                   اعتماد الطلب

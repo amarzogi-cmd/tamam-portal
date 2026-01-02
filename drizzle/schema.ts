@@ -223,31 +223,72 @@ export const requestHistory = mysqlTable("request_history", {
 
 // ==================== جداول التقارير ====================
 
-// تقارير الزيارات الميدانية
+// تقارير الزيارات الميدانية (نموذج المعاينة الميدانية)
 export const fieldVisitReports = mysqlTable("field_visit_reports", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   visitedBy: int("visitedBy").notNull().references(() => users.id),
   visitDate: timestamp("visitDate").notNull(),
+  
+  // التقييم الفني
+  mosqueCondition: varchar("mosqueCondition", { length: 100 }), // حالة المسجد
+  conditionRating: mysqlEnum("conditionRating", ["excellent", "good", "fair", "poor", "critical"]),
+  
+  // مساحة مصلى الرجال
+  menPrayerLength: decimal("menPrayerLength", { precision: 10, scale: 2 }),
+  menPrayerWidth: decimal("menPrayerWidth", { precision: 10, scale: 2 }),
+  menPrayerHeight: decimal("menPrayerHeight", { precision: 10, scale: 2 }),
+  
+  // مساحة مصلى النساء (إن وجد)
+  womenPrayerExists: boolean("womenPrayerExists").default(false),
+  womenPrayerLength: decimal("womenPrayerLength", { precision: 10, scale: 2 }),
+  womenPrayerWidth: decimal("womenPrayerWidth", { precision: 10, scale: 2 }),
+  womenPrayerHeight: decimal("womenPrayerHeight", { precision: 10, scale: 2 }),
+  
+  // الاحتياج والتوصيف
+  requiredNeeds: text("requiredNeeds"), // الاحتياج المطلوب
+  generalDescription: text("generalDescription"), // الوصف العام للحالة
+  
+  // الحقول القديمة للتوافق
   findings: text("findings"),
   recommendations: text("recommendations"),
   estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }),
   technicalNeeds: text("technicalNeeds"),
-  conditionRating: mysqlEnum("conditionRating", ["excellent", "good", "fair", "poor", "critical"]),
+  
+  // فريق المعاينة
+  teamMember1: varchar("teamMember1", { length: 255 }),
+  teamMember2: varchar("teamMember2", { length: 255 }),
+  teamMember3: varchar("teamMember3", { length: 255 }),
+  teamMember4: varchar("teamMember4", { length: 255 }),
+  teamMember5: varchar("teamMember5", { length: 255 }),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-// تقارير الاستجابة السريعة
+// تقارير الاستجابة السريعة (تقرير برنامج الاستجابة السريعة)
 export const quickResponseReports = mysqlTable("quick_response_reports", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   respondedBy: int("respondedBy").notNull().references(() => users.id),
   responseDate: timestamp("responseDate").notNull(),
+  
+  // التقييم الفني
+  technicalEvaluation: text("technicalEvaluation"), // التقييم الفني
+  finalEvaluation: text("finalEvaluation"), // التقييم النهائي
+  
+  // الأعمال غير المنفذة
+  unexecutedWorks: text("unexecutedWorks"), // الأعمال غير المنفذة / أسباب عدم التنفيذ
+  
+  // الفني المختص
+  technicianName: varchar("technicianName", { length: 255 }), // اسم الفني المختص
+  
+  // الحقول القديمة للتوافق
   issueDescription: text("issueDescription"),
   actionsTaken: text("actionsTaken"),
   resolved: boolean("resolved").default(false),
   requiresProject: boolean("requiresProject").default(false),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

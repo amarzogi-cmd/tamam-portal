@@ -52,6 +52,8 @@ import SuppliersManagement from "./pages/SuppliersManagement";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import ContractForm from "./pages/ContractForm";
 import ContractPreview from "./pages/ContractPreview";
+import FieldInspectionForm from "./pages/FieldInspectionForm";
+import QuickResponseReportForm from "./pages/QuickResponseReportForm";
 
 function Router() {
   return (
@@ -81,6 +83,8 @@ function Router() {
       <Route path="/requests/new" component={RequestForm} />
       <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:id/edit" component={RequestForm} />
+      <Route path="/requests/:requestId/field-inspection" component={FieldInspectionForm} />
+      <Route path="/requests/:requestId/quick-response" component={QuickResponseReportForm} />
       <Route path="/requester/requests/:id" component={RequestDetails} />
       
       {/* المستخدمون */}

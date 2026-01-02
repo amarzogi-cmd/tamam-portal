@@ -578,11 +578,32 @@ export const requestsRouter = router({
     .input(z.object({
       requestId: z.number(),
       visitDate: z.string(),
-      findings: z.string(),
+      // التقييم الفني
+      mosqueCondition: z.string().optional(),
+      conditionRating: z.enum(["excellent", "good", "fair", "poor", "critical"]).optional(),
+      // مساحة مصلى الرجال
+      menPrayerLength: z.number().optional(),
+      menPrayerWidth: z.number().optional(),
+      menPrayerHeight: z.number().optional(),
+      // مساحة مصلى النساء
+      womenPrayerExists: z.boolean().optional(),
+      womenPrayerLength: z.number().optional(),
+      womenPrayerWidth: z.number().optional(),
+      womenPrayerHeight: z.number().optional(),
+      // الاحتياج والتوصيف
+      requiredNeeds: z.string().optional(),
+      generalDescription: z.string().optional(),
+      // فريق المعاينة
+      teamMember1: z.string().optional(),
+      teamMember2: z.string().optional(),
+      teamMember3: z.string().optional(),
+      teamMember4: z.string().optional(),
+      teamMember5: z.string().optional(),
+      // الحقول القديمة للتوافق
+      findings: z.string().optional(),
       recommendations: z.string().optional(),
       estimatedCost: z.number().optional(),
       technicalNeeds: z.string().optional(),
-      conditionRating: z.enum(["excellent", "good", "fair", "poor", "critical"]).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -596,11 +617,26 @@ export const requestsRouter = router({
         requestId: input.requestId,
         visitedBy: ctx.user.id,
         visitDate: new Date(input.visitDate),
-        findings: input.findings,
+        mosqueCondition: input.mosqueCondition || null,
+        conditionRating: input.conditionRating || null,
+        menPrayerLength: input.menPrayerLength?.toString() || null,
+        menPrayerWidth: input.menPrayerWidth?.toString() || null,
+        menPrayerHeight: input.menPrayerHeight?.toString() || null,
+        womenPrayerExists: input.womenPrayerExists || false,
+        womenPrayerLength: input.womenPrayerLength?.toString() || null,
+        womenPrayerWidth: input.womenPrayerWidth?.toString() || null,
+        womenPrayerHeight: input.womenPrayerHeight?.toString() || null,
+        requiredNeeds: input.requiredNeeds || null,
+        generalDescription: input.generalDescription || null,
+        teamMember1: input.teamMember1 || null,
+        teamMember2: input.teamMember2 || null,
+        teamMember3: input.teamMember3 || null,
+        teamMember4: input.teamMember4 || null,
+        teamMember5: input.teamMember5 || null,
+        findings: input.findings || input.requiredNeeds || null,
         recommendations: input.recommendations || null,
         estimatedCost: input.estimatedCost?.toString() || null,
         technicalNeeds: input.technicalNeeds || null,
-        conditionRating: input.conditionRating || null,
       });
 
       // تحديث مرحلة الطلب
@@ -617,6 +653,14 @@ export const requestsRouter = router({
     .input(z.object({
       requestId: z.number(),
       responseDate: z.string(),
+      // التقييم الفني
+      technicalEvaluation: z.string().optional(),
+      finalEvaluation: z.string().optional(),
+      // الأعمال غير المنفذة
+      unexecutedWorks: z.string().optional(),
+      // الفني المختص
+      technicianName: z.string().optional(),
+      // الحقول القديمة للتوافق
       issueDescription: z.string(),
       actionsTaken: z.string(),
       resolved: z.boolean().default(false),
@@ -634,6 +678,10 @@ export const requestsRouter = router({
         requestId: input.requestId,
         respondedBy: ctx.user.id,
         responseDate: new Date(input.responseDate),
+        technicalEvaluation: input.technicalEvaluation || null,
+        finalEvaluation: input.finalEvaluation || null,
+        unexecutedWorks: input.unexecutedWorks || null,
+        technicianName: input.technicianName || null,
         issueDescription: input.issueDescription,
         actionsTaken: input.actionsTaken,
         resolved: input.resolved,
