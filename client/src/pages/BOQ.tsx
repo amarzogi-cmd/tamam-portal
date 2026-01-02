@@ -154,14 +154,19 @@ export default function BOQ() {
       toast.error("يرجى اختيار الطلب أولاً");
       return;
     }
+    if (!formData.itemName || !formData.unit || !formData.quantity) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
     addItemMutation.mutate({
       projectId: parseInt(selectedRequestId),
-      category: formData.category,
+      requestId: parseInt(selectedRequestId),
       itemName: formData.itemName,
       itemDescription: formData.description,
       unit: formData.unit,
       quantity: parseFloat(formData.quantity),
-      unitPrice: parseFloat(formData.unitPrice),
+      unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : 0,
+      category: formData.category,
     });
   };
 
