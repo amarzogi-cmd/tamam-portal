@@ -486,3 +486,130 @@ export function getNextStage(currentStage: string): string | null {
   }
   return null;
 }
+
+// ==================== خيارات التقييم الفني (الخيارات الأربعة) ====================
+export const TECHNICAL_EVAL_OPTIONS = {
+  apologize: {
+    key: 'apologize',
+    name: 'الاعتذار عن الطلب',
+    nameEn: 'Apologize for Request',
+    description: 'رفض الطلب مع ذكر المبررات',
+    requiresJustification: true,
+    nextStage: 'closed',
+    resultStatus: 'rejected',
+    allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
+    icon: 'XCircle',
+    color: '#EF4444',
+  },
+  suspend: {
+    key: 'suspend',
+    name: 'تعليق الطلب',
+    nameEn: 'Suspend Request',
+    description: 'تعليق الطلب مع ذكر المبررات',
+    requiresJustification: true,
+    nextStage: null, // يبقى في نفس المرحلة
+    resultStatus: 'suspended',
+    allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
+    icon: 'PauseCircle',
+    color: '#F59E0B',
+  },
+  quick_response: {
+    key: 'quick_response',
+    name: 'التحويل إلى الاستجابة السريعة',
+    nameEn: 'Transfer to Quick Response',
+    description: 'تتم الزيارة واستكمال الخدمة ثم يتم رفع تقرير الاستجابة السريعة',
+    requiresJustification: false,
+    nextStage: 'execution', // ينتقل للتنفيذ مباشرة
+    resultStatus: 'in_progress',
+    allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
+    assignTo: 'quick_response', // يسند لفريق الاستجابة السريعة
+    icon: 'Zap',
+    color: '#8B5CF6',
+  },
+  convert_to_project: {
+    key: 'convert_to_project',
+    name: 'التحويل إلى مشروع',
+    nameEn: 'Convert to Project',
+    description: 'تحويل الطلب إلى مشروع والانتقال للتقييم المالي',
+    requiresJustification: false,
+    nextStage: 'financial_eval',
+    resultStatus: 'approved',
+    allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
+    createsProject: true,
+    icon: 'FolderKanban',
+    color: '#22C55E',
+  },
+} as const;
+
+export const TECHNICAL_EVAL_OPTION_LABELS: Record<string, string> = {
+  apologize: 'الاعتذار عن الطلب',
+  suspend: 'تعليق الطلب',
+  quick_response: 'التحويل إلى الاستجابة السريعة',
+  convert_to_project: 'التحويل إلى مشروع',
+};
+
+// ==================== الخطوات الفرعية لكل مرحلة ====================
+export const STAGE_SUBSTEPS = {
+  submitted: [
+    { key: 'account_login', name: 'تسجيل الدخول', responsible: 'service_requester' },
+    { key: 'mosque_registration', name: 'تسجيل المسجد', responsible: 'service_requester' },
+    { key: 'service_request', name: 'تعبئة نموذج الطلب', responsible: 'service_requester' },
+  ],
+  initial_review: [
+    { key: 'account_approval', name: 'اعتماد تسجيل الحساب/المسجد', responsible: 'projects_office', durationDays: 1 },
+    { key: 'initial_evaluation', name: 'الاطلاع على الطلب وتقييمه', responsible: 'projects_office', durationDays: 2 },
+    { key: 'assign_technical', name: 'إسناد الطلب للدراسة الفنية', responsible: 'projects_office' },
+  ],
+  field_visit: [
+    { key: 'schedule_visit', name: 'جدولة زيارة ميدانية', responsible: 'field_team', durationDays: 1 },
+    { key: 'field_visit_form', name: 'نموذج الزيارة الميدانية', responsible: 'field_team', durationDays: 5 },
+    { key: 'technical_report', name: 'التقرير الفني', responsible: 'field_team', durationDays: 1 },
+  ],
+  technical_eval: [
+    { key: 'review_report', name: 'مراجعة التقرير الفني', responsible: 'projects_office', durationDays: 1 },
+    { key: 'make_decision', name: 'اتخاذ القرار (الخيارات الأربعة)', responsible: 'projects_office', durationDays: 1 },
+  ],
+  financial_eval: [
+    { key: 'prepare_boq', name: 'إعداد جدول الكميات', responsible: 'projects_office', durationDays: 10 },
+    { key: 'request_quotes', name: 'طلب عروض الأسعار', responsible: 'projects_office', durationDays: 5 },
+    { key: 'receive_quotes', name: 'استقبال العروض وترشيح الموردين', responsible: 'projects_office', durationDays: 5 },
+    { key: 'calculate_cost', name: 'تحديد التكلفة + نسبة الإشراف', responsible: 'system' },
+    { key: 'create_opportunity', name: 'رفع فرصة على موقع التبرعات', responsible: 'projects_office', durationDays: 1 },
+  ],
+  execution: [
+    { key: 'prepare_contract', name: 'إعداد عقد المشروع', responsible: 'projects_office', durationDays: 1 },
+    { key: 'sign_contract', name: 'إبرام العقد مع المورد', responsible: 'financial', durationDays: 1 },
+    { key: 'request_payment', name: 'طلب صرف دفعة مالية', responsible: 'project_manager', durationDays: 1 },
+    { key: 'prepare_payment_order', name: 'إعداد أمر صرف', responsible: 'financial', durationDays: 1 },
+    { key: 'follow_execution', name: 'متابعة التنفيذ حسب المراحل', responsible: 'project_manager' },
+  ],
+  closed: [
+    { key: 'final_report', name: 'التقرير الختامي', responsible: 'project_manager', durationDays: 5 },
+    { key: 'stakeholder_satisfaction', name: 'قياس رضا أصحاب المصلحة', responsible: 'corporate_comm', durationDays: 1 },
+    { key: 'beneficiary_satisfaction', name: 'قياس رضا المستفيد', responsible: 'corporate_comm', durationDays: 1 },
+    { key: 'publish_results', name: 'النشر على الموقع والشبكات الاجتماعية', responsible: 'corporate_comm', durationDays: 1 },
+    { key: 'close_project', name: 'إغلاق عمليات المشروع وصرف الدفعة الختامية', responsible: 'project_manager', durationDays: 1 },
+  ],
+} as const;
+
+// ==================== مسارات الطلب ====================
+export const REQUEST_TRACKS = {
+  standard: {
+    key: 'standard',
+    name: 'المسار العادي (مشروع)',
+    description: 'المسار الكامل من التقديم إلى الإغلاق',
+    stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'financial_eval', 'execution', 'closed'],
+  },
+  quick_response: {
+    key: 'quick_response',
+    name: 'مسار الاستجابة السريعة',
+    description: 'مسار مختصر للحالات البسيطة',
+    stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'execution', 'closed'],
+  },
+  rejected: {
+    key: 'rejected',
+    name: 'مسار الاعتذار',
+    description: 'الطلبات التي تم الاعتذار عنها',
+    stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'closed'],
+  },
+} as const;

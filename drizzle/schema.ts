@@ -171,6 +171,13 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   // بيانات البرنامج (JSON مرن لكل برنامج)
   programData: json("programData"),
   
+  // مسار الطلب (standard: مشروع عادي, quick_response: استجابة سريعة, rejected: مرفوض)
+  requestTrack: mysqlEnum("requestTrack", ["standard", "quick_response", "rejected"]).default("standard"),
+  
+  // قرار التقييم الفني (apologize, suspend, quick_response, convert_to_project)
+  technicalEvalDecision: varchar("technicalEvalDecision", { length: 50 }),
+  technicalEvalJustification: text("technicalEvalJustification"),
+  
   // التكلفة والميزانية
   estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }),
   approvedBudget: decimal("approvedBudget", { precision: 15, scale: 2 }),

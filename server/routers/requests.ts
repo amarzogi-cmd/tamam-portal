@@ -17,7 +17,13 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { STAGE_TRANSITION_PERMISSIONS, STATUS_CHANGE_PERMISSIONS, STAGE_LABELS } from "@shared/constants";
+import { 
+  STAGE_TRANSITION_PERMISSIONS, 
+  STATUS_CHANGE_PERMISSIONS, 
+  STAGE_LABELS,
+  TECHNICAL_EVAL_OPTIONS,
+  TECHNICAL_EVAL_OPTION_LABELS,
+} from "@shared/constants";
 
 // دالة إنشاء رقم طلب فريد
 function generateRequestNumber(programType: string): string {
@@ -717,6 +723,121 @@ export const requestsRouter = router({
       }
 
       return { success: true, message: "تم إضافة تقرير الاستجابة السريعة بنجاح" };
+    }),
+
+  // التقييم الفني - الخيارات الأربعة
+  technicalEvalDecision: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      decision: z.enum(['apologize', 'suspend', 'quick_response', 'convert_to_project']),
+      justification: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود الطلب
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من أن الطلب في مرحلة التقييم الفني
+      if (request[0].currentStage !== 'technical_eval') {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: "يمكن اتخاذ هذا القرار فقط في مرحلة التقييم الفني" 
+        });
+      }
+
+      // التحقق من الصلاحيات
+      const option = TECHNICAL_EVAL_OPTIONS[input.decision];
+      if (!(option.allowedRoles as readonly string[]).includes(ctx.user.role)) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: `ليس لديك صلاحية لاتخاذ قرار "${option.name}"` 
+        });
+      }
+
+      // التحقق من وجود المبررات إذا كانت مطلوبة
+      if (option.requiresJustification && !input.justification) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: "يجب ذكر المبررات لهذا القرار" 
+        });
+      }
+
+      // تحديث الطلب حسب القرار
+      const updateData: any = {
+        status: option.resultStatus,
+      };
+
+      // تحديد المرحلة التالية
+      if (option.nextStage) {
+        updateData.currentStage = option.nextStage;
+      }
+
+      // إذا كان القرار هو التحويل للاستجابة السريعة، تحديد المسار
+      if (input.decision === 'quick_response') {
+        updateData.requestTrack = 'quick_response';
+      }
+
+      // إذا كان القرار هو الاعتذار، تحديد تاريخ الإغلاق
+      if (input.decision === 'apologize') {
+        updateData.completedAt = new Date();
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      // إضافة سجل في تاريخ الطلب
+      const actionNote = input.justification 
+        ? `${option.name}: ${input.justification}`
+        : option.name;
+      
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: 'technical_eval',
+        toStage: option.nextStage || 'technical_eval',
+        fromStatus: request[0].status,
+        toStatus: option.resultStatus,
+        action: `technical_eval_${input.decision}`,
+        notes: input.notes || actionNote,
+      });
+
+      // إرسال إشعار لمقدم الطلب
+      let notificationMessage = '';
+      switch (input.decision) {
+        case 'apologize':
+          notificationMessage = `نعتذر عن عدم إمكانية تنفيذ طلبك رقم ${request[0].requestNumber}`;
+          break;
+        case 'suspend':
+          notificationMessage = `تم تعليق طلبك رقم ${request[0].requestNumber} مؤقتاً`;
+          break;
+        case 'quick_response':
+          notificationMessage = `تم تحويل طلبك رقم ${request[0].requestNumber} لفريق الاستجابة السريعة`;
+          break;
+        case 'convert_to_project':
+          notificationMessage = `تم اعتماد طلبك رقم ${request[0].requestNumber} وتحويله إلى مشروع`;
+          break;
+      }
+
+      await db.insert(notifications).values({
+        userId: request[0].userId,
+        title: `تحديث التقييم الفني`,
+        message: notificationMessage,
+        type: "request_update",
+        relatedType: "request",
+        relatedId: input.requestId,
+      });
+
+      return { 
+        success: true, 
+        message: `تم ${option.name} بنجاح`,
+        nextStage: option.nextStage,
+        newStatus: option.resultStatus,
+      };
     }),
 
   // الحصول على طلب برقم الطلب (للتتبع العام)
