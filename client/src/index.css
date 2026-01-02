@@ -125,29 +125,8 @@
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
-@font-face {
-  font-family: 'Tajawal';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iura6YBj_oCad4k1nzGBC45I.woff2) format('woff2');
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l4qjHrRpiYlJ.woff2) format('woff2');
-}
-
-@font-face {
-  font-family: 'Tajawal';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l8KkHrRpiYlJ.woff2) format('woff2');
-}
+/* خط Cairo من Google Fonts - جميع الأوزان */
+/* الأوزان: 200 (ExtraLight), 300 (Light), 400 (Regular), 500 (Medium), 600 (SemiBold), 700 (Bold), 800 (ExtraBold), 900 (Black) */
 
 @layer base {
   * {
@@ -158,7 +137,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Tajawal', 'Inter', system-ui, sans-serif;
+    font-family: 'Cairo', system-ui, sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
