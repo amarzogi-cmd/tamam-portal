@@ -39,12 +39,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* الجانب الأيسر - النموذج */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* النموذج في المنتصف */}
+      <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* الشعار */}
-          <Link href="/" className="flex items-center gap-3 mb-8">
+          <Link href="/" className="flex items-center justify-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
               <Building2 className="w-7 h-7 text-white" />
             </div>
@@ -191,32 +191,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* الجانب الأيمن - الصورة */}
-      <div className="hidden lg:flex flex-1 gradient-hero islamic-pattern items-center justify-center p-12">
-        <div className="max-w-lg text-white text-center">
-          <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-8">
-            <Building2 className="w-10 h-10" />
-          </div>
-          <h2 className="text-3xl font-bold mb-4">
-            مرحباً بك في بوابة تمام
-          </h2>
-          <p className="text-lg opacity-90 mb-8">
-            منصة متكاملة لإدارة خدمات المساجد من خلال تسعة برامج متخصصة
-          </p>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "برنامج", value: "9" },
-              { label: "مسجد", value: "1,250+" },
-              { label: "طلب", value: "3,400+" },
-            ].map((stat, index) => (
-              <div key={index} className="bg-white/10 rounded-lg p-4">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="text-sm opacity-70">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 }
