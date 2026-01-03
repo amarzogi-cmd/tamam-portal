@@ -78,6 +78,12 @@ export default function Quotations() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [includeUnapproved, setIncludeUnapproved] = useState(true);
   
+  // حالة نافذة الاعتماد المتقدمة
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [selectedQuotationForApproval, setSelectedQuotationForApproval] = useState<any>(null);
+  const [approvedAmount, setApprovedAmount] = useState("");
+  const [approvalNotes, setApprovalNotes] = useState("");
+  
   // حالة نموذج إضافة عرض سعر
   const [formData, setFormData] = useState({
     quotationNumber: "",
@@ -219,8 +225,27 @@ export default function Quotations() {
     });
   };
 
-  const handleApproveQuotation = (id: number) => {
-    approveQuotationMutation.mutate({ id, status: "accepted" });
+  // فتح نافذة الاعتماد المتقدمة
+  const openApproveDialog = (quotation: any) => {
+    setSelectedQuotationForApproval(quotation);
+    setApprovedAmount(quotation.totalAmount?.toString() || "");
+    setApprovalNotes("");
+    setShowApproveDialog(true);
+  };
+
+  // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
+  const handleConfirmApproval = () => {
+    if (!selectedQuotationForApproval) return;
+    approveQuotationMutation.mutate({
+      id: selectedQuotationForApproval.id,
+      status: "accepted",
+      approvedAmount: parseFloat(approvedAmount) || undefined,
+      notes: approvalNotes || undefined,
+    });
+    setShowApproveDialog(false);
+    setSelectedQuotationForApproval(null);
+    setApprovedAmount("");
+    setApprovalNotes("");
   };
 
   const handleRejectQuotation = (id: number) => {
@@ -415,7 +440,7 @@ export default function Quotations() {
                                     variant="ghost"
                                     size="sm"
                                     className="text-green-600"
-                                    onClick={() => handleApproveQuotation(quotation.id)}
+                                    onClick={() => openApproveDialog(quotation)}
                                   >
                                     <CheckCircle2 className="h-4 w-4 ml-1" />
                                     اعتماد
@@ -605,6 +630,82 @@ export default function Quotations() {
               >
                 {addQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 إضافة عرض السعر
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog اعتماد عرض السعر المتقدمة */}
+        <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>اعتماد عرض السعر</DialogTitle>
+              <DialogDescription>
+                يمكنك تعديل المبلغ المعتمد بعد التفاوض مع المورد
+              </DialogDescription>
+            </DialogHeader>
+            {selectedQuotationForApproval && (
+              <div className="space-y-4">
+                {/* معلومات العرض */}
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">رقم العرض:</span>
+                    <span className="font-medium">{selectedQuotationForApproval.quotationNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">المورد:</span>
+                    <span className="font-medium">{selectedQuotationForApproval.supplierName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">المبلغ الأصلي:</span>
+                    <span className="font-bold text-primary">
+                      {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                    </span>
+                  </div>
+                </div>
+
+                {/* المبلغ المعتمد */}
+                <div>
+                  <Label>المبلغ المعتمد (ريال) *</Label>
+                  <Input
+                    type="number"
+                    value={approvedAmount}
+                    onChange={(e) => setApprovedAmount(e.target.value)}
+                    placeholder="أدخل المبلغ المعتمد..."
+                    className="mt-1"
+                  />
+                  {approvedAmount && parseFloat(approvedAmount) !== parseFloat(selectedQuotationForApproval.totalAmount || 0) && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>سيتم اعتماد مبلغ مختلف عن العرض الأصلي</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* المبرر/الملاحظات */}
+                <div>
+                  <Label>مبرر الاعتماد / ملاحظات</Label>
+                  <Textarea
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                    placeholder="مثال: تم التفاوض مع المورد للوصول إلى هذا المبلغ..."
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+                إلغاء
+              </Button>
+              <Button 
+                onClick={handleConfirmApproval}
+                disabled={!approvedAmount || approveQuotationMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {approveQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                اعتماد العرض
               </Button>
             </DialogFooter>
           </DialogContent>
