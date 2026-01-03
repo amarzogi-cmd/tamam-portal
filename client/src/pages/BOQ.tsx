@@ -159,7 +159,6 @@ export default function BOQ() {
       return;
     }
     addItemMutation.mutate({
-      projectId: parseInt(selectedRequestId),
       requestId: parseInt(selectedRequestId),
       itemName: formData.itemName,
       itemDescription: formData.description,

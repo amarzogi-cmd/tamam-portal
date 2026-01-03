@@ -308,8 +308,8 @@ export const projectsRouter = router({
   // إضافة بند في جدول الكميات
   addBOQItem: protectedProcedure
     .input(z.object({
-      projectId: z.number(),
-      requestId: z.number().optional(),
+      projectId: z.number().optional(),
+      requestId: z.number(),
       boqCode: z.string().optional(),
       boqName: z.string().optional(),
       itemName: z.string().min(1),
@@ -323,10 +323,36 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // جلب أو إنشاء المشروع المرتبط بالطلب
+      let projectId = input.projectId;
+      
+      if (!projectId) {
+        // البحث عن مشروع مرتبط بالطلب
+        const [existingProject] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.requestId, input.requestId))
+          .limit(1);
+        
+        if (existingProject) {
+          projectId = existingProject.id;
+        } else {
+          // إنشاء مشروع جديد للطلب
+          const projectNumber = generateProjectNumber();
+          const [newProject] = await db.insert(projects).values({
+            projectNumber,
+            requestId: input.requestId,
+            name: `مشروع طلب #${input.requestId}`,
+            status: "planning",
+          });
+          projectId = newProject.insertId;
+        }
+      }
+
       const totalPrice = input.unitPrice ? input.quantity * input.unitPrice : null;
 
       const [item] = await db.insert(quantitySchedules).values({
-        projectId: input.projectId,
+        projectId: projectId,
         requestId: input.requestId,
         boqCode: input.boqCode,
         boqName: input.boqName,
@@ -339,7 +365,7 @@ export const projectsRouter = router({
         category: input.category,
       });
 
-      return { id: item.insertId };
+      return { id: item.insertId, projectId };
     }),
 
   // تحديث بند في جدول الكميات

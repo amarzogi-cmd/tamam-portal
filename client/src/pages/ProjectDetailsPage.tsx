@@ -173,6 +173,7 @@ export default function ProjectDetailsPage() {
 
     addBOQMutation.mutate({
       projectId: parseInt(id || "0"),
+      requestId: project?.requestId || 0,
       itemName: boqForm.itemName,
       itemDescription: boqForm.itemDescription || undefined,
       unit: boqForm.unit,
