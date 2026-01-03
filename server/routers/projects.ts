@@ -639,6 +639,7 @@ export const projectsRouter = router({
           id: quotations.id,
           quotationNumber: quotations.quotationNumber,
           totalAmount: quotations.totalAmount,
+          approvedAmount: quotations.approvedAmount,
           status: quotations.status,
           validUntil: quotations.validUntil,
           notes: quotations.notes,

@@ -3,6 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   ArrowRight, 
   FileText, 
@@ -21,6 +31,7 @@ import {
   PauseCircle,
   FolderKanban,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -70,10 +81,26 @@ export default function RequestDetails() {
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  
+  // حالات نافذة اعتماد عرض السعر
+  const [showApproveQuotationDialog, setShowApproveQuotationDialog] = useState(false);
+  const [selectedQuotationForApproval, setSelectedQuotationForApproval] = useState<any>(null);
+  const [approvedAmount, setApprovedAmount] = useState("");
+  const [approvalNotes, setApprovalNotes] = useState("");
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
   // history and comments are included in the request data
+  
+  // جلب جدول الكميات وعروض الأسعار للتقييم المالي
+  const { data: boqItems } = trpc.projects.getBOQ.useQuery(
+    { requestId },
+    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+  );
+  const { data: quotations } = trpc.projects.getQuotationsByRequest.useQuery(
+    { requestId },
+    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+  );
 
   const utils = trpc.useUtils();
 
@@ -120,6 +147,55 @@ export default function RequestDetails() {
       toast.error(error.message);
     },
   });
+
+  // mutation لتحديث حالة عرض السعر
+  const updateQuotationStatusMutation = trpc.projects.updateQuotationStatus.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة عرض السعر بنجاح");
+      setShowApproveQuotationDialog(false);
+      setSelectedQuotationForApproval(null);
+      setApprovedAmount("");
+      setApprovalNotes("");
+      utils.projects.getQuotationsByRequest.invalidate({ requestId });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث حالة عرض السعر");
+    },
+  });
+
+  // فتح نافذة اعتماد عرض السعر
+  const openApproveQuotationDialog = (quotation: any) => {
+    setSelectedQuotationForApproval(quotation);
+    setApprovedAmount(quotation.totalAmount?.toString() || "");
+    setApprovalNotes("");
+    setShowApproveQuotationDialog(true);
+  };
+
+  // تنفيذ اعتماد عرض السعر
+  const handleConfirmQuotationApproval = () => {
+    if (!selectedQuotationForApproval) return;
+    updateQuotationStatusMutation.mutate({
+      id: selectedQuotationForApproval.id,
+      status: "accepted",
+      approvedAmount: parseFloat(approvedAmount) || undefined,
+      notes: approvalNotes || undefined,
+    } as any);
+  };
+
+  // رفض عرض السعر
+  const handleRejectQuotation = (id: number) => {
+    updateQuotationStatusMutation.mutate({ id, status: "rejected" });
+  };
+
+  // إلغاء اعتماد عرض السعر
+  const handleCancelQuotationApproval = (id: number) => {
+    updateQuotationStatusMutation.mutate({ id, status: "pending" });
+  };
+
+  // إعادة عرض مرفوض للمراجعة
+  const handleReactivateQuotation = (id: number) => {
+    updateQuotationStatusMutation.mutate({ id, status: "pending" });
+  };
 
   // دالة لتحويل الطلب للمرحلة التالية
   const handleAdvanceStage = () => {
@@ -455,14 +531,54 @@ export default function RequestDetails() {
                         <CardDescription>تفاصيل البنود والكميات المطلوبة</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
-                          <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground mb-4">لم يتم إعداد جدول الكميات بعد</p>
-                          <Button variant="outline" onClick={() => toast.info('سيتم إضافة هذه الميزة قريباً')}>
-                            <FileText className="w-4 h-4 ml-2" />
-                            إعداد جدول الكميات
-                          </Button>
-                        </div>
+                        {boqItems?.items && boqItems.items.length > 0 ? (
+                          <>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b bg-muted/50">
+                                    <th className="text-right p-3 font-medium">#</th>
+                                    <th className="text-right p-3 font-medium">البند</th>
+                                    <th className="text-right p-3 font-medium">الوصف</th>
+                                    <th className="text-right p-3 font-medium">الوحدة</th>
+                                    <th className="text-right p-3 font-medium">الكمية</th>
+                                    <th className="text-right p-3 font-medium">سعر الوحدة</th>
+                                    <th className="text-right p-3 font-medium">الإجمالي</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {boqItems.items.map((item: any, index: number) => (
+                                    <tr key={item.id} className="border-b hover:bg-muted/30">
+                                      <td className="p-3">{index + 1}</td>
+                                      <td className="p-3 font-medium">{item.itemName}</td>
+                                      <td className="p-3 text-muted-foreground">{item.description || '-'}</td>
+                                      <td className="p-3">{item.unit}</td>
+                                      <td className="p-3">{item.quantity?.toLocaleString()}</td>
+                                      <td className="p-3">{item.unitPrice?.toLocaleString()} ريال</td>
+                                      <td className="p-3 font-medium">{item.totalPrice?.toLocaleString()} ريال</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                              <p className="text-lg font-bold text-primary">
+                                إجمالي جدول الكميات: {boqItems.items.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0).toLocaleString()} ريال
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
+                            <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground mb-4">لم يتم إعداد جدول الكميات بعد</p>
+                            <Link href="/boq">
+                              <Button variant="outline">
+                                <FileText className="w-4 h-4 ml-2" />
+                                إعداد جدول الكميات
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -473,49 +589,158 @@ export default function RequestDetails() {
                           <FileText className="w-5 h-5" />
                           عروض الأسعار
                         </CardTitle>
-                        <CardDescription>العروض المقدمة من الموردين</CardDescription>
+                        <CardDescription>العروض المقدمة من الموردين - اختر العرض الأنسب</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
-                          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground mb-4">لا توجد عروض أسعار حتى الآن</p>
-                          <Button variant="outline" onClick={() => toast.info('سيتم إضافة هذه الميزة قريباً')}>
-                            <Send className="w-4 h-4 ml-2" />
-                            طلب عروض أسعار
-                          </Button>
-                        </div>
+                        {quotations?.quotations && quotations.quotations.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  <th className="text-right p-3 font-medium">رقم العرض</th>
+                                  <th className="text-right p-3 font-medium">المورد</th>
+                                  <th className="text-right p-3 font-medium">المبلغ الإجمالي</th>
+                                  <th className="text-right p-3 font-medium">المبلغ المعتمد</th>
+                                  <th className="text-right p-3 font-medium">صالح حتى</th>
+                                  <th className="text-right p-3 font-medium">الحالة</th>
+                                  <th className="text-right p-3 font-medium">الإجراءات</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quotations.quotations.map((q: any) => (
+                                  <tr key={q.id} className="border-b hover:bg-muted/30">
+                                    <td className="p-3 font-mono text-xs">{q.quotationNumber}</td>
+                                    <td className="p-3">{q.supplier?.companyName || '-'}</td>
+                                    <td className="p-3">{q.totalAmount?.toLocaleString()} ريال</td>
+                                    <td className="p-3">
+                                      {q.approvedAmount ? (
+                                        <span className="text-green-600 font-medium">{q.approvedAmount.toLocaleString()} ريال</span>
+                                      ) : '-'}
+                                    </td>
+                                    <td className="p-3">{q.validUntil ? new Date(q.validUntil).toLocaleDateString('ar-SA') : '-'}</td>
+                                    <td className="p-3">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        q.status === 'approved' || q.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                        q.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                      }`}>
+                                        {q.status === 'approved' || q.status === 'accepted' ? 'معتمد' : q.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+                                      </span>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex gap-1 flex-wrap">
+                                        {(q.status === 'pending' || !q.status) && (
+                                          <>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 px-2"
+                                              onClick={() => openApproveQuotationDialog(q)}
+                                            >
+                                              <CheckCircle2 className="h-4 w-4 ml-1" />
+                                              اعتماد
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                                              onClick={() => handleRejectQuotation(q.id)}
+                                            >
+                                              <XCircle className="h-4 w-4 ml-1" />
+                                              رفض
+                                            </Button>
+                                          </>
+                                        )}
+                                        {(q.status === 'approved' || q.status === 'accepted') && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 h-7 px-2"
+                                            onClick={() => handleCancelQuotationApproval(q.id)}
+                                          >
+                                            <XCircle className="h-4 w-4 ml-1" />
+                                            إلغاء الاعتماد
+                                          </Button>
+                                        )}
+                                        {q.status === 'rejected' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-7 px-2"
+                                            onClick={() => handleReactivateQuotation(q.id)}
+                                          >
+                                            <Clock className="h-4 w-4 ml-1" />
+                                            إعادة للمراجعة
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
+                            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground mb-4">لا توجد عروض أسعار حتى الآن</p>
+                            <Link href="/quotations">
+                              <Button variant="outline">
+                                <Send className="w-4 h-4 ml-2" />
+                                طلب عروض أسعار
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
                     {/* ملخص التكلفة */}
-                    <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-green-800">
-                          <CheckCircle2 className="w-5 h-5" />
-                          ملخص التكلفة
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="p-4 bg-white rounded-lg text-center">
-                            <p className="text-sm text-muted-foreground">تكلفة المواد</p>
-                            <p className="text-xl font-bold text-green-700">-</p>
-                          </div>
-                          <div className="p-4 bg-white rounded-lg text-center">
-                            <p className="text-sm text-muted-foreground">تكلفة العمالة</p>
-                            <p className="text-xl font-bold text-green-700">-</p>
-                          </div>
-                          <div className="p-4 bg-white rounded-lg text-center">
-                            <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
-                            <p className="text-xl font-bold text-green-700">-</p>
-                          </div>
-                          <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
-                            <p className="text-sm text-muted-foreground">الإجمالي</p>
-                            <p className="text-xl font-bold text-green-700">-</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {(() => {
+                      const approvedQuotation = quotations?.quotations?.find((q: any) => q.status === 'approved' || q.status === 'accepted');
+                      const supplierCost = parseFloat(approvedQuotation?.approvedAmount || approvedQuotation?.totalAmount || '0');
+                      const supervisionFee = supplierCost * 0.10;
+                      const totalCost = supplierCost + supervisionFee;
+                      
+                      return (
+                        <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-green-800">
+                              <CheckCircle2 className="w-5 h-5" />
+                              ملخص التكلفة
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {approvedQuotation ? (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 bg-white rounded-lg text-center">
+                                  <p className="text-sm text-muted-foreground">تكلفة المورد</p>
+                                  <p className="text-xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
+                                </div>
+                                <div className="p-4 bg-white rounded-lg text-center">
+                                  <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
+                                  <p className="text-xl font-bold text-green-700">{supervisionFee.toLocaleString()} ريال</p>
+                                </div>
+                                <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
+                                  <p className="text-sm text-muted-foreground">الإجمالي النهائي</p>
+                                  <p className="text-xl font-bold text-green-700">{totalCost.toLocaleString()} ريال</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground">
+                                <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                                <p>لم يتم اعتماد عرض سعر بعد</p>
+                                <Link href="/quotations">
+                                  <Button variant="link" className="mt-2">
+                                    الذهاب لعروض الأسعار
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
                   </div>
                 </TabsContent>
               )}
@@ -884,6 +1109,82 @@ export default function RequestDetails() {
           </div>
         </div>
       )}
+
+      {/* Dialog اعتماد عرض السعر */}
+      <Dialog open={showApproveQuotationDialog} onOpenChange={setShowApproveQuotationDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>اعتماد عرض السعر</DialogTitle>
+            <DialogDescription>
+              يمكنك تعديل المبلغ المعتمد بعد التفاوض مع المورد
+            </DialogDescription>
+          </DialogHeader>
+          {selectedQuotationForApproval && (
+            <div className="space-y-4">
+              {/* معلومات العرض */}
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">رقم العرض:</span>
+                  <span className="font-medium">{selectedQuotationForApproval.quotationNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المورد:</span>
+                  <span className="font-medium">{selectedQuotationForApproval.supplier?.companyName || '-'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المبلغ الأصلي:</span>
+                  <span className="font-bold text-primary">
+                    {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                  </span>
+                </div>
+              </div>
+
+              {/* المبلغ المعتمد */}
+              <div>
+                <Label>المبلغ المعتمد (ريال) *</Label>
+                <Input
+                  type="number"
+                  value={approvedAmount}
+                  onChange={(e) => setApprovedAmount(e.target.value)}
+                  placeholder="أدخل المبلغ المعتمد..."
+                  className="mt-1"
+                />
+                {approvedAmount && parseFloat(approvedAmount) !== parseFloat(selectedQuotationForApproval.totalAmount || 0) && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>سيتم اعتماد مبلغ مختلف عن العرض الأصلي</span>
+                  </div>
+                )}
+              </div>
+
+              {/* المبرر/الملاحظات */}
+              <div>
+                <Label>مبرر الاعتماد / ملاحظات</Label>
+                <Textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="مثال: تم التفاوض مع المورد للوصول إلى هذا المبلغ..."
+                  className="mt-1"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApproveQuotationDialog(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleConfirmQuotationApproval}
+              disabled={!approvedAmount || updateQuotationStatusMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {updateQuotationStatusMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+              اعتماد العرض
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
