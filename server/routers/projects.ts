@@ -625,6 +625,32 @@ export const projectsRouter = router({
       return { id: quotation.insertId, quotationNumber };
     }),
 
+  // جلب عروض الأسعار للطلب
+  getQuotationsByRequest: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const quotationsList = await db
+        .select({
+          id: quotations.id,
+          quotationNumber: quotations.quotationNumber,
+          totalAmount: quotations.totalAmount,
+          status: quotations.status,
+          validUntil: quotations.validUntil,
+          notes: quotations.notes,
+          supplierName: suppliers.name,
+          createdAt: quotations.createdAt,
+        })
+        .from(quotations)
+        .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
+        .where(eq(quotations.requestId, input.requestId))
+        .orderBy(desc(quotations.createdAt));
+
+      return { quotations: quotationsList };
+    }),
+
   // تحديث حالة عرض السعر
   updateQuotationStatus: protectedProcedure
     .input(z.object({
