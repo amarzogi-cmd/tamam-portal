@@ -651,74 +651,54 @@ export default function SuppliersManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog إضافة مورد */}
+      {/* Dialog إضافة مورد - يفتح صفحة التسجيل الكاملة */}
       <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>إضافة مورد جديد</DialogTitle>
-            <DialogDescription>أدخل بيانات المورد الجديد</DialogDescription>
+            <DialogDescription>
+              لإضافة مورد جديد، يجب تعبئة نموذج التسجيل الكامل الذي يتضمن:
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>اسم المورد</Label>
-              <Input
-                placeholder="اسم الشركة"
-                value={newSupplier.name}
-                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-              />
+          <div className="space-y-3 py-4">
+            <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
+              <Building2 className="h-5 w-5 text-teal-600" />
+              <div>
+                <p className="font-medium text-teal-800">معلومات الكيان</p>
+                <p className="text-xs text-teal-600">اسم، نوع، سجل تجاري، نشاط، خبرة، مجالات عمل</p>
+              </div>
             </div>
-            <div>
-              <Label>اسم الشخص المسؤول</Label>
-              <Input
-                placeholder="اسم المدير أو المسؤول"
-                value={newSupplier.contactPerson}
-                onChange={(e) => setNewSupplier({ ...newSupplier, contactPerson: e.target.value })}
-              />
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+              <Phone className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-800">معلومات التواصل</p>
+                <p className="text-xs text-blue-600">عنوان، خريطة، بريد، هاتف، مسؤول التواصل</p>
+              </div>
             </div>
-            <div>
-              <Label>رقم الهاتف</Label>
-              <Input
-                placeholder="رقم الهاتف"
-                value={newSupplier.phone}
-                onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
-              />
+            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+              <CreditCard className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="font-medium text-purple-800">معلومات الحساب البنكي</p>
+                <p className="text-xs text-purple-600">حساب، بنك، IBAN، رقم ضريبي</p>
+              </div>
             </div>
-            <div>
-              <Label>البريد الإلكتروني</Label>
-              <Input
-                type="email"
-                placeholder="البريد الإلكتروني"
-                value={newSupplier.email}
-                onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>العنوان</Label>
-              <Input
-                placeholder="العنوان الكامل"
-                value={newSupplier.address}
-                onChange={(e) => setNewSupplier({ ...newSupplier, address: e.target.value })}
-              />
+            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+              <FileText className="h-5 w-5 text-orange-600" />
+              <div>
+                <p className="font-medium text-orange-800">المرفقات</p>
+                <p className="text-xs text-orange-600">سجل تجاري، شهادة ضريبية، عنوان وطني</p>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddSupplierDialog(false)}>إلغاء</Button>
             <Button onClick={() => {
-              if (!newSupplier.name || !newSupplier.phone || !newSupplier.email) {
-                toast.error("يرجى ملء جميع الحقول المطلوبة");
-                return;
-              }
-              toast.success("تم إضافة المورد بنجاح");
               setShowAddSupplierDialog(false);
-              setNewSupplier({
-                name: "",
-                contactPerson: "",
-                phone: "",
-                email: "",
-                address: "",
-                workFields: [],
-              });
-            }}>إضافة</Button>
+              navigate("/supplier/register");
+            }}>
+              <Plus className="h-4 w-4 ml-2" />
+              الانتقال لنموذج التسجيل
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
