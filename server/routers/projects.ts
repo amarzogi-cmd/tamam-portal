@@ -639,6 +639,7 @@ export const projectsRouter = router({
           id: quotations.id,
           quotationNumber: quotations.quotationNumber,
           totalAmount: quotations.totalAmount,
+          approvedAmount: quotations.approvedAmount,
           status: quotations.status,
           validUntil: quotations.validUntil,
           notes: quotations.notes,
@@ -653,19 +654,33 @@ export const projectsRouter = router({
       return { quotations: quotationsList };
     }),
 
-  // تحديث حالة عرض السعر
+  // تحديث حالة عرض السعر مع إمكانية تعديل المبلغ المعتمد
   updateQuotationStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
       status: z.enum(["pending", "accepted", "rejected", "expired"]),
+      approvedAmount: z.number().optional(), // المبلغ المعتمد (قد يختلف عن المبلغ الأصلي بعد التفاوض)
+      approvalNotes: z.string().optional(), // ملاحظات الاعتماد
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const updateData: any = { status: input.status };
+      
+      // إذا تم الاعتماد، نحفظ المبلغ المعتمد والملاحظات
+      if (input.status === "accepted") {
+        if (input.approvedAmount !== undefined) {
+          updateData.approvedAmount = input.approvedAmount.toString();
+        }
+        if (input.approvalNotes) {
+          updateData.notes = input.approvalNotes;
+        }
+      }
+
       await db
         .update(quotations)
-        .set({ status: input.status })
+        .set(updateData)
         .where(eq(quotations.id, input.id));
 
       return { success: true };

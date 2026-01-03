@@ -521,6 +521,7 @@ export const quotations = mysqlTable("quotations", {
   projectId: int("projectId").references(() => projects.id),
   supplierId: int("supplierId").notNull().references(() => suppliers.id),
   totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
+  approvedAmount: decimal("approvedAmount", { precision: 15, scale: 2 }), // المبلغ المعتمد (قد يختلف عن المبلغ الأصلي بعد التفاوض)
   validUntil: timestamp("validUntil"),
   status: mysqlEnum("status", ["pending", "accepted", "rejected", "expired"]).default("pending"),
   items: json("items"), // تفاصيل البنود
