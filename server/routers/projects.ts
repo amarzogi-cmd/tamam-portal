@@ -429,15 +429,29 @@ export const projectsRouter = router({
 
   // جلب جدول الكميات لمشروع
   getBOQ: protectedProcedure
-    .input(z.object({ projectId: z.number() }))
+    .input(z.object({ 
+      projectId: z.number().optional(),
+      requestId: z.number().optional()
+    }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // البحث باستخدام requestId أو projectId
+      const whereCondition = input.requestId 
+        ? eq(quantitySchedules.requestId, input.requestId)
+        : input.projectId 
+          ? eq(quantitySchedules.projectId, input.projectId)
+          : undefined;
+
+      if (!whereCondition) {
+        return { items: [], total: 0 };
+      }
+
       const items = await db
         .select()
         .from(quantitySchedules)
-        .where(eq(quantitySchedules.projectId, input.projectId))
+        .where(whereCondition)
         .orderBy(quantitySchedules.category, quantitySchedules.itemName);
 
       // حساب الإجمالي

@@ -95,7 +95,7 @@ export default function BOQ() {
 
   // جلب جداول الكميات
   const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
-    { projectId: parseInt(selectedRequestId) || 0 },
+    { requestId: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
   const boqData = boqResult?.items || [];
