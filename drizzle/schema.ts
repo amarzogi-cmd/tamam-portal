@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 // ==================== الأدوار والحالات ====================
@@ -492,9 +492,9 @@ export const suppliers = mysqlTable("suppliers", {
   taxNumber: varchar("taxNumber", { length: 50 }),
   
   // ==================== الصفحة 4: المرفقات ====================
-  commercialRegisterDoc: varchar("commercialRegisterDoc", { length: 500 }), // إرفاق السجل التجاري
-  vatCertificateDoc: varchar("vatCertificateDoc", { length: 500 }), // شهادة ضريبة القيمة المضافة
-  nationalAddressDoc: varchar("nationalAddressDoc", { length: 500 }), // العنوان الوطني
+  commercialRegisterDoc: mediumtext("commercialRegisterDoc"), // إرفاق السجل التجاري (Base64)
+  vatCertificateDoc: mediumtext("vatCertificateDoc"), // شهادة ضريبة القيمة المضافة (Base64)
+  nationalAddressDoc: mediumtext("nationalAddressDoc"), // العنوان الوطني (Base64)
   
   // ==================== بيانات الاعتماد ====================
   approvalStatus: mysqlEnum("approvalStatus", supplierApprovalStatuses).default("pending"),
