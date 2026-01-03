@@ -108,7 +108,13 @@ export default function SupplierRegistration() {
       navigate("/supplier/dashboard");
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ في التسجيل");
+      // تنظيف رسالة الخطأ من بيانات Base64
+      let errorMessage = error.message || "حدث خطأ في التسجيل";
+      // إذا كانت الرسالة طويلة جداً أو تحتوي على بيانات Base64
+      if (errorMessage.length > 200 || errorMessage.includes("data:") || /[A-Za-z0-9+/=]{100,}/.test(errorMessage)) {
+        errorMessage = "حدث خطأ في التسجيل. يرجى التحقق من البيانات والمحاولة مرة أخرى";
+      }
+      toast.error(errorMessage);
       setIsSubmitting(false);
     },
   });
