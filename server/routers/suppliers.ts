@@ -244,6 +244,62 @@ export const suppliersRouter = router({
       return suppliersList;
     }),
 
+  // جلب جميع الموردين النشطين (لعروض الأسعار)
+  getActiveSuppliers: protectedProcedure
+    .input(
+      z.object({
+        workField: z.enum(workFields).optional(),
+        search: z.string().optional(),
+        includeUnapproved: z.boolean().optional(), // إظهار غير المعتمدين أيضاً
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const conditions: any[] = [eq(suppliers.status, "active")];
+      
+      // إذا لم يتم طلب غير المعتمدين، فلتر المعتمدين فقط
+      if (!input?.includeUnapproved) {
+        conditions.push(eq(suppliers.approvalStatus, "approved"));
+      }
+      
+      if (input?.search) {
+        conditions.push(
+          or(
+            like(suppliers.name, `%${input.search}%`),
+            like(suppliers.commercialRegister, `%${input.search}%`)
+          ) as any
+        );
+      }
+
+      const suppliersList = await db
+        .select({
+          id: suppliers.id,
+          name: suppliers.name,
+          type: suppliers.type,
+          commercialRegister: suppliers.commercialRegister,
+          city: suppliers.city,
+          phone: suppliers.phone,
+          email: suppliers.email,
+          workFields: suppliers.workFields,
+          approvalStatus: suppliers.approvalStatus,
+          status: suppliers.status,
+        })
+        .from(suppliers)
+        .where(and(...conditions))
+        .orderBy(suppliers.name);
+
+      // تصفية حسب مجال العمل
+      if (input?.workField) {
+        return suppliersList.filter(
+          (s) => s.workFields && (s.workFields as string[]).includes(input.workField!)
+        );
+      }
+
+      return suppliersList;
+    }),
+
   // ==================== اعتماد الموردين ====================
 
   // اعتماد مورد

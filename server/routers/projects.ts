@@ -597,10 +597,12 @@ export const projectsRouter = router({
       totalAmount: z.number().positive(),
       validUntil: z.date().optional(),
       items: z.array(z.object({
-        name: z.string(),
+        boqItemId: z.number().optional(),
+        itemName: z.string(),
         quantity: z.number(),
+        unit: z.string().optional(),
         unitPrice: z.number(),
-        total: z.number(),
+        totalPrice: z.number(),
       })).optional(),
       notes: z.string().optional(),
     }))

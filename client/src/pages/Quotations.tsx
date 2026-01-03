@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -47,6 +48,7 @@ import {
   FileText,
   Calendar,
   ClipboardList,
+  AlertCircle,
 } from "lucide-react";
 
 // حالات عروض الأسعار
@@ -57,6 +59,16 @@ const QUOTATION_STATUS = {
   expired: { label: "منتهي", color: "bg-gray-100 text-gray-800", icon: Clock },
 };
 
+// نوع بند التسعير
+interface QuotationItem {
+  boqItemId: number;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: string;
+  totalPrice: number;
+}
+
 export default function Quotations() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -64,22 +76,27 @@ export default function Quotations() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+  const [includeUnapproved, setIncludeUnapproved] = useState(true);
   
   // حالة نموذج إضافة عرض سعر
   const [formData, setFormData] = useState({
     quotationNumber: "",
-    totalAmount: "",
     validUntil: "",
     notes: "",
   });
+
+  // حالة تسعير البنود
+  const [quotationItems, setQuotationItems] = useState<QuotationItem[]>([]);
 
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
     currentStage: "financial_eval",
   });
 
-  // جلب الموردين المعتمدين
-  const { data: suppliers } = trpc.suppliers.getApproved.useQuery({});
+  // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)
+  const { data: suppliers } = trpc.suppliers.getActiveSuppliers.useQuery({
+    includeUnapproved: includeUnapproved,
+  });
 
   // جلب عروض الأسعار للطلب المحدد
   const { data: quotationsData, isLoading: quotationsLoading, refetch: refetchQuotations } = trpc.projects.getQuotationsByRequest.useQuery(
@@ -93,6 +110,22 @@ export default function Quotations() {
     { enabled: !!selectedRequestId }
   );
 
+  // تهيئة بنود التسعير عند فتح نافذة الإضافة
+  useEffect(() => {
+    if (showAddDialog && boqData?.items) {
+      setQuotationItems(
+        boqData.items.map((item: any) => ({
+          boqItemId: item.id,
+          itemName: item.itemName,
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+          unitPrice: "",
+          totalPrice: 0,
+        }))
+      );
+    }
+  }, [showAddDialog, boqData]);
+
   // إضافة عرض سعر
   const addQuotationMutation = trpc.projects.createQuotation.useMutation({
     onSuccess: () => {
@@ -102,7 +135,6 @@ export default function Quotations() {
       refetchQuotations();
     },
     onError: (error: any) => {
-      // تنظيف رسالة الخطأ من البيانات الطويلة
       const errorMessage = error.message?.substring(0, 200) || "حدث خطأ أثناء إضافة عرض السعر";
       toast.error(errorMessage);
     },
@@ -122,12 +154,31 @@ export default function Quotations() {
   const resetForm = () => {
     setFormData({
       quotationNumber: "",
-      totalAmount: "",
       validUntil: "",
       notes: "",
     });
     setSelectedSupplierId("");
+    setQuotationItems([]);
   };
+
+  // تحديث سعر بند
+  const updateItemPrice = (index: number, unitPrice: string) => {
+    setQuotationItems((prev) => {
+      const updated = [...prev];
+      const price = parseFloat(unitPrice) || 0;
+      updated[index] = {
+        ...updated[index],
+        unitPrice,
+        totalPrice: price * updated[index].quantity,
+      };
+      return updated;
+    });
+  };
+
+  // حساب الإجمالي
+  const totalAmount = useMemo(() => {
+    return quotationItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  }, [quotationItems]);
 
   const handleAddQuotation = () => {
     if (!selectedRequestId) {
@@ -138,17 +189,33 @@ export default function Quotations() {
       toast.error("يرجى اختيار المورد");
       return;
     }
-    if (!formData.totalAmount || parseFloat(formData.totalAmount) <= 0) {
-      toast.error("يرجى إدخال المبلغ الإجمالي");
+    
+    // التحقق من تسعير جميع البنود
+    const unpriced = quotationItems.filter((item) => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
+    if (unpriced.length > 0) {
+      toast.error(`يرجى تسعير جميع البنود (${unpriced.length} بند غير مسعر)`);
+      return;
+    }
+
+    if (totalAmount <= 0) {
+      toast.error("يرجى إدخال أسعار صحيحة للبنود");
       return;
     }
 
     addQuotationMutation.mutate({
       requestId: parseInt(selectedRequestId),
       supplierId: parseInt(selectedSupplierId),
-      totalAmount: parseFloat(formData.totalAmount),
+      totalAmount: totalAmount,
       validUntil: formData.validUntil ? new Date(formData.validUntil) : undefined,
       notes: formData.notes,
+      items: quotationItems.map((item) => ({
+        boqItemId: item.boqItemId,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: parseFloat(item.unitPrice),
+        totalPrice: item.totalPrice,
+      })),
     });
   };
 
@@ -379,60 +446,120 @@ export default function Quotations() {
           </Card>
         )}
 
-        {/* Dialog إضافة عرض سعر */}
+        {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إضافة عرض سعر</DialogTitle>
-              <DialogDescription>أدخل تفاصيل عرض السعر من المورد</DialogDescription>
+              <DialogDescription>أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>المورد *</Label>
-                <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المورد..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers?.map((supplier: any) => (
-                      <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              {/* معلومات المورد */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>المورد *</Label>
+                  <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المورد..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers?.map((supplier: any) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            {supplier.name}
+                            {supplier.approvalStatus !== "approved" && (
+                              <Badge variant="outline" className="text-xs">غير معتمد</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Checkbox
+                      id="includeUnapproved"
+                      checked={includeUnapproved}
+                      onCheckedChange={(checked) => setIncludeUnapproved(checked as boolean)}
+                    />
+                    <label htmlFor="includeUnapproved" className="text-sm text-muted-foreground">
+                      إظهار الموردين غير المعتمدين
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <Label>صالح حتى</Label>
+                  <Input
+                    type="date"
+                    value={formData.validUntil}
+                    onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <Label>رقم العرض (اختياري)</Label>
-                <Input
-                  value={formData.quotationNumber}
-                  onChange={(e) => setFormData({ ...formData, quotationNumber: e.target.value })}
-                  placeholder="سيتم توليده تلقائياً إذا تُرك فارغاً"
-                />
-              </div>
-              <div>
-                <Label>المبلغ الإجمالي (ريال) *</Label>
-                <Input
-                  type="number"
-                  value={formData.totalAmount}
-                  onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label>صالح حتى</Label>
-                <Input
-                  type="date"
-                  value={formData.validUntil}
-                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                />
-              </div>
+
+              {/* جدول تسعير البنود */}
+              {quotationItems.length > 0 ? (
+                <div>
+                  <Label className="mb-2 block">تسعير البنود *</Label>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>البند</TableHead>
+                          <TableHead>الوحدة</TableHead>
+                          <TableHead className="text-center w-24">الكمية</TableHead>
+                          <TableHead className="text-center w-32">سعر الوحدة (ريال)</TableHead>
+                          <TableHead className="text-center w-32">الإجمالي</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {quotationItems.map((item, index) => (
+                          <TableRow key={item.boqItemId}>
+                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                            <TableCell className="text-center">{item.quantity.toLocaleString("ar-SA")}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={(e) => updateItemPrice(index, e.target.value)}
+                                placeholder="0"
+                                className="text-center"
+                                min="0"
+                                step="0.01"
+                              />
+                            </TableCell>
+                            <TableCell className="text-center font-medium">
+                              {item.totalPrice > 0 ? `${item.totalPrice.toLocaleString("ar-SA")} ريال` : "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <div className="bg-primary text-primary-foreground px-6 py-3 rounded-lg">
+                      <span className="text-sm">الإجمالي الكلي:</span>
+                      <span className="text-xl font-bold mr-2">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>لا توجد بنود في جدول الكميات</p>
+                  <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً</p>
+                </div>
+              )}
+
+              {/* ملاحظات */}
               <div>
                 <Label>ملاحظات (اختياري)</Label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="أي ملاحظات إضافية..."
+                  placeholder="أي ملاحظات إضافية على عرض السعر..."
                 />
               </div>
             </div>
@@ -440,9 +567,12 @@ export default function Quotations() {
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={handleAddQuotation} disabled={addQuotationMutation.isPending}>
+              <Button 
+                onClick={handleAddQuotation} 
+                disabled={addQuotationMutation.isPending || quotationItems.length === 0}
+              >
                 {addQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-                إضافة
+                إضافة عرض السعر
               </Button>
             </DialogFooter>
           </DialogContent>
