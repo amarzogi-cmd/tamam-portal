@@ -194,11 +194,21 @@ export default function ContractForm() {
       if (Array.isArray(quotations)) {
         const accepted = quotations.find((q: any) => q.status === "accepted");
         if (accepted) {
-          // استخدام المبلغ المعتمد (بعد التفاوض) إن وجد، وإلا استخدام المبلغ الأصلي
-          const baseValue = parseFloat(accepted.totalAmount) || 0;
-          const approvedValue = accepted.approvedAmount 
+          // المبلغ الأصلي من المورد
+          const originalAmount = parseFloat(accepted.totalAmount) || 0;
+          
+          // المبلغ بعد التفاوض (إن وجد)
+          const negotiatedAmount = accepted.negotiatedAmount 
+            ? parseFloat(accepted.negotiatedAmount) 
+            : null;
+          
+          // المبلغ المعتمد (إن وجد)
+          const approvedAmount = accepted.approvedAmount 
             ? parseFloat(accepted.approvedAmount) 
-            : baseValue;
+            : null;
+          
+          // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
+          const finalAmount = approvedAmount ?? negotiatedAmount ?? originalAmount;
           
           // حساب النسبة إذا كانت مخزنة في العرض
           const managementPercentage = accepted.managementPercentage 
@@ -208,9 +218,9 @@ export default function ContractForm() {
           setContractData(prev => ({
             ...prev,
             supplierId: accepted.supplierId,
-            baseValue: baseValue,
+            baseValue: originalAmount, // المبلغ الأصلي للمرجع
             managementPercentage: managementPercentage,
-            totalValue: approvedValue, // القيمة النهائية شاملة النسبة
+            totalValue: finalAmount, // القيمة النهائية (بعد التفاوض أو المعتمدة)
           }));
         }
       }

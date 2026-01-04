@@ -513,6 +513,15 @@ export const suppliers = mysqlTable("suppliers", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// حالات عروض الأسعار
+export const quotationStatuses = [
+  "pending",      // قيد المراجعة
+  "negotiating",  // قيد التفاوض
+  "accepted",     // معتمد
+  "rejected",     // مرفوض
+  "expired"       // منتهي الصلاحية
+] as const;
+
 // عروض الأسعار
 export const quotations = mysqlTable("quotations", {
   id: int("id").autoincrement().primaryKey(),
@@ -520,10 +529,21 @@ export const quotations = mysqlTable("quotations", {
   requestId: int("requestId").references(() => mosqueRequests.id),
   projectId: int("projectId").references(() => projects.id),
   supplierId: int("supplierId").notNull().references(() => suppliers.id),
+  
+  // المبلغ الأصلي من المورد
   totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
-  approvedAmount: decimal("approvedAmount", { precision: 15, scale: 2 }), // المبلغ المعتمد بعد التفاوض
+  
+  // بيانات التفاوض
+  negotiatedAmount: decimal("negotiatedAmount", { precision: 15, scale: 2 }), // المبلغ بعد التفاوض
+  negotiationNotes: text("negotiationNotes"), // ملاحظات التفاوض
+  negotiatedBy: int("negotiatedBy").references(() => users.id), // من قام بالتفاوض
+  negotiatedAt: timestamp("negotiatedAt"), // تاريخ التفاوض
+  
+  // المبلغ المعتمد (إما المبلغ بعد التفاوض أو الأصلي)
+  approvedAmount: decimal("approvedAmount", { precision: 15, scale: 2 }),
+  
   validUntil: timestamp("validUntil"),
-  status: mysqlEnum("status", ["pending", "accepted", "rejected", "expired"]).default("pending"),
+  status: mysqlEnum("status", quotationStatuses).default("pending"),
   items: json("items"), // تفاصيل البنود
   notes: text("notes"),
   documentUrl: varchar("documentUrl", { length: 500 }),
@@ -923,6 +943,7 @@ export type DurationUnit = typeof durationUnits[number];
 export type EntityType = typeof entityTypes[number];
 export type SupplierApprovalStatus = typeof supplierApprovalStatuses[number];
 export type WorkField = typeof workFields[number];
+export type QuotationStatus = typeof quotationStatuses[number];
 
 // ==================== نظام قوالب العقود المتقدم ====================
 

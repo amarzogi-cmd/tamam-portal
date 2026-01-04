@@ -658,7 +658,7 @@ export const projectsRouter = router({
   updateQuotationStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
-      status: z.enum(["pending", "accepted", "rejected", "expired"]),
+      status: z.enum(["pending", "negotiating", "accepted", "rejected", "expired"]),
       approvedAmount: z.number().optional(),
       notes: z.string().optional(),
     }))
@@ -684,6 +684,95 @@ export const projectsRouter = router({
         .where(eq(quotations.id, input.id));
 
       return { success: true };
+    }),
+
+  // بدء التفاوض على عرض السعر
+  startNegotiation: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db
+        .update(quotations)
+        .set({ 
+          status: "negotiating",
+          negotiatedBy: ctx.user.id,
+          negotiatedAt: new Date()
+        })
+        .where(eq(quotations.id, input.id));
+
+      return { success: true };
+    }),
+
+  // حفظ نتيجة التفاوض
+  saveNegotiationResult: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      negotiatedAmount: z.number(),
+      negotiationNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db
+        .update(quotations)
+        .set({ 
+          negotiatedAmount: input.negotiatedAmount.toString(),
+          negotiationNotes: input.negotiationNotes || null,
+          negotiatedBy: ctx.user.id,
+          negotiatedAt: new Date()
+        })
+        .where(eq(quotations.id, input.id));
+
+      return { success: true };
+    }),
+
+  // اعتماد عرض السعر بعد التفاوض
+  approveQuotationAfterNegotiation: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      useNegotiatedAmount: z.boolean().default(true), // استخدام المبلغ بعد التفاوض
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // جلب بيانات العرض
+      const [quotation] = await db
+        .select()
+        .from(quotations)
+        .where(eq(quotations.id, input.id));
+
+      if (!quotation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر غير موجود" });
+      }
+
+      // تحديد المبلغ المعتمد
+      let approvedAmount: string;
+      if (input.useNegotiatedAmount && quotation.negotiatedAmount) {
+        approvedAmount = quotation.negotiatedAmount;
+      } else {
+        approvedAmount = quotation.totalAmount;
+      }
+
+      await db
+        .update(quotations)
+        .set({ 
+          status: "accepted",
+          approvedAmount: approvedAmount,
+          notes: input.notes || null
+        })
+        .where(eq(quotations.id, input.id));
+
+      return { 
+        success: true,
+        approvedAmount: parseFloat(approvedAmount)
+      };
     }),
 
   // ==================== الموردين ====================
