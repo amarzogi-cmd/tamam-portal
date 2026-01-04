@@ -120,6 +120,7 @@ function Router() {
       <Route path="/contracts/new/:projectId" component={ContractForm} />
       <Route path="/contracts/new/request/:requestId" component={ContractForm} />
       <Route path="/contracts/:id/preview" component={ContractPreview} />
+      <Route path="/contracts/:id" component={ContractPreview} />
       <Route path="/contract-templates" component={ContractTemplates} />
       
       {/* التقييم المالي */}
