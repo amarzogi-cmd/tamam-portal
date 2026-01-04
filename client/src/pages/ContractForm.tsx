@@ -103,6 +103,8 @@ export default function ContractForm() {
     
     // القيمة المالية
     totalValue: 0,
+    managementPercentage: 0, // نسبة الإشراف/الإدارة
+    baseValue: 0, // القيمة الأساسية قبل النسبة
     
     // ملاحظات
     notes: "",
@@ -193,14 +195,22 @@ export default function ContractForm() {
         const accepted = quotations.find((q: any) => q.status === "accepted");
         if (accepted) {
           // استخدام المبلغ المعتمد (بعد التفاوض) إن وجد، وإلا استخدام المبلغ الأصلي
+          const baseValue = parseFloat(accepted.totalAmount) || 0;
           const approvedValue = accepted.approvedAmount 
             ? parseFloat(accepted.approvedAmount) 
-            : parseFloat(accepted.totalAmount) || 0;
+            : baseValue;
+          
+          // حساب النسبة إذا كانت مخزنة في العرض
+          const managementPercentage = accepted.managementPercentage 
+            ? parseFloat(accepted.managementPercentage) 
+            : 0;
           
           setContractData(prev => ({
             ...prev,
             supplierId: accepted.supplierId,
-            totalValue: approvedValue,
+            baseValue: baseValue,
+            managementPercentage: managementPercentage,
+            totalValue: approvedValue, // القيمة النهائية شاملة النسبة
           }));
         }
       }
@@ -702,18 +712,71 @@ export default function ContractForm() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>قيمة العقد (ريال) *</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={contractData.totalValue || ""}
-                    onChange={(e) => setContractData({ 
-                      ...contractData, 
-                      totalValue: parseFloat(e.target.value) || 0 
-                    })}
-                    placeholder="قيمة العقد"
-                  />
+                {/* القيمة الأساسية والنسبة */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>القيمة الأساسية (ريال)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={contractData.baseValue || ""}
+                      onChange={(e) => {
+                        const base = parseFloat(e.target.value) || 0;
+                        const percentage = contractData.managementPercentage || 0;
+                        const total = base + (base * percentage / 100);
+                        setContractData({ 
+                          ...contractData, 
+                          baseValue: base,
+                          totalValue: total
+                        });
+                      }}
+                      placeholder="القيمة الأساسية"
+                    />
+                    <p className="text-xs text-muted-foreground">المبلغ المعتمد من عرض السعر</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>نسبة الإشراف/الإدارة (%)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={contractData.managementPercentage || ""}
+                      onChange={(e) => {
+                        const percentage = parseFloat(e.target.value) || 0;
+                        const base = contractData.baseValue || 0;
+                        const total = base + (base * percentage / 100);
+                        setContractData({ 
+                          ...contractData, 
+                          managementPercentage: percentage,
+                          totalValue: total
+                        });
+                      }}
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-muted-foreground">نسبة الجمعية من العقد</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>إجمالي قيمة العقد (ريال) *</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={contractData.totalValue || ""}
+                      onChange={(e) => setContractData({ 
+                        ...contractData, 
+                        totalValue: parseFloat(e.target.value) || 0 
+                      })}
+                      placeholder="إجمالي القيمة"
+                      className="font-bold text-green-700"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      القيمة النهائية شاملة النسبة
+                      {contractData.managementPercentage > 0 && (
+                        <span className="text-green-600 mr-1">
+                          (+{(contractData.baseValue * contractData.managementPercentage / 100).toLocaleString()} ريال)
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

@@ -236,12 +236,21 @@ export default function Quotations() {
   // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
   const handleConfirmApproval = () => {
     if (!selectedQuotationForApproval) return;
-    const mutationData = {
+    const mutationData: {
+      id: number;
+      status: "pending" | "accepted" | "rejected" | "expired";
+      approvedAmount?: number;
+      notes?: string;
+    } = {
       id: selectedQuotationForApproval.id,
-      status: "accepted" as const,
-      approvedAmount: approvedAmount ? parseFloat(approvedAmount) : undefined,
-      notes: approvalNotes || undefined,
+      status: "accepted",
     };
+    if (approvedAmount) {
+      mutationData.approvedAmount = parseFloat(approvedAmount);
+    }
+    if (approvalNotes) {
+      mutationData.notes = approvalNotes;
+    }
     approveQuotationMutation.mutate(mutationData);
     setShowApproveDialog(false);
     setSelectedQuotationForApproval(null);

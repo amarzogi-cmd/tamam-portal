@@ -683,14 +683,7 @@ export default function ProjectDetailsPage() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDuplicateContract(contract.id)}
-                                title="تكرار العقد"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
+
                             </div>
                           </TableCell>
                         </TableRow>

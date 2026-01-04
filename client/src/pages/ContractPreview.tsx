@@ -347,7 +347,7 @@ export default function ContractPreview() {
       <div className="space-y-4">
         {/* شريط الأدوات */}
         <div className="flex items-center justify-between print:hidden">
-          <Button variant="outline" onClick={() => navigate(`/contracts/${contractId}`)}>
+          <Button variant="outline" onClick={() => navigate("/contracts")}>
             <ArrowRight className="h-4 w-4 ml-2" />
             العودة
           </Button>
@@ -452,18 +452,7 @@ export default function ContractPreview() {
                 </Dialog>
               );
             })()}
-            <Button 
-              variant="outline" 
-              onClick={handleDuplicate}
-              disabled={duplicateMutation.isPending}
-            >
-              {duplicateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-              ) : (
-                <Copy className="h-4 w-4 ml-2" />
-              )}
-              تكرار العقد
-            </Button>
+
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="h-4 w-4 ml-2" />
               طباعة

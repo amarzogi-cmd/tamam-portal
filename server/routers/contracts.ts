@@ -21,7 +21,7 @@ import {
   contractModificationLogs,
   requestHistory,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, desc, and, sql, asc, ne } from "drizzle-orm";
 
 // دالة تحويل الرقم إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -529,6 +529,24 @@ export const contractsRouter = router({
         throw new Error("لا يمكن اعتماد هذا العقد");
       }
       
+      // التحقق من عدم وجود عقد معتمد آخر لنفس المشروع
+      if (contract.projectId) {
+        const existingApprovedContract = await db
+          .select()
+          .from(contractsEnhanced)
+          .where(
+            and(
+              eq(contractsEnhanced.projectId, contract.projectId),
+              eq(contractsEnhanced.status, "approved"),
+              ne(contractsEnhanced.id, input.id)
+            )
+          );
+        
+        if (existingApprovedContract.length > 0) {
+          throw new Error("يوجد عقد معتمد مسبقاً لهذا المشروع. لا يمكن اعتماد أكثر من عقد واحد لنفس المشروع.");
+        }
+      }
+      
       await db
         .update(contractsEnhanced)
         .set({
@@ -538,7 +556,28 @@ export const contractsRouter = router({
         })
         .where(eq(contractsEnhanced.id, input.id));
       
-      return { success: true };
+      // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد
+      if (contract.projectId) {
+        await db
+          .update(projects)
+          .set({
+            status: "in_progress",
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, contract.projectId));
+        
+        // إضافة سجل في تاريخ الطلب إذا كان العقد مرتبط بطلب
+        if (contract.requestId) {
+          await db.insert(requestHistory).values({
+            requestId: contract.requestId,
+            userId: ctx.user.id,
+            action: "اعتماد العقد",
+            notes: `تم اعتماد العقد رقم ${contract.contractNumber} وتحويل المشروع إلى مرحلة التنفيذ`,
+          });
+        }
+      }
+      
+      return { success: true, message: "تم اعتماد العقد وتحويل المشروع إلى مرحلة التنفيذ" };
     }),
   
   // تفعيل العقد
