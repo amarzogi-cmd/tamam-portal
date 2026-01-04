@@ -12,6 +12,7 @@ import {
   Loader2,
   Check,
   FileText,
+  Copy,
 } from "lucide-react";
 
 // أنواع العقود
@@ -115,6 +116,23 @@ export default function ContractPreview() {
     },
   });
 
+  // Mutation لتكرار العقد
+  const duplicateMutation = trpc.contracts.duplicate.useMutation({
+    onSuccess: (data) => {
+      toast.success(`تم تكرار العقد بنجاح - رقم العقد الجديد: ${data.contractNumber}`);
+      navigate(`/contracts/${data.id}/preview`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تكرار العقد");
+    },
+  });
+
+  const handleDuplicate = () => {
+    if (confirm("هل تريد تكرار هذا العقد؟\nسيتم إنشاء نسخة جديدة برقم عقد مختلف.")) {
+      duplicateMutation.mutate({ id: contractId! });
+    }
+  };
+
   // طباعة العقد
   const handlePrint = () => {
     window.print();
@@ -171,6 +189,18 @@ export default function ContractPreview() {
                 اعتماد العقد
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              onClick={handleDuplicate}
+              disabled={duplicateMutation.isPending}
+            >
+              {duplicateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+              ) : (
+                <Copy className="h-4 w-4 ml-2" />
+              )}
+              تكرار العقد
+            </Button>
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="h-4 w-4 ml-2" />
               طباعة

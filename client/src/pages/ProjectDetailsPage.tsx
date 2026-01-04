@@ -27,6 +27,8 @@ import {
   CreditCard,
   ClipboardList,
   Building,
+  Copy,
+  Eye,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +157,23 @@ export default function ProjectDetailsPage() {
       toast.error(error.message || "حدث خطأ أثناء تحديث المرحلة");
     },
   });
+
+  // تكرار عقد
+  const duplicateContractMutation = trpc.contracts.duplicate.useMutation({
+    onSuccess: (data) => {
+      toast.success(`تم تكرار العقد بنجاح - رقم العقد الجديد: ${data.contractNumber}`);
+      navigate(`/contracts/${data.id}/preview`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تكرار العقد");
+    },
+  });
+
+  const handleDuplicateContract = (contractId: number) => {
+    if (confirm("هل تريد تكرار هذا العقد؟ \nسيتم إنشاء نسخة جديدة برقم عقد مختلف.")) {
+      duplicateContractMutation.mutate({ id: contractId });
+    }
+  };
 
   const formatCurrency = (amount: string | null) => {
     if (!amount) return "غير محدد";
@@ -637,6 +656,7 @@ export default function ProjectDetailsPage() {
                         <TableHead className="text-right">نوع العقد</TableHead>
                         <TableHead className="text-right">القيمة</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-right">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -652,6 +672,26 @@ export default function ProjectDetailsPage() {
                                contract.status === "active" ? "نشط" :
                                contract.status === "completed" ? "مكتمل" : "منتهي"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                title="معاينة العقد"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDuplicateContract(contract.id)}
+                                title="تكرار العقد"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

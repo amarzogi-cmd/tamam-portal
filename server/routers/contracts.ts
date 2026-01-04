@@ -1051,6 +1051,108 @@ export const contractsRouter = router({
       return templates;
     }),
 
+  // ==================== تكرار العقد ====================
+
+  // تكرار عقد موجود
+  duplicate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      // جلب العقد الأصلي
+      const [originalContract] = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.id, input.id));
+
+      if (!originalContract) {
+        throw new Error("العقد غير موجود");
+      }
+
+      // توليد رقم عقد جديد
+      const { number: contractNumber, year, sequence } = await generateContractNumber(db);
+
+      // إنشاء العقد المكرر
+      const [result] = await db.insert(contractsEnhanced).values({
+        contractNumber,
+        contractYear: year,
+        contractSequence: sequence,
+        contractType: originalContract.contractType,
+        contractTitle: `${originalContract.contractTitle} (نسخة)`,
+        projectId: null, // لا نربط بنفس المشروع
+        requestId: null, // لا نربط بنفس الطلب
+        supplierId: originalContract.supplierId,
+        secondPartyName: originalContract.secondPartyName,
+        secondPartyCommercialRegister: originalContract.secondPartyCommercialRegister,
+        secondPartyRepresentative: originalContract.secondPartyRepresentative,
+        secondPartyTitle: originalContract.secondPartyTitle,
+        secondPartyAddress: originalContract.secondPartyAddress,
+        secondPartyPhone: originalContract.secondPartyPhone,
+        secondPartyEmail: originalContract.secondPartyEmail,
+        secondPartyBankName: originalContract.secondPartyBankName,
+        secondPartyIban: originalContract.secondPartyIban,
+        secondPartyAccountName: originalContract.secondPartyAccountName,
+        mosqueName: originalContract.mosqueName,
+        mosqueNeighborhood: originalContract.mosqueNeighborhood,
+        mosqueCity: originalContract.mosqueCity,
+        contractAmount: originalContract.contractAmount,
+        contractAmountText: originalContract.contractAmountText,
+        duration: originalContract.duration,
+        durationUnit: originalContract.durationUnit,
+        contractDate: null, // تاريخ جديد
+        contractDateHijri: null,
+        customTerms: originalContract.customTerms,
+        customNotifications: originalContract.customNotifications,
+        customGeneralTerms: originalContract.customGeneralTerms,
+        templateId: originalContract.templateId,
+        paymentScheduleJson: originalContract.paymentScheduleJson,
+        clauseValuesJson: originalContract.clauseValuesJson,
+        status: "draft", // النسخة تبدأ كمسودة
+        createdBy: ctx.user.id,
+      });
+
+      const newContractId = result.insertId;
+
+      // نسخ جدول الدفعات
+      const originalPayments = await db
+        .select()
+        .from(contractPayments)
+        .where(eq(contractPayments.contractId, input.id));
+
+      if (originalPayments.length > 0) {
+        await db.insert(contractPayments).values(
+          originalPayments.map((p) => ({
+            contractId: newContractId,
+            phaseName: p.phaseName,
+            amount: p.amount,
+            phaseOrder: p.phaseOrder,
+            dueDate: null, // تواريخ جديدة
+            status: "pending" as const,
+          }))
+        );
+      }
+
+      // نسخ بنود العقد المخصصة
+      const originalClauseValues = await db
+        .select()
+        .from(contractClauseValues)
+        .where(eq(contractClauseValues.contractId, input.id));
+
+      if (originalClauseValues.length > 0) {
+        await db.insert(contractClauseValues).values(
+          originalClauseValues.map((c) => ({
+            contractId: newContractId,
+            clauseId: c.clauseId,
+            customContent: c.customContent,
+            isIncluded: c.isIncluded,
+          }))
+        );
+      }
+
+      return { success: true, id: newContractId, contractNumber };
+    }),
+
   // الحصول على عرض السعر المعتمد للطلب
   getApprovedQuotationForRequest: protectedProcedure
     .input(z.object({ requestId: z.number() }))
