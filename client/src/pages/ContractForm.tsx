@@ -149,6 +149,12 @@ export default function ContractForm() {
     { enabled: !!contractData.requestId }
   );
 
+  // جلب تفاصيل الطلب للحصول على المشروع المرتبط
+  const { data: requestDetails } = trpc.requests.getById.useQuery(
+    { id: requestId! },
+    { enabled: !!requestId }
+  );
+
   // Mutation لإنشاء العقد
   const createMutation = trpc.contracts.create.useMutation({
     onSuccess: (data) => {
@@ -195,6 +201,16 @@ export default function ContractForm() {
       }
     }
   }, [approvedQuotation]);
+
+  // تحديث المشروع من بيانات الطلب
+  useEffect(() => {
+    if (requestDetails && requestDetails.project?.id) {
+      setContractData(prev => ({
+        ...prev,
+        projectId: requestDetails.project!.id,
+      }));
+    }
+  }, [requestDetails]);
 
   // إضافة دفعة جديدة
   const addPayment = () => {
@@ -501,28 +517,52 @@ export default function ContractForm() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>المشروع (اختياري)</Label>
-                  <Select
-                    value={contractData.projectId?.toString() || "none"}
-                    onValueChange={(value) => setContractData({ 
-                      ...contractData, 
-                      projectId: value === "none" ? null : parseInt(value) 
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المشروع" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">بدون مشروع</SelectItem>
-                      {projects.map((project: any) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.projectNumber} - {project.projectName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}
+                {requestId && requestDetails?.project?.id ? (
+                  // عند وجود طلب مرتبط بمشروع، نعرض المشروع كقيمة ثابتة
+                  <div className="space-y-2">
+                    <Label>المشروع المرتبط</Label>
+                    <div className="p-3 bg-muted rounded-lg border">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">
+                          {requestDetails.project.projectNumber}
+                        </span>
+                        <span className="text-muted-foreground">-</span>
+                        <span>
+                          {requestDetails.project.name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        هذا العقد مرتبط بالطلب رقم {requestDetails.requestNumber}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  // عند عدم وجود طلب، نعرض قائمة اختيار المشروع
+                  <div className="space-y-2">
+                    <Label>المشروع (اختياري)</Label>
+                    <Select
+                      value={contractData.projectId?.toString() || "none"}
+                      onValueChange={(value) => setContractData({ 
+                        ...contractData, 
+                        projectId: value === "none" ? null : parseInt(value) 
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المشروع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">بدون مشروع</SelectItem>
+                        {projects.map((project: any) => (
+                          <SelectItem key={project.id} value={project.id.toString()}>
+                            {project.projectNumber} - {project.projectName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 

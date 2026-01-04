@@ -16,6 +16,7 @@ import {
   finalReports,
   quantitySchedules,
   quotations,
+  projects,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -237,6 +238,15 @@ export const requestsRouter = router({
       // الحصول على تقارير الاستجابة السريعة
       const quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
 
+      // الحصول على المشروع المرتبط بالطلب (إن وجد)
+      const projectResult = await db.select({
+        id: projects.id,
+        projectNumber: projects.projectNumber,
+        name: projects.name,
+        status: projects.status,
+      }).from(projects).where(eq(projects.requestId, input.id)).limit(1);
+      const project = projectResult[0] || null;
+
       return {
         ...request,
         mosque: mosque,
@@ -246,6 +256,7 @@ export const requestsRouter = router({
         history,
         fieldReports,
         quickReports,
+        project,
       };
     }),
 
