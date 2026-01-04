@@ -236,13 +236,13 @@ export default function Quotations() {
   // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
   const handleConfirmApproval = () => {
     if (!selectedQuotationForApproval) return;
-    // @ts-ignore - tRPC types don't include optional fields from backend
-    approveQuotationMutation.mutate({
+    const mutationData = {
       id: selectedQuotationForApproval.id,
       status: "accepted" as const,
-      approvedAmount: parseFloat(approvedAmount) || undefined,
+      approvedAmount: approvedAmount ? parseFloat(approvedAmount) : undefined,
       notes: approvalNotes || undefined,
-    });
+    };
+    approveQuotationMutation.mutate(mutationData);
     setShowApproveDialog(false);
     setSelectedQuotationForApproval(null);
     setApprovedAmount("");

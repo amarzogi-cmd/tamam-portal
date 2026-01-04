@@ -664,20 +664,23 @@ export const partners = mysqlTable("partners", {
 // إعدادات الجمعية (الطرف الأول في العقود)
 export const organizationSettings = mysqlTable("organization_settings", {
   id: int("id").autoincrement().primaryKey(),
+  // بيانات الجمعية الأساسية
   organizationName: varchar("organizationName", { length: 255 }).notNull(),
   organizationNameShort: varchar("organizationNameShort", { length: 100 }),
   licenseNumber: varchar("licenseNumber", { length: 50 }),
-  authorizedSignatory: varchar("authorizedSignatory", { length: 255 }),
-  signatoryTitle: varchar("signatoryTitle", { length: 100 }),
-  signatoryPhone: varchar("signatoryPhone", { length: 20 }),
-  signatoryEmail: varchar("signatoryEmail", { length: 320 }),
+  administrativeSupervisor: varchar("administrativeSupervisor", { length: 255 }), // جهة الإشراف الإداري
+  technicalSupervisor: varchar("technicalSupervisor", { length: 255 }), // جهة الإشراف الفني
+  aboutOrganization: text("aboutOrganization"), // نبذة عن الجمعية
+  // بيانات التواصل
   address: text("address"),
   city: varchar("city", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
   website: varchar("website", { length: 255 }),
+  // الشعارات والأختام
   logoUrl: varchar("logoUrl", { length: 500 }),
   stampUrl: varchar("stampUrl", { length: 500 }),
+  secondaryLogoUrl: varchar("secondaryLogoUrl", { length: 500 }), // شعار ثانوي (رؤية 2030 مثلاً)
   // البيانات البنكية
   bankName: varchar("bankName", { length: 100 }),
   bankAccountName: varchar("bankAccountName", { length: 255 }),
@@ -686,6 +689,11 @@ export const organizationSettings = mysqlTable("organization_settings", {
   contractPrefix: varchar("contractPrefix", { length: 10 }).default("CON"),
   contractFooterText: text("contractFooterText"),
   contractTermsAndConditions: text("contractTermsAndConditions"),
+  // حقول قديمة (للتوافق العكسي)
+  authorizedSignatory: varchar("authorizedSignatory", { length: 255 }),
+  signatoryTitle: varchar("signatoryTitle", { length: 100 }),
+  signatoryPhone: varchar("signatoryPhone", { length: 20 }),
+  signatoryEmail: varchar("signatoryEmail", { length: 320 }),
   updatedBy: int("updatedBy").references(() => users.id),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -724,6 +732,9 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   contractNumber: varchar("contractNumber", { length: 50 }).notNull().unique(),
   contractYear: int("contractYear").notNull(),
   contractSequence: int("contractSequence").notNull(),
+  
+  // ربط بالقالب
+  templateId: int("templateId"), // سيتم ربطه بعد إنشاء جدول القوالب
   
   // نوع العقد
   contractType: mysqlEnum("contractType", contractTypes).notNull(),
@@ -772,6 +783,10 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   customTerms: text("customTerms"),
   customNotifications: text("customNotifications"),
   customGeneralTerms: text("customGeneralTerms"),
+  
+  // جدول الدفعات وبنود العقد (JSON)
+  paymentScheduleJson: text("paymentScheduleJson"),
+  clauseValuesJson: text("clauseValuesJson"),
   
   // الملفات
   documentUrl: varchar("documentUrl", { length: 500 }),
@@ -908,6 +923,111 @@ export type DurationUnit = typeof durationUnits[number];
 export type EntityType = typeof entityTypes[number];
 export type SupplierApprovalStatus = typeof supplierApprovalStatuses[number];
 export type WorkField = typeof workFields[number];
+
+// ==================== نظام قوالب العقود المتقدم ====================
+
+// تصنيفات بنود العقود
+export const clauseCategories = [
+  "obligations_first_party",   // التزامات الطرف الأول
+  "obligations_second_party",  // التزامات الطرف الثاني
+  "financial",                 // بنود مالية
+  "duration",                  // مدة العقد
+  "modifications",             // تعديل العقد
+  "notifications",             // الإشعارات
+  "general",                   // أحكام عامة
+  "confidentiality",           // سرية المعلومات
+  "intellectual_property",     // حقوق الملكية الفكرية
+  "disputes",                  // حل المنازعات
+  "termination",               // فسخ العقد
+  "penalties",                 // الغرامات
+  "warranty",                  // الضمان
+  "force_majeure",             // القوة القاهرة
+  "copies",                    // نُسخ الاتفاقية
+  "custom"                     // بنود مخصصة
+] as const;
+
+// قوالب العقود
+export const contractTemplates = mysqlTable("contract_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  nameAr: varchar("nameAr", { length: 255 }).notNull(),
+  type: mysqlEnum("type", contractTypes).notNull(),
+  description: text("description"),
+  headerTemplate: text("headerTemplate"), // ترويسة العقد
+  introTemplate: text("introTemplate"), // مقدمة العقد (التمهيد)
+  footerTemplate: text("footerTemplate"), // تذييل العقد
+  signatureTemplate: text("signatureTemplate"), // قسم التوقيعات
+  isActive: boolean("isActive").default(true),
+  isDefault: boolean("isDefault").default(false), // القالب الافتراضي لهذا النوع
+  createdBy: int("createdBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// بنود العقود (مكتبة البنود)
+export const contractClauses = mysqlTable("contract_clauses", {
+  id: int("id").autoincrement().primaryKey(),
+  templateId: int("templateId").references(() => contractTemplates.id), // null = بند عام في المكتبة
+  title: varchar("title", { length: 255 }).notNull(), // عنوان البند (مثل: المادة الأولى)
+  titleAr: varchar("titleAr", { length: 255 }).notNull(), // العنوان بالعربية
+  content: text("content").notNull(), // نص البند (يدعم المتغيرات مثل {{contract_value}})
+  category: mysqlEnum("category", clauseCategories).default("general"),
+  orderIndex: int("orderIndex").default(0), // ترتيب البند
+  isRequired: boolean("isRequired").default(false), // بند إلزامي
+  isEditable: boolean("isEditable").default(true), // قابل للتعديل
+  isGlobal: boolean("isGlobal").default(false), // بند عام في المكتبة
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// قيم البنود في العقود الفعلية
+export const contractClauseValues = mysqlTable("contract_clause_values", {
+  id: int("id").autoincrement().primaryKey(),
+  contractId: int("contractId").notNull().references(() => contractsEnhanced.id),
+  clauseId: int("clauseId").references(() => contractClauses.id), // null = بند مخصص جديد
+  title: varchar("title", { length: 255 }), // العنوان المخصص
+  customContent: text("customContent"), // النص المخصص (إن تم التعديل)
+  orderIndex: int("orderIndex").default(0),
+  isIncluded: boolean("isIncluded").default(true), // مضمن في العقد
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// المفوضين بالتوقيع (يمكن إضافة أكثر من مفوض)
+export const authorizedSignatories = mysqlTable("authorized_signatories", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  title: varchar("title", { length: 100 }).notNull(), // صفة المفوض
+  nationalId: varchar("nationalId", { length: 20 }),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  address: text("address"),
+  signatureUrl: varchar("signatureUrl", { length: 500 }), // صورة التوقيع
+  isActive: boolean("isActive").default(true),
+  isDefault: boolean("isDefault").default(false), // المفوض الافتراضي
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// العلاقات
+export const contractTemplatesRelations = relations(contractTemplates, ({ many }) => ({
+  clauses: many(contractClauses),
+}));
+
+export const contractClausesRelations = relations(contractClauses, ({ one }) => ({
+  template: one(contractTemplates, {
+    fields: [contractClauses.templateId],
+    references: [contractTemplates.id],
+  }),
+}));
+
+// تصدير الأنواع
+export type ContractTemplate = typeof contractTemplates.$inferSelect;
+export type InsertContractTemplate = typeof contractTemplates.$inferInsert;
+export type ContractClause = typeof contractClauses.$inferSelect;
+export type InsertContractClause = typeof contractClauses.$inferInsert;
+export type ContractClauseValue = typeof contractClauseValues.$inferSelect;
+export type AuthorizedSignatory = typeof authorizedSignatories.$inferSelect;
+export type ClauseCategory = typeof clauseCategories[number];
 
 // تصدير الثوابت
 export type UserRole = typeof userRoles[number];

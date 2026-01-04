@@ -12,8 +12,13 @@ import {
   contractTypes,
   contractStatuses,
   durationUnits,
+  contractTemplates,
+  contractClauses,
+  contractClauseValues,
+  authorizedSignatories,
+  quotations,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, asc } from "drizzle-orm";
 
 // دالة تحويل الرقم إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -292,12 +297,21 @@ export const contractsRouter = router({
         contractDate: z.string().optional(),
         contractDateHijri: z.string().optional(),
         
+        // القالب
+        templateId: z.number().optional(),
+        
         // البنود الإضافية
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
         
-        // الدفعات
+        // جدول الدفعات (JSON string)
+        paymentSchedule: z.string().optional(),
+        
+        // بنود العقد المخصصة (JSON string)
+        clauseValues: z.string().optional(),
+        
+        // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
           z.object({
             phaseName: z.string(),
@@ -349,14 +363,36 @@ export const contractsRouter = router({
         customTerms: input.customTerms,
         customNotifications: input.customNotifications,
         customGeneralTerms: input.customGeneralTerms,
+        templateId: input.templateId,
+        paymentScheduleJson: input.paymentSchedule,
+        clauseValuesJson: input.clauseValues,
         status: "draft",
         createdBy: ctx.user.id,
       });
       
       const contractId = result.insertId;
       
-      // إضافة الدفعات إذا وجدت
-      if (input.payments && input.payments.length > 0) {
+      // إضافة الدفعات من paymentSchedule JSON
+      if (input.paymentSchedule) {
+        try {
+          const schedule = JSON.parse(input.paymentSchedule);
+          if (Array.isArray(schedule) && schedule.length > 0) {
+            await db.insert(contractPayments).values(
+              schedule.map((p: any, index: number) => ({
+                contractId,
+                phaseName: p.name || `الدفعة ${index + 1}`,
+                amount: String(p.amount || 0),
+                phaseOrder: index,
+                dueDate: p.dueDate ? new Date(p.dueDate) : null,
+                status: "pending" as const,
+              }))
+            );
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل جدول الدفعات:", e);
+        }
+      } else if (input.payments && input.payments.length > 0) {
+        // التوافق مع الكود القديم
         await db.insert(contractPayments).values(
           input.payments.map((p) => ({
             contractId,
@@ -366,6 +402,25 @@ export const contractsRouter = router({
             status: "pending" as const,
           }))
         );
+      }
+      
+      // حفظ قيم البنود المخصصة
+      if (input.clauseValues) {
+        try {
+          const clauses = JSON.parse(input.clauseValues);
+          if (Array.isArray(clauses) && clauses.length > 0) {
+            await db.insert(contractClauseValues).values(
+              clauses.map((c: any) => ({
+                contractId,
+                clauseId: c.clauseId,
+                customContent: c.customContent || null,
+                isIncluded: c.isIncluded ?? true,
+              }))
+            );
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل بنود العقد:", e);
+        }
       }
       
       return { success: true, id: contractId, contractNumber };
@@ -653,4 +708,374 @@ export const contractsRouter = router({
     
     return suppliersList;
   }),
+
+  // ==================== قوالب العقود ====================
+
+  // الحصول على جميع قوالب العقود
+  getTemplates: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("قاعدة البيانات غير متاحة");
+    const templates = await db
+      .select()
+      .from(contractTemplates)
+      .orderBy(desc(contractTemplates.createdAt));
+    return templates;
+  }),
+
+  // الحصول على قالب واحد مع بنوده
+  getTemplate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      const [template] = await db
+        .select()
+        .from(contractTemplates)
+        .where(eq(contractTemplates.id, input.id));
+
+      if (!template) {
+        throw new Error("القالب غير موجود");
+      }
+
+      const clauses = await db
+        .select()
+        .from(contractClauses)
+        .where(eq(contractClauses.templateId, input.id))
+        .orderBy(asc(contractClauses.orderIndex));
+
+      return { ...template, clauses };
+    }),
+
+  // إنشاء قالب جديد
+  createTemplate: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        nameAr: z.string().min(1),
+        type: z.string(),
+        description: z.string().optional(),
+        headerTemplate: z.string().optional(),
+        introTemplate: z.string().optional(),
+        footerTemplate: z.string().optional(),
+        signatureTemplate: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
+      if (input.isDefault) {
+        await db
+          .update(contractTemplates)
+          .set({ isDefault: false })
+          .where(eq(contractTemplates.type, input.type as any));
+      }
+
+      const [result] = await db.insert(contractTemplates).values({
+        ...input,
+        type: input.type as any,
+        createdBy: ctx.user.id,
+      });
+
+      return { id: result.insertId };
+    }),
+
+  // تحديث قالب
+  updateTemplate: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        nameAr: z.string().min(1).optional(),
+        type: z.string().optional(),
+        description: z.string().optional(),
+        headerTemplate: z.string().optional(),
+        introTemplate: z.string().optional(),
+        footerTemplate: z.string().optional(),
+        signatureTemplate: z.string().optional(),
+        isActive: z.boolean().optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const { id, ...data } = input;
+
+      // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
+      if (data.isDefault && data.type) {
+        await db
+          .update(contractTemplates)
+          .set({ isDefault: false })
+          .where(eq(contractTemplates.type, data.type as any));
+      }
+
+      await db
+        .update(contractTemplates)
+        .set(data as any)
+        .where(eq(contractTemplates.id, id));
+
+      return { success: true };
+    }),
+
+  // حذف قالب
+  deleteTemplate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      // حذف البنود المرتبطة أولاً
+      await db
+        .delete(contractClauses)
+        .where(eq(contractClauses.templateId, input.id));
+
+      // حذف القالب
+      await db
+        .delete(contractTemplates)
+        .where(eq(contractTemplates.id, input.id));
+
+      return { success: true };
+    }),
+
+  // ==================== بنود العقود ====================
+
+  // الحصول على بنود قالب معين
+  getTemplateClauses: protectedProcedure
+    .input(z.object({ templateId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const clauses = await db
+        .select()
+        .from(contractClauses)
+        .where(eq(contractClauses.templateId, input.templateId))
+        .orderBy(asc(contractClauses.orderIndex));
+      return clauses;
+    }),
+
+  // الحصول على البنود العامة (غير مرتبطة بقالب)
+  getGlobalClauses: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("قاعدة البيانات غير متاحة");
+    const clauses = await db
+      .select()
+      .from(contractClauses)
+      .where(eq(contractClauses.isGlobal, true))
+      .orderBy(asc(contractClauses.orderIndex));
+    return clauses;
+  }),
+
+  // إضافة بند جديد
+  createClause: protectedProcedure
+    .input(
+      z.object({
+        templateId: z.number().optional(),
+        title: z.string().min(1),
+        titleAr: z.string().min(1),
+        content: z.string().min(1),
+        category: z.string().optional(),
+        orderIndex: z.number().optional(),
+        isRequired: z.boolean().optional(),
+        isEditable: z.boolean().optional(),
+        isGlobal: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const [result] = await db.insert(contractClauses).values(input as any);
+      return { id: result.insertId };
+    }),
+
+  // تحديث بند
+  updateClause: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        title: z.string().min(1).optional(),
+        titleAr: z.string().min(1).optional(),
+        content: z.string().optional(),
+        category: z.string().optional(),
+        orderIndex: z.number().optional(),
+        isRequired: z.boolean().optional(),
+        isEditable: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const { id, ...data } = input;
+      await db.update(contractClauses).set(data as any).where(eq(contractClauses.id, id));
+      return { success: true };
+    }),
+
+  // حذف بند
+  deleteClause: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      await db.delete(contractClauses).where(eq(contractClauses.id, input.id));
+      return { success: true };
+    }),
+
+  // إعادة ترتيب البنود
+  reorderClauses: protectedProcedure
+    .input(
+      z.object({
+        templateId: z.number(),
+        clauseIds: z.array(z.number()),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      for (let i = 0; i < input.clauseIds.length; i++) {
+        await db
+          .update(contractClauses)
+          .set({ orderIndex: i })
+          .where(eq(contractClauses.id, input.clauseIds[i]));
+      }
+      return { success: true };
+    }),
+
+  // ==================== المفوضين بالتوقيع ====================
+
+  // الحصول على جميع المفوضين
+  getSignatories: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("قاعدة البيانات غير متاحة");
+    const signatories = await db
+      .select()
+      .from(authorizedSignatories)
+      .orderBy(desc(authorizedSignatories.createdAt));
+    return signatories;
+  }),
+
+  // إضافة مفوض جديد
+  createSignatory: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        title: z.string().min(1),
+        nationalId: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        address: z.string().optional(),
+        signatureUrl: z.string().optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      // إذا كان المفوض الافتراضي، إلغاء الافتراضي من الآخرين
+      if (input.isDefault) {
+        await db.update(authorizedSignatories).set({ isDefault: false });
+      }
+
+      const [result] = await db.insert(authorizedSignatories).values({
+        ...input,
+        email: input.email || null,
+      });
+      return { id: result.insertId };
+    }),
+
+  // تحديث مفوض
+  updateSignatory: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        title: z.string().min(1).optional(),
+        nationalId: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        address: z.string().optional(),
+        signatureUrl: z.string().optional(),
+        isActive: z.boolean().optional(),
+        isDefault: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const { id, ...data } = input;
+
+      if (data.isDefault) {
+        await db.update(authorizedSignatories).set({ isDefault: false });
+      }
+
+      await db
+        .update(authorizedSignatories)
+        .set({ ...data, email: data.email || null })
+        .where(eq(authorizedSignatories.id, id));
+
+      return { success: true };
+    }),
+
+  // حذف مفوض
+  deleteSignatory: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      await db
+        .delete(authorizedSignatories)
+        .where(eq(authorizedSignatories.id, input.id));
+      return { success: true };
+    }),
+
+  // الحصول على القوالب النشطة حسب النوع
+  getActiveTemplatesByType: protectedProcedure
+    .input(z.object({ type: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const templates = await db
+        .select()
+        .from(contractTemplates)
+        .where(
+          and(
+            eq(contractTemplates.type, input.type as any),
+            eq(contractTemplates.isActive, true)
+          )
+        )
+        .orderBy(desc(contractTemplates.isDefault), desc(contractTemplates.createdAt));
+
+      return templates;
+    }),
+
+  // الحصول على عرض السعر المعتمد للطلب
+  getApprovedQuotationForRequest: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      const [quotation] = await db
+        .select({
+          id: quotations.id,
+          quotationNumber: quotations.quotationNumber,
+          totalAmount: quotations.totalAmount,
+          approvedAmount: quotations.approvedAmount,
+          supplierId: quotations.supplierId,
+          supplierName: suppliers.name,
+        })
+        .from(quotations)
+        .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
+        .where(
+          and(
+            eq(quotations.requestId, input.requestId),
+            eq(quotations.status, "accepted")
+          )
+        )
+        .limit(1);
+
+      return quotation;
+    }),
 });

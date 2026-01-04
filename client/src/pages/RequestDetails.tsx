@@ -45,6 +45,33 @@ import {
   TECHNICAL_EVAL_OPTIONS,
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
+
+// ترجمة أنواع الأحداث في سجل الطلب
+const ACTION_LABELS: Record<string, string> = {
+  'created': 'تم إنشاء الطلب',
+  'request_created': 'تم تقديم الطلب',
+  'stage_updated': 'تم تحديث المرحلة',
+  'status_updated': 'تم تحديث الحالة',
+  'comment_added': 'تم إضافة تعليق',
+  'attachment_added': 'تم إضافة مرفق',
+  'field_visit_scheduled': 'تم جدولة زيارة ميدانية',
+  'field_visit_completed': 'تم إكمال الزيارة الميدانية',
+  'technical_eval_apologize': 'تم الاعتذار عن الطلب',
+  'technical_eval_suspend': 'تم تعليق الطلب',
+  'technical_eval_quick_response': 'تم التحويل للاستجابة السريعة',
+  'technical_eval_convert_to_project': 'تم التحويل إلى مشروع',
+  'approved': 'تم اعتماد الطلب',
+  'rejected': 'تم رفض الطلب',
+  'completed': 'تم إكمال الطلب',
+  'quotation_submitted': 'تم تقديم عرض سعر',
+  'quotation_approved': 'تم اعتماد عرض السعر',
+  'quotation_rejected': 'تم رفض عرض السعر',
+  'contract_created': 'تم إنشاء العقد',
+  'contract_signed': 'تم توقيع العقد',
+  'payment_made': 'تم الدفع',
+  'project_started': 'تم بدء المشروع',
+  'project_completed': 'تم إكمال المشروع',
+};
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
@@ -388,7 +415,7 @@ export default function RequestDetails() {
                               <Clock className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium">{item.action}</p>
+                              <p className="font-medium">{ACTION_LABELS[item.action] || item.action}</p>
                               <p className="text-sm text-muted-foreground">{item.notes}</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 {new Date(item.createdAt).toLocaleString("ar-SA")}
@@ -712,18 +739,29 @@ export default function RequestDetails() {
                           </CardHeader>
                           <CardContent>
                             {approvedQuotation ? (
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 bg-white rounded-lg text-center">
-                                  <p className="text-sm text-muted-foreground">تكلفة المورد</p>
-                                  <p className="text-xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="p-4 bg-white rounded-lg text-center">
+                                    <p className="text-sm text-muted-foreground">تكلفة المورد</p>
+                                    <p className="text-xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
+                                  </div>
+                                  <div className="p-4 bg-white rounded-lg text-center">
+                                    <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
+                                    <p className="text-xl font-bold text-green-700">{supervisionFee.toLocaleString()} ريال</p>
+                                  </div>
+                                  <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
+                                    <p className="text-sm text-muted-foreground">الإجمالي النهائي</p>
+                                    <p className="text-xl font-bold text-green-700">{totalCost.toLocaleString()} ريال</p>
+                                  </div>
                                 </div>
-                                <div className="p-4 bg-white rounded-lg text-center">
-                                  <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
-                                  <p className="text-xl font-bold text-green-700">{supervisionFee.toLocaleString()} ريال</p>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
-                                  <p className="text-sm text-muted-foreground">الإجمالي النهائي</p>
-                                  <p className="text-xl font-bold text-green-700">{totalCost.toLocaleString()} ريال</p>
+                                {/* زر إنشاء العقد */}
+                                <div className="flex justify-center pt-4 border-t border-green-200">
+                                  <Link href={`/contracts/new/request/${requestId}`}>
+                                    <Button className="bg-green-600 hover:bg-green-700 text-white px-8">
+                                      <FileText className="w-4 h-4 ml-2" />
+                                      إنشاء عقد للطلب
+                                    </Button>
+                                  </Link>
                                 </div>
                               </div>
                             ) : (

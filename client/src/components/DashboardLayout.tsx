@@ -75,6 +75,7 @@ const getMenuItems = (role: string) => {
       { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
+      { icon: FileText, label: "قوالب العقود", path: "/contract-templates" },
     );
   }
 

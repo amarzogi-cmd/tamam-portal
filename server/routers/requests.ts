@@ -14,6 +14,8 @@ import {
   fieldVisitReports,
   quickResponseReports,
   finalReports,
+  quantitySchedules,
+  quotations,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -424,6 +426,21 @@ export const requestsRouter = router({
           // التحقق من قرار التقييم الفني
           else if (prereq.type === 'technical_eval_decision') {
             isMet = !!request[0].technicalEvalDecision;
+          }
+          // التحقق من وجود جدول الكميات
+          else if (prereq.type === 'boq_created') {
+            const boqItems = await db.select().from(quantitySchedules)
+              .where(eq(quantitySchedules.requestId, input.requestId)).limit(1);
+            isMet = boqItems.length > 0;
+          }
+          // التحقق من وجود عرض سعر معتمد
+          else if (prereq.type === 'supplier_selected') {
+            const acceptedQuotes = await db.select().from(quotations)
+              .where(and(
+                eq(quotations.requestId, input.requestId),
+                eq(quotations.status, 'accepted')
+              )).limit(1);
+            isMet = acceptedQuotes.length > 0;
           }
 
           if (!isMet) {

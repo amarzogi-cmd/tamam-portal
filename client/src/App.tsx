@@ -58,6 +58,7 @@ import BOQ from "./pages/BOQ";
 import Quotations from "./pages/Quotations";
 import FinancialApproval from "./pages/FinancialApproval";
 import CategoriesManagement from "./pages/CategoriesManagement";
+import ContractTemplates from "./pages/ContractTemplates";
 
 function Router() {
   return (
@@ -115,7 +116,9 @@ function Router() {
       <Route path="/organization-settings" component={OrganizationSettings} />
       <Route path="/contracts/new" component={ContractForm} />
       <Route path="/contracts/new/:projectId" component={ContractForm} />
+      <Route path="/contracts/new/request/:requestId" component={ContractForm} />
       <Route path="/contracts/:id/preview" component={ContractPreview} />
+      <Route path="/contract-templates" component={ContractTemplates} />
       
       {/* التقييم المالي */}
       <Route path="/boq" component={BOQ} />
