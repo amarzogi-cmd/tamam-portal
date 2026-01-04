@@ -19,6 +19,7 @@ import {
   quotations,
   contractModificationRequests,
   contractModificationLogs,
+  requestHistory,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 
@@ -422,6 +423,20 @@ export const contractsRouter = router({
           }
         } catch (e) {
           console.error("خطأ في تحليل بنود العقد:", e);
+        }
+      }
+      
+      // إضافة سجل في التاريخ إذا كان العقد مرتبط بطلب
+      if (input.requestId) {
+        try {
+          await db.insert(requestHistory).values({
+            requestId: input.requestId,
+            userId: ctx.user.id,
+            action: `تم إنشاء عقد جديد برقم ${contractNumber}`,
+            notes: `عقد: ${input.contractTitle} - الطرف الثاني: ${input.secondPartyName} - القيمة: ${input.contractAmount.toLocaleString('ar-SA')} ريال`,
+          });
+        } catch (e) {
+          console.error("خطأ في إضافة سجل التاريخ:", e);
         }
       }
       

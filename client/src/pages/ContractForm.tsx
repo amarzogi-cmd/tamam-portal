@@ -192,10 +192,15 @@ export default function ContractForm() {
       if (Array.isArray(quotations)) {
         const accepted = quotations.find((q: any) => q.status === "accepted");
         if (accepted) {
+          // استخدام المبلغ المعتمد (بعد التفاوض) إن وجد، وإلا استخدام المبلغ الأصلي
+          const approvedValue = accepted.approvedAmount 
+            ? parseFloat(accepted.approvedAmount) 
+            : parseFloat(accepted.totalAmount) || 0;
+          
           setContractData(prev => ({
             ...prev,
             supplierId: accepted.supplierId,
-            totalValue: parseFloat(accepted.approvedAmount || accepted.totalAmount) || 0,
+            totalValue: approvedValue,
           }));
         }
       }
@@ -796,8 +801,65 @@ export default function ContractForm() {
                               <Input
                                 type="date"
                                 value={payment.dueDate}
-                                onChange={(e) => updatePayment(payment.id, "dueDate", e.target.value)}
+                                onChange={(e) => {
+                                  const selectedDate = e.target.value;
+                                  // التحقق من أن التاريخ ضمن فترة العقد
+                                  if (contractData.startDate && contractData.duration > 0) {
+                                    const startDate = new Date(contractData.startDate);
+                                    const endDate = new Date(contractData.startDate);
+                                    
+                                    // حساب تاريخ انتهاء العقد
+                                    if (contractData.durationUnit === "days") {
+                                      endDate.setDate(endDate.getDate() + contractData.duration);
+                                    } else if (contractData.durationUnit === "weeks") {
+                                      endDate.setDate(endDate.getDate() + (contractData.duration * 7));
+                                    } else if (contractData.durationUnit === "months") {
+                                      endDate.setMonth(endDate.getMonth() + contractData.duration);
+                                    } else if (contractData.durationUnit === "years") {
+                                      endDate.setFullYear(endDate.getFullYear() + contractData.duration);
+                                    }
+                                    
+                                    const selected = new Date(selectedDate);
+                                    if (selected < startDate || selected > endDate) {
+                                      toast.error(`يجب أن يكون تاريخ الاستحقاق بين ${startDate.toLocaleDateString('ar-SA')} و ${endDate.toLocaleDateString('ar-SA')}`);
+                                      return;
+                                    }
+                                  }
+                                  updatePayment(payment.id, "dueDate", selectedDate);
+                                }}
+                                min={contractData.startDate || undefined}
+                                max={(() => {
+                                  if (!contractData.startDate || contractData.duration <= 0) return undefined;
+                                  const endDate = new Date(contractData.startDate);
+                                  if (contractData.durationUnit === "days") {
+                                    endDate.setDate(endDate.getDate() + contractData.duration);
+                                  } else if (contractData.durationUnit === "weeks") {
+                                    endDate.setDate(endDate.getDate() + (contractData.duration * 7));
+                                  } else if (contractData.durationUnit === "months") {
+                                    endDate.setMonth(endDate.getMonth() + contractData.duration);
+                                  } else if (contractData.durationUnit === "years") {
+                                    endDate.setFullYear(endDate.getFullYear() + contractData.duration);
+                                  }
+                                  return endDate.toISOString().split('T')[0];
+                                })()}
                               />
+                              {contractData.startDate && contractData.duration > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  فترة العقد: {contractData.startDate} - {(() => {
+                                    const endDate = new Date(contractData.startDate);
+                                    if (contractData.durationUnit === "days") {
+                                      endDate.setDate(endDate.getDate() + contractData.duration);
+                                    } else if (contractData.durationUnit === "weeks") {
+                                      endDate.setDate(endDate.getDate() + (contractData.duration * 7));
+                                    } else if (contractData.durationUnit === "months") {
+                                      endDate.setMonth(endDate.getMonth() + contractData.duration);
+                                    } else if (contractData.durationUnit === "years") {
+                                      endDate.setFullYear(endDate.getFullYear() + contractData.duration);
+                                    }
+                                    return endDate.toISOString().split('T')[0];
+                                  })()}
+                                </p>
+                              )}
                             </div>
                             <div className="md:col-span-3 space-y-1">
                               <Label className="text-xs">الوصف</Label>
