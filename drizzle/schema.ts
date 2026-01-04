@@ -1035,6 +1035,9 @@ export const contractModificationRequests = mysqlTable("contract_modification_re
   // نوع التعديل
   modificationType: varchar("modificationType", { length: 50 }).notNull(), // amount, duration, terms, other
   
+  // وصف التعديلات المطلوبة
+  description: text("description").notNull(),
+  
   // القيم الحالية والجديدة
   currentValue: text("currentValue"),
   newValue: text("newValue"),

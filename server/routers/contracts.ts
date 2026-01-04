@@ -1254,6 +1254,7 @@ export const contractsRouter = router({
       z.object({
         contractId: z.number(),
         modificationType: z.string(),
+        description: z.string().min(10, "يجب كتابة وصف للتعديل"),
         currentValue: z.string().optional(),
         newValue: z.string().optional(),
         justification: z.string().min(10, "يجب كتابة مبرر للتعديل"),
@@ -1292,6 +1293,7 @@ export const contractsRouter = router({
       const [result] = await db.insert(contractModificationRequests).values({
         contractId: input.contractId,
         modificationType: input.modificationType,
+        description: input.description,
         currentValue: input.currentValue,
         newValue: input.newValue,
         justification: input.justification,

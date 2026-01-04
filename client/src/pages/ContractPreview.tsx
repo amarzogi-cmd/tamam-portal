@@ -13,7 +13,39 @@ import {
   Check,
   FileText,
   Copy,
+  Edit,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  History,
+  MessageSquare,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // أنواع العقود
 const CONTRACT_TYPES: Record<string, string> = {
@@ -94,15 +126,49 @@ function getArabicDayName(date: Date): string {
   return days[date.getDay()];
 }
 
+// أنواع التعديلات
+const MODIFICATION_TYPES = [
+  { value: "basic_info", label: "البيانات الأساسية" },
+  { value: "amount", label: "قيمة العقد" },
+  { value: "duration", label: "مدة العقد" },
+  { value: "clauses", label: "بنود العقد" },
+  { value: "parties", label: "أطراف العقد" },
+  { value: "other", label: "أخرى" },
+];
+
 export default function ContractPreview() {
   const params = useParams();
   const [, navigate] = useLocation();
   const contractId = params.id ? parseInt(params.id) : undefined;
   const printRef = useRef<HTMLDivElement>(null);
   
+  // State لنموذج طلب التعديل
+  const [modificationDialogOpen, setModificationDialogOpen] = useState(false);
+  const [modificationType, setModificationType] = useState("");
+  const [modificationDescription, setModificationDescription] = useState("");
+  const [modificationJustification, setModificationJustification] = useState("");
+  
+  // State لنموذج الموافقة/الرفض
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  
   // جلب بيانات العقد
-  const { data, isLoading, error } = trpc.contracts.getById.useQuery(
+  const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
     { id: contractId! },
+    { enabled: !!contractId }
+  );
+  
+  // جلب طلبات التعديل
+  const { data: modificationRequests, refetch: refetchRequests } = trpc.contracts.getModificationRequests.useQuery(
+    { contractId: contractId! },
+    { enabled: !!contractId }
+  );
+  
+  // جلب سجل التعديلات
+  const { data: modificationLogs } = trpc.contracts.getModificationLogs.useQuery(
+    { contractId: contractId! },
     { enabled: !!contractId }
   );
 
@@ -133,9 +199,119 @@ export default function ContractPreview() {
     }
   };
 
+  // Mutation لطلب التعديل
+  const requestModificationMutation = trpc.contracts.requestModification.useMutation({
+    onSuccess: () => {
+      toast.success("تم إرسال طلب التعديل بنجاح");
+      setModificationDialogOpen(false);
+      setModificationType("");
+      setModificationDescription("");
+      setModificationJustification("");
+      refetchRequests();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء إرسال طلب التعديل");
+    },
+  });
+
+  // Mutation للموافقة على طلب التعديل
+  const approveModificationMutation = trpc.contracts.approveModification.useMutation({
+    onSuccess: () => {
+      toast.success("تمت الموافقة على طلب التعديل");
+      setReviewDialogOpen(false);
+      setReviewNotes("");
+      setSelectedRequestId(null);
+      refetchRequests();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ");
+    },
+  });
+
+  // Mutation لرفض طلب التعديل
+  const rejectModificationMutation = trpc.contracts.rejectModification.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض طلب التعديل");
+      setReviewDialogOpen(false);
+      setReviewNotes("");
+      setSelectedRequestId(null);
+      refetchRequests();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ");
+    },
+  });
+
+  // إرسال طلب التعديل
+  const handleSubmitModificationRequest = () => {
+    if (!modificationType) {
+      toast.error("يرجى اختيار نوع التعديل");
+      return;
+    }
+    if (!modificationDescription.trim()) {
+      toast.error("يرجى إدخال وصف التعديلات المطلوبة");
+      return;
+    }
+    if (!modificationJustification.trim()) {
+      toast.error("يرجى إدخال مبررات التعديل");
+      return;
+    }
+    
+    requestModificationMutation.mutate({
+      contractId: contractId!,
+      modificationType,
+      description: modificationDescription,
+      justification: modificationJustification,
+    });
+  };
+
+  // معالجة الموافقة/الرفض
+  const handleReviewRequest = () => {
+    if (!selectedRequestId) return;
+    
+    if (reviewAction === "approve") {
+      approveModificationMutation.mutate({
+        requestId: selectedRequestId,
+        reviewNotes: reviewNotes,
+      });
+    } else {
+      if (!reviewNotes.trim()) {
+        toast.error("يرجى إدخال سبب الرفض");
+        return;
+      }
+      rejectModificationMutation.mutate({
+        requestId: selectedRequestId,
+        reviewNotes: reviewNotes,
+      });
+    }
+  };
+
+  // فتح نموذج المراجعة
+  const openReviewDialog = (requestId: number, action: "approve" | "reject") => {
+    setSelectedRequestId(requestId);
+    setReviewAction(action);
+    setReviewNotes("");
+    setReviewDialogOpen(true);
+  };
+
   // طباعة العقد
   const handlePrint = () => {
     window.print();
+  };
+  
+  // التحقق من إمكانية طلب التعديل
+  const canRequestModification = (contract: any, payments: any[]) => {
+    // لا يمكن طلب تعديل للعقود الملغاة أو المكتملة
+    if (["cancelled", "completed"].includes(contract.status)) {
+      return { allowed: false, reason: "لا يمكن تعديل عقد ملغي أو مكتمل" };
+    }
+    // التحقق من وجود دفعات مصروفة
+    const hasPaidPayments = payments?.some((p: any) => p.status === "paid");
+    if (hasPaidPayments) {
+      return { allowed: false, reason: "لا يمكن تعديل عقد تم صرف دفعات له" };
+    }
+    return { allowed: true, reason: "" };
   };
 
   if (isLoading) {
@@ -190,6 +366,92 @@ export default function ContractPreview() {
                 اعتماد العقد
               </Button>
             )}
+            {/* زر طلب التعديل */}
+            {(() => {
+              const modStatus = canRequestModification(contract, payments || []);
+              return contract.status === "approved" && (
+                <Dialog open={modificationDialogOpen} onOpenChange={setModificationDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      disabled={!modStatus.allowed}
+                      title={modStatus.reason || "طلب تعديل على العقد"}
+                    >
+                      <Edit className="h-4 w-4 ml-2" />
+                      طلب تعديل
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>طلب تعديل على العقد</DialogTitle>
+                      <DialogDescription>
+                        أدخل تفاصيل التعديل المطلوب ومبرراته. سيتم إرسال الطلب للموافقة.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>نوع التعديل <span className="text-red-500">*</span></Label>
+                        <Select value={modificationType} onValueChange={setModificationType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر نوع التعديل" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MODIFICATION_TYPES.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>وصف التعديلات المطلوبة <span className="text-red-500">*</span></Label>
+                        <Textarea
+                          value={modificationDescription}
+                          onChange={(e) => setModificationDescription(e.target.value)}
+                          placeholder="اشرح بالتفصيل التعديلات التي تريد إجراءها على العقد..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>مبررات التعديل <span className="text-red-500">*</span></Label>
+                        <Textarea
+                          value={modificationJustification}
+                          onChange={(e) => setModificationJustification(e.target.value)}
+                          placeholder="اذكر الأسباب والمبررات التي تستدعي هذا التعديل..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div className="text-sm text-yellow-800">
+                            <p className="font-medium">تنبيه:</p>
+                            <p>سيتم إرسال طلب التعديل للموافقة عليه من المسؤول. لن يتم إجراء أي تعديل إلا بعد الموافقة.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setModificationDialogOpen(false)}>
+                        إلغاء
+                      </Button>
+                      <Button 
+                        onClick={handleSubmitModificationRequest}
+                        disabled={requestModificationMutation.isPending}
+                      >
+                        {requestModificationMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                        ) : (
+                          <MessageSquare className="h-4 w-4 ml-2" />
+                        )}
+                        إرسال الطلب
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              );
+            })()}
             <Button 
               variant="outline" 
               onClick={handleDuplicate}
@@ -641,6 +903,182 @@ export default function ContractPreview() {
             </div>
           </div>
         </div>
+
+        {/* قسم طلبات التعديل وسجل التعديلات */}
+        {contract.status === "approved" && (
+          <div className="print:hidden mt-8 space-y-6">
+            {/* طلبات التعديل المعلقة */}
+            {modificationRequests && modificationRequests.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <h3 className="text-lg font-semibold">طلبات التعديل المعلقة</h3>
+                </div>
+                <div className="space-y-4">
+                  {modificationRequests.map((request: any) => (
+                    <div 
+                      key={request.id} 
+                      className={`border rounded-lg p-4 ${
+                        request.status === "pending" ? "border-yellow-300 bg-yellow-50" :
+                        request.status === "approved" ? "border-green-300 bg-green-50" :
+                        "border-red-300 bg-red-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant={request.status === "pending" ? "outline" : request.status === "approved" ? "default" : "destructive"}>
+                              {request.status === "pending" ? "قيد المراجعة" :
+                               request.status === "approved" ? "تمت الموافقة" : "مرفوض"}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {MODIFICATION_TYPES.find(t => t.value === request.modificationType)?.label || request.modificationType}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              • {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="font-medium text-sm">التعديلات المطلوبة:</span>
+                              <p className="text-sm text-gray-700">{request.description}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-sm">المبررات:</span>
+                              <p className="text-sm text-gray-700">{request.justification}</p>
+                            </div>
+                            {request.reviewNotes && (
+                              <div>
+                                <span className="font-medium text-sm">ملاحظات المراجع:</span>
+                                <p className="text-sm text-gray-700">{request.reviewNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {request.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => openReviewDialog(request.id, "approve")}
+                            >
+                              <CheckCircle2 className="h-4 w-4 ml-1" />
+                              موافقة
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => openReviewDialog(request.id, "reject")}
+                            >
+                              <XCircle className="h-4 w-4 ml-1" />
+                              رفض
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* سجل التعديلات */}
+            {modificationLogs && modificationLogs.length > 0 && (
+              <Card className="p-6">
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="logs" className="border-none">
+                    <AccordionTrigger className="hover:no-underline py-0">
+                      <div className="flex items-center gap-2">
+                        <History className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold">سجل التعديلات ({modificationLogs.length})</h3>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 mt-4">
+                        {modificationLogs.map((log: any) => (
+                          <div key={log.id} className="border rounded-lg p-3 bg-gray-50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {MODIFICATION_TYPES.find(t => t.value === log.modificationType)?.label || log.modificationType}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(log.createdAt).toLocaleDateString("ar-SA", {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 mb-1">
+                              <span className="font-medium">التعديل:</span> {log.description}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">المبرر:</span> {log.justification}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* نموذج الموافقة/الرفض */}
+        <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {reviewAction === "approve" ? "الموافقة على طلب التعديل" : "رفض طلب التعديل"}
+              </DialogTitle>
+              <DialogDescription>
+                {reviewAction === "approve" 
+                  ? "هل أنت متأكد من الموافقة على هذا الطلب؟" 
+                  : "يرجى إدخال سبب الرفض"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                <Label>
+                  {reviewAction === "approve" ? "ملاحظات (اختياري)" : "سبب الرفض"}
+                  {reviewAction === "reject" && <span className="text-red-500"> *</span>}
+                </Label>
+                <Textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder={reviewAction === "approve" 
+                    ? "أضف ملاحظات إن وجدت..." 
+                    : "اذكر سبب رفض طلب التعديل..."}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                إلغاء
+              </Button>
+              <Button 
+                onClick={handleReviewRequest}
+                disabled={approveModificationMutation.isPending || rejectModificationMutation.isPending}
+                className={reviewAction === "approve" ? "bg-green-600 hover:bg-green-700" : ""}
+                variant={reviewAction === "reject" ? "destructive" : "default"}
+              >
+                {(approveModificationMutation.isPending || rejectModificationMutation.isPending) ? (
+                  <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                ) : reviewAction === "approve" ? (
+                  <CheckCircle2 className="h-4 w-4 ml-2" />
+                ) : (
+                  <XCircle className="h-4 w-4 ml-2" />
+                )}
+                {reviewAction === "approve" ? "موافقة" : "رفض"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* أنماط الطباعة */}
         <style>{`
