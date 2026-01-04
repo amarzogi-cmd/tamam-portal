@@ -17,6 +17,8 @@ import {
   contractClauseValues,
   authorizedSignatories,
   quotations,
+  contractModificationRequests,
+  contractModificationLogs,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 
@@ -1179,5 +1181,191 @@ export const contractsRouter = router({
         .limit(1);
 
       return quotation;
+    }),
+
+  // ==================== طلبات تعديل العقود ====================
+
+  // التحقق من إمكانية تعديل العقد
+  canModifyContract: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      const [contract] = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.id, input.id));
+      
+      if (!contract) {
+        return { canModify: false, reason: "العقد غير موجود" };
+      }
+      
+      // التحقق من وجود دفعات مصروفة
+      const paidPayments = await db
+        .select()
+        .from(contractPayments)
+        .where(
+          and(
+            eq(contractPayments.contractId, input.id),
+            eq(contractPayments.status, "paid")
+          )
+        );
+      
+      if (paidPayments.length > 0) {
+        return { 
+          canModify: false, 
+          reason: "لا يمكن تعديل العقد لأنه تم صرف دفعات له",
+          paidPaymentsCount: paidPayments.length
+        };
+      }
+      
+      // العقود المعتمدة تحتاج موافقة
+      if (contract.status === "approved" || contract.status === "active") {
+        return { 
+          canModify: true, 
+          requiresApproval: true,
+          reason: "العقد معتمد - يحتاج التعديل إلى موافقة"
+        };
+      }
+      
+      // المسودات يمكن تعديلها مباشرة
+      return { canModify: true, requiresApproval: false };
+    }),
+
+  // إنشاء طلب تعديل
+  requestModification: protectedProcedure
+    .input(
+      z.object({
+        contractId: z.number(),
+        modificationType: z.string(),
+        currentValue: z.string().optional(),
+        newValue: z.string().optional(),
+        justification: z.string().min(10, "يجب كتابة مبرر للتعديل"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      // التحقق من وجود العقد
+      const [contract] = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.id, input.contractId));
+      
+      if (!contract) {
+        throw new Error("العقد غير موجود");
+      }
+      
+      // التحقق من عدم وجود دفعات مصروفة
+      const paidPayments = await db
+        .select()
+        .from(contractPayments)
+        .where(
+          and(
+            eq(contractPayments.contractId, input.contractId),
+            eq(contractPayments.status, "paid")
+          )
+        );
+      
+      if (paidPayments.length > 0) {
+        throw new Error("لا يمكن تعديل العقد لأنه تم صرف دفعات له");
+      }
+      
+      // إنشاء طلب التعديل
+      const [result] = await db.insert(contractModificationRequests).values({
+        contractId: input.contractId,
+        modificationType: input.modificationType,
+        currentValue: input.currentValue,
+        newValue: input.newValue,
+        justification: input.justification,
+        requestedBy: ctx.user.id,
+      });
+      
+      return { success: true, id: result.insertId };
+    }),
+
+  // الموافقة على طلب التعديل
+  approveModification: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number(),
+        reviewNotes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      // تحديث حالة الطلب
+      await db
+        .update(contractModificationRequests)
+        .set({
+          status: "approved",
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          reviewNotes: input.reviewNotes,
+        })
+        .where(eq(contractModificationRequests.id, input.requestId));
+      
+      return { success: true };
+    }),
+
+  // رفض طلب التعديل
+  rejectModification: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number(),
+        reviewNotes: z.string().min(5, "يجب ذكر سبب الرفض"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      await db
+        .update(contractModificationRequests)
+        .set({
+          status: "rejected",
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          reviewNotes: input.reviewNotes,
+        })
+        .where(eq(contractModificationRequests.id, input.requestId));
+      
+      return { success: true };
+    }),
+
+  // جلب طلبات التعديل لعقد معين
+  getModificationRequests: protectedProcedure
+    .input(z.object({ contractId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      const requests = await db
+        .select()
+        .from(contractModificationRequests)
+        .where(eq(contractModificationRequests.contractId, input.contractId))
+        .orderBy(desc(contractModificationRequests.createdAt));
+      
+      return requests;
+    }),
+
+  // جلب سجل تعديلات العقد
+  getModificationLogs: protectedProcedure
+    .input(z.object({ contractId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      const logs = await db
+        .select()
+        .from(contractModificationLogs)
+        .where(eq(contractModificationLogs.contractId, input.contractId))
+        .orderBy(desc(contractModificationLogs.modifiedAt));
+      
+      return logs;
     }),
 });

@@ -1020,6 +1020,60 @@ export const contractClausesRelations = relations(contractClauses, ({ one }) => 
   }),
 }));
 
+// حالات طلب التعديل
+export const modificationRequestStatuses = [
+  "pending",    // بانتظار الموافقة
+  "approved",   // موافق عليه
+  "rejected",   // مرفوض
+] as const;
+
+// جدول طلبات تعديل العقود
+export const contractModificationRequests = mysqlTable("contract_modification_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  contractId: int("contractId").notNull().references(() => contractsEnhanced.id),
+  
+  // نوع التعديل
+  modificationType: varchar("modificationType", { length: 50 }).notNull(), // amount, duration, terms, other
+  
+  // القيم الحالية والجديدة
+  currentValue: text("currentValue"),
+  newValue: text("newValue"),
+  
+  // المبررات
+  justification: text("justification").notNull(),
+  
+  // الحالة
+  status: mysqlEnum("status", modificationRequestStatuses).default("pending"),
+  
+  // طالب التعديل
+  requestedBy: int("requestedBy").notNull().references(() => users.id),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  
+  // الموافق/الرافض
+  reviewedBy: int("reviewedBy").references(() => users.id),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNotes: text("reviewNotes"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// سجل تعديلات العقود
+export const contractModificationLogs = mysqlTable("contract_modification_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  contractId: int("contractId").notNull().references(() => contractsEnhanced.id),
+  modificationRequestId: int("modificationRequestId").references(() => contractModificationRequests.id),
+  
+  // تفاصيل التعديل
+  fieldName: varchar("fieldName", { length: 100 }).notNull(),
+  oldValue: text("oldValue"),
+  newValue: text("newValue"),
+  
+  // من قام بالتعديل
+  modifiedBy: int("modifiedBy").notNull().references(() => users.id),
+  modifiedAt: timestamp("modifiedAt").defaultNow().notNull(),
+});
+
 // تصدير الأنواع
 export type ContractTemplate = typeof contractTemplates.$inferSelect;
 export type InsertContractTemplate = typeof contractTemplates.$inferInsert;

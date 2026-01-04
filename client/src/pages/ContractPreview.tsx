@@ -176,10 +176,11 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex gap-2">
-            {contract.status === "draft" && (
+            {(contract.status === "draft" || contract.status === "pending_approval") && (
               <Button
                 onClick={() => approveMutation.mutate({ id: contractId! })}
                 disabled={approveMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
               >
                 {approveMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin ml-2" />
@@ -216,8 +217,35 @@ export default function ContractPreview() {
             width: '210mm', 
             minHeight: '297mm',
             fontFamily: 'Arial, sans-serif',
+            position: 'relative',
           }}
         >
+          {/* علامة معتمد */}
+          {contract.status === "approved" && (
+            <div 
+              className="absolute print:fixed"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-30deg)',
+                zIndex: 10,
+                pointerEvents: 'none',
+              }}
+            >
+              <div 
+                className="border-8 border-green-600 rounded-lg px-8 py-4 bg-white/80"
+                style={{ opacity: 0.7 }}
+              >
+                <div className="text-green-600 text-6xl font-bold text-center">
+                  معتمد
+                </div>
+                <div className="text-green-600 text-lg text-center mt-2">
+                  {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : ''}
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* الصفحة الأولى */}
           <div className="p-8 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
             {/* رأس الصفحة */}
