@@ -236,22 +236,12 @@ export default function Quotations() {
   // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
   const handleConfirmApproval = () => {
     if (!selectedQuotationForApproval) return;
-    const mutationData: {
-      id: number;
-      status: "pending" | "accepted" | "rejected" | "expired";
-      approvedAmount?: number;
-      notes?: string;
-    } = {
+    approveQuotationMutation.mutate({
       id: selectedQuotationForApproval.id,
-      status: "accepted",
-    };
-    if (approvedAmount) {
-      mutationData.approvedAmount = parseFloat(approvedAmount);
-    }
-    if (approvalNotes) {
-      mutationData.notes = approvalNotes;
-    }
-    approveQuotationMutation.mutate(mutationData);
+      status: "accepted" as const,
+      approvedAmount: approvedAmount ? parseFloat(approvedAmount) : undefined,
+      notes: approvalNotes || undefined,
+    });
     setShowApproveDialog(false);
     setSelectedQuotationForApproval(null);
     setApprovedAmount("");
@@ -288,39 +278,76 @@ export default function Quotations() {
           </div>
         </div>
 
-        {/* اختيار الطلب */}
+        {/* قائمة الطلبات في مرحلة التقييم المالي */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              اختيار الطلب
+              الطلبات في مرحلة التقييم المالي
             </CardTitle>
-            <CardDescription>اختر الطلب لعرض أو إضافة عروض الأسعار</CardDescription>
+            <CardDescription>اختر الطلب لعرض جدول الكميات وعروض الأسعار</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <Label>الطلب</Label>
-                <Select value={selectedRequestId} onValueChange={setSelectedRequestId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الطلب..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {requests?.requests?.map((request: any) => (
-                      <SelectItem key={request.id} value={request.id.toString()}>
-                        {request.requestNumber} - {request.mosqueName || "طلب جديد"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {requests?.requests && requests.requests.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>رقم الطلب</TableHead>
+                    <TableHead>المسجد</TableHead>
+                    <TableHead>البرنامج</TableHead>
+                    <TableHead>تاريخ التقديم</TableHead>
+                    <TableHead>الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requests.requests.map((request: any) => (
+                    <TableRow 
+                      key={request.id} 
+                      className={selectedRequestId === request.id.toString() ? "bg-primary/10" : "cursor-pointer hover:bg-muted/50"}
+                      onClick={() => setSelectedRequestId(request.id.toString())}
+                    >
+                      <TableCell className="font-mono text-sm">{request.requestNumber}</TableCell>
+                      <TableCell className="font-medium">{request.mosqueName || "غير محدد"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {request.programType === 'construction' ? 'بناء' :
+                           request.programType === 'renovation' ? 'ترميم' :
+                           request.programType === 'expansion' ? 'توسعة' :
+                           request.programType === 'maintenance' ? 'صيانة' : request.programType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRequestId(request.id.toString());
+                          }}
+                        >
+                          <Eye className="h-4 w-4 ml-1" />
+                          {selectedRequestId === request.id.toString() ? "محدد" : "عرض"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>لا توجد طلبات في مرحلة التقييم المالي</p>
               </div>
-              {selectedRequestId && (
+            )}
+            {selectedRequestId && (
+              <div className="mt-4 flex justify-end">
                 <Button onClick={() => setShowAddDialog(true)}>
                   <Plus className="h-4 w-4 ml-2" />
-                  إضافة عرض سعر
+                  إضافة عرض سعر للطلب المحدد
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

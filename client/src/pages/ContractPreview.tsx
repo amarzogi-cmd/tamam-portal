@@ -471,26 +471,46 @@ export default function ContractPreview() {
             position: 'relative',
           }}
         >
-          {/* علامة معتمد */}
+          {/* علامة معتمد المائية */}
           {contract.status === "approved" && (
             <div 
-              className="absolute print:fixed"
+              className="approved-watermark"
               style={{
+                position: 'absolute',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%) rotate(-30deg)',
-                zIndex: 10,
+                zIndex: 1000,
                 pointerEvents: 'none',
               }}
             >
               <div 
-                className="border-8 border-green-600 rounded-lg px-8 py-4 bg-white/80"
-                style={{ opacity: 0.7 }}
+                style={{
+                  border: '8px solid rgba(22, 163, 74, 0.6)',
+                  borderRadius: '12px',
+                  padding: '16px 32px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                }}
               >
-                <div className="text-green-600 text-6xl font-bold text-center">
+                <div 
+                  style={{
+                    color: 'rgba(22, 163, 74, 0.7)',
+                    fontSize: '72px',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    lineHeight: 1.2,
+                  }}
+                >
                   معتمد
                 </div>
-                <div className="text-green-600 text-lg text-center mt-2">
+                <div 
+                  style={{
+                    color: 'rgba(22, 163, 74, 0.7)',
+                    fontSize: '18px',
+                    textAlign: 'center',
+                    marginTop: '8px',
+                  }}
+                >
                   {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : ''}
                 </div>
               </div>
@@ -1089,9 +1109,23 @@ export default function ContractPreview() {
             [class*="DashboardLayout"] > div:last-child * {
               visibility: visible;
             }
+            .approved-watermark {
+              position: fixed !important;
+              top: 50% !important;
+              left: 50% !important;
+              transform: translate(-50%, -50%) rotate(-30deg) !important;
+              z-index: 9999 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
             @page {
               size: A4;
               margin: 0;
+            }
+          }
+          @media screen {
+            .approved-watermark {
+              position: absolute;
             }
           }
         `}</style>

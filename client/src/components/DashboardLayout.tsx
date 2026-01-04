@@ -130,6 +130,7 @@ const getMenuItems = (role: string) => {
     items.push(
       { icon: Handshake, label: "الشركاء", path: "/partners" },
       { icon: Palette, label: "الهوية البصرية", path: "/branding" },
+      { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },
       { icon: Settings, label: "الإعدادات", path: "/settings" },
     );
   }

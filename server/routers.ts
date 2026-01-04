@@ -11,6 +11,7 @@ import { projectsRouter } from "./routers/projects";
 import { suppliersRouter } from "./routers/suppliers";
 import { contractsRouter } from "./routers/contracts";
 import { categoriesRouter } from "./routers/categories";
+import { organizationRouter } from "./routers/organization";
 
 export const appRouter = router({
   system: systemRouter,
@@ -41,6 +42,9 @@ export const appRouter = router({
   
   // إدارة التصنيفات
   categories: categoriesRouter,
+  
+  // إعدادات الجمعية
+  organization: organizationRouter,
 });
 
 export type AppRouter = typeof appRouter;

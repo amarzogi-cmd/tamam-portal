@@ -54,12 +54,13 @@ export default function OrganizationSettings() {
   });
 
   // جلب إعدادات الجمعية
-  const { data: settings, isLoading } = trpc.contracts.getOrganizationSettings.useQuery();
+  const { data: settings, isLoading, refetch } = trpc.organization.getSettings.useQuery();
 
   // تحديث الإعدادات
-  const updateMutation = trpc.contracts.saveOrganizationSettings.useMutation({
+  const updateMutation = trpc.organization.updateSettings.useMutation({
     onSuccess: () => {
       toast.success("تم حفظ الإعدادات بنجاح");
+      refetch();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ الإعدادات");
