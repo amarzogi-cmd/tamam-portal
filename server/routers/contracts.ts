@@ -303,6 +303,9 @@ export const contractsRouter = router({
         // القالب
         templateId: z.number().optional(),
         
+        // مفوض التوقيع
+        signatoryId: z.number().optional(),
+        
         // البنود الإضافية
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
@@ -367,6 +370,7 @@ export const contractsRouter = router({
         customNotifications: input.customNotifications,
         customGeneralTerms: input.customGeneralTerms,
         templateId: input.templateId,
+        signatoryId: input.signatoryId,
         paymentScheduleJson: input.paymentSchedule,
         clauseValuesJson: input.clauseValues,
         status: "draft",

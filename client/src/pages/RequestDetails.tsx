@@ -725,7 +725,13 @@ export default function RequestDetails() {
                     {/* ملخص التكلفة */}
                     {(() => {
                       const approvedQuotation = quotations?.quotations?.find((q: any) => q.status === 'approved' || q.status === 'accepted');
-                      const supplierCost = parseFloat(approvedQuotation?.approvedAmount || approvedQuotation?.negotiatedAmount || approvedQuotation?.totalAmount || '0');
+                      const originalAmount = parseFloat(approvedQuotation?.totalAmount || '0');
+                      const negotiatedAmount = approvedQuotation?.negotiatedAmount ? parseFloat(approvedQuotation.negotiatedAmount) : null;
+                      const approvedAmount = approvedQuotation?.approvedAmount ? parseFloat(approvedQuotation.approvedAmount) : null;
+                      const supplierCost = approvedAmount || negotiatedAmount || originalAmount;
+                      const hasNegotiation = negotiatedAmount !== null && negotiatedAmount !== originalAmount;
+                      const savingsAmount = hasNegotiation ? originalAmount - (negotiatedAmount || originalAmount) : 0;
+                      const savingsPercentage = hasNegotiation && originalAmount > 0 ? ((savingsAmount / originalAmount) * 100).toFixed(1) : '0';
                       
                       return (
                         <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
@@ -738,8 +744,23 @@ export default function RequestDetails() {
                           <CardContent>
                             {approvedQuotation ? (
                               <div className="space-y-4">
-                                <div className="flex justify-center">
-                                  <div className="p-6 bg-white rounded-lg text-center border-2 border-green-500 min-w-[250px]">
+                                <div className={`grid gap-4 ${hasNegotiation ? 'grid-cols-1 md:grid-cols-3' : 'justify-center'}`}>
+                                  {/* السعر الأصلي - يظهر فقط إذا كان هناك تفاوض */}
+                                  {hasNegotiation && (
+                                    <div className="p-4 bg-white rounded-lg text-center">
+                                      <p className="text-sm text-muted-foreground">السعر الأصلي</p>
+                                      <p className="text-xl font-bold line-through text-muted-foreground">{originalAmount.toLocaleString()} ريال</p>
+                                    </div>
+                                  )}
+                                  {/* الوفر - يظهر فقط إذا كان هناك تفاوض */}
+                                  {hasNegotiation && (
+                                    <div className="p-4 bg-green-100 rounded-lg text-center border border-green-300">
+                                      <p className="text-sm text-green-700">الوفر المحقق ({savingsPercentage}%)</p>
+                                      <p className="text-xl font-bold text-green-700">{savingsAmount.toLocaleString()} ريال</p>
+                                    </div>
+                                  )}
+                                  {/* التكلفة المعتمدة */}
+                                  <div className={`p-6 bg-white rounded-lg text-center border-2 border-green-500 ${!hasNegotiation ? 'min-w-[250px] mx-auto' : ''}`}>
                                     <p className="text-sm text-muted-foreground">تكلفة المورد المعتمدة</p>
                                     <p className="text-2xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
                                     <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>

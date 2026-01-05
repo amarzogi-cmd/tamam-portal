@@ -89,6 +89,9 @@ export default function ContractForm() {
     projectId: projectId || null as number | null,
     requestId: requestId || null as number | null,
     
+    // مفوض التوقيع
+    signatoryId: null as number | null,
+    
     // المورد (الطرف الثاني)
     supplierId: null as number | null,
     
@@ -138,6 +141,9 @@ export default function ContractForm() {
 
   // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.contracts.getOrganizationSettings.useQuery();
+
+  // جلب قائمة المفوضين
+  const { data: signatoriesData } = trpc.organization.getSignatories.useQuery();
 
   // جلب تفاصيل المورد المختار
   const { data: selectedSupplier } = trpc.suppliers.getById.useQuery(
@@ -383,6 +389,7 @@ export default function ContractForm() {
       projectId: contractData.projectId || undefined,
       supplierId: contractData.supplierId!,
       templateId: contractData.templateId || undefined,
+      signatoryId: contractData.signatoryId || undefined,
       // بيانات الطرف الثاني من المورد
       secondPartyName: supplier.name,
       secondPartyCommercialRegister: supplier.commercialRegister || undefined,
@@ -540,6 +547,38 @@ export default function ContractForm() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* اختيار مفوض التوقيع */}
+                <div className="space-y-2">
+                  <Label>مفوض التوقيع (الطرف الأول) *</Label>
+                  <Select
+                    value={contractData.signatoryId?.toString() || ""}
+                    onValueChange={(value) => setContractData({ 
+                      ...contractData, 
+                      signatoryId: value ? parseInt(value) : null 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر مفوض التوقيع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {signatoriesData?.map((signatory: any) => (
+                        <SelectItem key={signatory.id} value={signatory.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span>{signatory.name}</span>
+                            <span className="text-muted-foreground">- {signatory.position}</span>
+                            {signatory.isDefault && (
+                              <Badge variant="secondary" className="mr-2">افتراضي</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    الشخص المفوض بالتوقيع على العقد من جهة الجمعية
+                  </p>
                 </div>
 
                 {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}

@@ -358,6 +358,7 @@ export const contracts = mysqlTable("contracts", {
   contractNumber: varchar("contractNumber", { length: 50 }).notNull().unique(),
   projectId: int("projectId").notNull().references(() => projects.id),
   supplierId: int("supplierId").references(() => suppliers.id),
+  signatoryId: int("signatoryId").references(() => signatories.id), // مفوض التوقيع
   contractType: varchar("contractType", { length: 100 }),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   startDate: timestamp("startDate"),
@@ -780,6 +781,7 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   // الربط بالمشروع والطلب
   projectId: int("projectId").references(() => projects.id),
   requestId: int("requestId").references(() => mosqueRequests.id),
+  signatoryId: int("signatoryId").references(() => signatories.id), // مفوض التوقيع
   
   // بيانات الطرف الثاني (المقاول/المكتب الهندسي)
   supplierId: int("supplierId").references(() => suppliers.id),

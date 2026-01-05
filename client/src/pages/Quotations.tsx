@@ -284,10 +284,10 @@ export default function Quotations() {
   // تنفيذ الاعتماد مع المبلغ المعدل والمبرر
   const handleConfirmApproval = () => {
     if (!selectedQuotationForApproval) return;
-    approveQuotationMutation.mutate({
+    // استخدام approveAfterNegotiationMutation للاعتماد مع المبلغ
+    approveAfterNegotiationMutation.mutate({
       id: selectedQuotationForApproval.id,
-      status: "accepted" as const,
-      approvedAmount: approvedAmount ? parseFloat(approvedAmount) : undefined,
+      useNegotiatedAmount: true,
       notes: approvalNotes || undefined,
     });
     setShowApproveDialog(false);

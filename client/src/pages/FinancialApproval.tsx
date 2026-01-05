@@ -51,15 +51,11 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// نسبة الإشراف الافتراضية
-const DEFAULT_SUPERVISION_RATE = 10;
-
 export default function FinancialApproval() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-  const [supervisionRate, setSupervisionRate] = useState(DEFAULT_SUPERVISION_RATE.toString());
   const [approvalNotes, setApprovalNotes] = useState("");
 
   // جلب الطلبات في مرحلة التقييم المالي
@@ -94,9 +90,14 @@ export default function FinancialApproval() {
   // حساب التكاليف
   const boqTotal = boqData?.total || 0;
   const acceptedQuotation = quotationsData?.quotations?.find((q: any) => q.status === "accepted");
-  const quotationAmount = acceptedQuotation ? parseFloat(acceptedQuotation.totalAmount) : 0;
-  const supervisionAmount = quotationAmount * (parseFloat(supervisionRate) / 100);
-  const totalProjectCost = quotationAmount + supervisionAmount;
+  // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
+  const originalAmount = acceptedQuotation ? parseFloat(acceptedQuotation.totalAmount) : 0;
+  const negotiatedAmount = acceptedQuotation?.negotiatedAmount ? parseFloat(acceptedQuotation.negotiatedAmount) : null;
+  const approvedAmount = acceptedQuotation?.approvedAmount ? parseFloat(acceptedQuotation.approvedAmount) : null;
+  const quotationAmount = approvedAmount || negotiatedAmount || originalAmount;
+  const hasNegotiation = negotiatedAmount !== null && negotiatedAmount !== originalAmount;
+  const savingsAmount = hasNegotiation ? originalAmount - (negotiatedAmount || originalAmount) : 0;
+  const savingsPercentage = hasNegotiation && originalAmount > 0 ? ((savingsAmount / originalAmount) * 100).toFixed(1) : '0';
 
   const isLoading = boqLoading || quotationsLoading;
 
@@ -106,7 +107,7 @@ export default function FinancialApproval() {
     updateStageMutation.mutate({
       requestId: parseInt(selectedRequestId),
       newStage: "execution",
-      notes: `الاعتماد المالي: ${totalProjectCost.toLocaleString("ar-SA")} ريال (شامل نسبة إشراف ${supervisionRate}%). ${approvalNotes}`,
+      notes: `الاعتماد المالي: ${quotationAmount.toLocaleString("ar-SA")} ريال (تكلفة المورد المعتمدة). ${approvalNotes}`,
     });
   };
 
@@ -311,46 +312,41 @@ export default function FinancialApproval() {
                         <CheckSquare className="h-5 w-5 text-primary" />
                         ملخص الاعتماد المالي
                       </CardTitle>
-                      <CardDescription>مراجعة التكلفة النهائية قبل الاعتماد</CardDescription>
+                      <CardDescription>مراجعة تكلفة المورد المعتمدة قبل الاعتماد - نسبة الإشراف تُضاف عند إنشاء العقد</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-6">
                         {/* تفاصيل التكلفة */}
-                        <div className="grid gap-4 md:grid-cols-3">
-                          <div className="p-4 bg-muted rounded-lg">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                              <Receipt className="h-4 w-4" />
-                              <span>تكلفة المورد</span>
+                        <div className={`grid gap-4 ${hasNegotiation ? 'md:grid-cols-3' : 'md:grid-cols-1 max-w-md mx-auto'}`}>
+                          {/* السعر الأصلي - يظهر فقط إذا كان هناك تفاوض */}
+                          {hasNegotiation && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                <Receipt className="h-4 w-4" />
+                                <span>السعر الأصلي</span>
+                              </div>
+                              <p className="text-2xl font-bold line-through text-muted-foreground">{originalAmount.toLocaleString("ar-SA")} ريال</p>
                             </div>
-                            <p className="text-2xl font-bold">{quotationAmount.toLocaleString("ar-SA")} ريال</p>
-                          </div>
-                          <div className="p-4 bg-muted rounded-lg">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                              <Percent className="h-4 w-4" />
-                              <span>نسبة الإشراف ({supervisionRate}%)</span>
+                          )}
+                          {/* الوفر - يظهر فقط إذا كان هناك تفاوض */}
+                          {hasNegotiation && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="flex items-center gap-2 text-green-700 mb-2">
+                                <Percent className="h-4 w-4" />
+                                <span>الوفر المحقق ({savingsPercentage}%)</span>
+                              </div>
+                              <p className="text-2xl font-bold text-green-700">{savingsAmount.toLocaleString("ar-SA")} ريال</p>
                             </div>
-                            <p className="text-2xl font-bold">{supervisionAmount.toLocaleString("ar-SA")} ريال</p>
-                          </div>
+                          )}
+                          {/* التكلفة المعتمدة */}
                           <div className="p-4 bg-primary/10 rounded-lg border border-primary">
                             <div className="flex items-center gap-2 text-primary mb-2">
                               <DollarSign className="h-4 w-4" />
-                              <span>الإجمالي النهائي</span>
+                              <span>تكلفة المورد المعتمدة</span>
                             </div>
-                            <p className="text-2xl font-bold text-primary">{totalProjectCost.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-2xl font-bold text-primary">{quotationAmount.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>
                           </div>
-                        </div>
-
-                        {/* نسبة الإشراف */}
-                        <div className="flex items-center gap-4">
-                          <Label>نسبة الإشراف (%)</Label>
-                          <Input
-                            type="number"
-                            value={supervisionRate}
-                            onChange={(e) => setSupervisionRate(e.target.value)}
-                            className="w-24"
-                            min="0"
-                            max="100"
-                          />
                         </div>
 
                         {/* زر الاعتماد */}
@@ -402,19 +398,24 @@ export default function FinancialApproval() {
             <DialogHeader>
               <DialogTitle>تأكيد الاعتماد المالي</DialogTitle>
               <DialogDescription>
-                سيتم اعتماد الطلب مالياً بمبلغ إجمالي {totalProjectCost.toLocaleString("ar-SA")} ريال وتحويله لمرحلة التنفيذ
+                سيتم اعتماد الطلب مالياً بتكلفة مورد {quotationAmount.toLocaleString("ar-SA")} ريال وتحويله لمرحلة التنفيذ
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <span>تكلفة المورد:</span>
-                  <span className="font-medium">{quotationAmount.toLocaleString("ar-SA")} ريال</span>
-                  <span>نسبة الإشراف ({supervisionRate}%):</span>
-                  <span className="font-medium">{supervisionAmount.toLocaleString("ar-SA")} ريال</span>
-                  <span className="font-bold">الإجمالي:</span>
-                  <span className="font-bold text-primary">{totalProjectCost.toLocaleString("ar-SA")} ريال</span>
+                  {hasNegotiation && (
+                    <>
+                      <span>السعر الأصلي:</span>
+                      <span className="font-medium line-through text-muted-foreground">{originalAmount.toLocaleString("ar-SA")} ريال</span>
+                      <span>الوفر المحقق:</span>
+                      <span className="font-medium text-green-600">{savingsAmount.toLocaleString("ar-SA")} ريال ({savingsPercentage}%)</span>
+                    </>
+                  )}
+                  <span className="font-bold">تكلفة المورد المعتمدة:</span>
+                  <span className="font-bold text-primary">{quotationAmount.toLocaleString("ar-SA")} ريال</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3 text-center">نسبة الإشراف تُضاف عند إنشاء العقد</p>
               </div>
               <div>
                 <Label>ملاحظات (اختياري)</Label>
