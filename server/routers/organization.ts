@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { organizationSettings } from "../../drizzle/schema";
+import { organizationSettings, signatories } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export const organizationRouter = router({
@@ -85,8 +85,8 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية المستخدم (مدير النظام أو المدير العام)
-      const allowedRoles = ["admin", "general_manager"];
+      // التحقق من صلاحية المستخدم (مدير النظام أو المدير العام أو مكتب المشاريع)
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
       }
@@ -148,7 +148,7 @@ export const organizationRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية المستخدم
-      const allowedRoles = ["admin", "general_manager"];
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
       }
@@ -195,5 +195,153 @@ export const organizationRouter = router({
       }
 
       return { success: true, url };
+    }),
+
+  // ==================== مفوضو التوقيع ====================
+
+  // جلب جميع المفوضين
+  getSignatories: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    const signatoryList = await db
+      .select()
+      .from(signatories)
+      .where(eq(signatories.isActive, true))
+      .orderBy(signatories.sortOrder);
+
+    return signatoryList;
+  }),
+
+  // إضافة مفوض جديد
+  addSignatory: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1, "اسم المفوض مطلوب"),
+      title: z.string().min(1, "المنصب مطلوب"),
+      nationalId: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
+      signatureUrl: z.string().optional(),
+      isDefault: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحية
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة مفوضين" });
+      }
+
+      // إذا كان المفوض الجديد افتراضي، ألغِ الافتراضي من الآخرين
+      if (input.isDefault) {
+        await db.update(signatories).set({ isDefault: false });
+      }
+
+      // حساب الترتيب
+      const existingSignatories = await db.select().from(signatories);
+      const nextOrder = existingSignatories.length;
+
+      await db.insert(signatories).values({
+        name: input.name,
+        title: input.title,
+        nationalId: input.nationalId || null,
+        phone: input.phone || null,
+        email: input.email || null,
+        signatureUrl: input.signatureUrl || null,
+        isDefault: input.isDefault || false,
+        sortOrder: nextOrder,
+        createdBy: ctx.user.id,
+      });
+
+      return { success: true, message: "تم إضافة المفوض بنجاح" };
+    }),
+
+  // تحديث مفوض
+  updateSignatory: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(1, "اسم المفوض مطلوب"),
+      title: z.string().min(1, "المنصب مطلوب"),
+      nationalId: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
+      signatureUrl: z.string().optional(),
+      isDefault: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحية
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل المفوضين" });
+      }
+
+      // إذا كان المفوض افتراضي، ألغِ الافتراضي من الآخرين
+      if (input.isDefault) {
+        await db.update(signatories).set({ isDefault: false });
+      }
+
+      await db.update(signatories)
+        .set({
+          name: input.name,
+          title: input.title,
+          nationalId: input.nationalId || null,
+          phone: input.phone || null,
+          email: input.email || null,
+          signatureUrl: input.signatureUrl || null,
+          isDefault: input.isDefault || false,
+        })
+        .where(eq(signatories.id, input.id));
+
+      return { success: true, message: "تم تحديث بيانات المفوض بنجاح" };
+    }),
+
+  // حذف مفوض (تعطيل)
+  deleteSignatory: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحية
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف المفوضين" });
+      }
+
+      // تعطيل بدلاً من الحذف
+      await db.update(signatories)
+        .set({ isActive: false })
+        .where(eq(signatories.id, input.id));
+
+      return { success: true, message: "تم حذف المفوض بنجاح" };
+    }),
+
+  // تعيين مفوض افتراضي
+  setDefaultSignatory: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحية
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعيين المفوض الافتراضي" });
+      }
+
+      // إلغاء الافتراضي من الجميع
+      await db.update(signatories).set({ isDefault: false });
+
+      // تعيين المفوض الجديد كافتراضي
+      await db.update(signatories)
+        .set({ isDefault: true })
+        .where(eq(signatories.id, input.id));
+
+      return { success: true, message: "تم تعيين المفوض الافتراضي بنجاح" };
     }),
 });

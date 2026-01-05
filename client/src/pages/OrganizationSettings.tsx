@@ -20,7 +20,332 @@ import {
   Loader2,
   FileText,
   Settings,
+  Plus,
+  Trash2,
+  Star,
+  Edit2,
+  Users,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+// مكون إدارة المفوضين
+function SignatoriesSection() {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingSignatory, setEditingSignatory] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    title: "",
+    nationalId: "",
+    phone: "",
+    email: "",
+    isDefault: false,
+  });
+
+  // جلب المفوضين
+  const { data: signatories, isLoading, refetch } = trpc.organization.getSignatories.useQuery();
+
+  // إضافة مفوض
+  const addMutation = trpc.organization.addSignatory.useMutation({
+    onSuccess: () => {
+      toast.success("تم إضافة المفوض بنجاح");
+      setShowAddDialog(false);
+      resetForm();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء إضافة المفوض");
+    },
+  });
+
+  // تحديث مفوض
+  const updateMutation = trpc.organization.updateSignatory.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات المفوض بنجاح");
+      setEditingSignatory(null);
+      resetForm();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث المفوض");
+    },
+  });
+
+  // حذف مفوض
+  const deleteMutation = trpc.organization.deleteSignatory.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف المفوض بنجاح");
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف المفوض");
+    },
+  });
+
+  // تعيين افتراضي
+  const setDefaultMutation = trpc.organization.setDefaultSignatory.useMutation({
+    onSuccess: () => {
+      toast.success("تم تعيين المفوض الافتراضي بنجاح");
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ");
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      title: "",
+      nationalId: "",
+      phone: "",
+      email: "",
+      isDefault: false,
+    });
+  };
+
+  const openEditDialog = (signatory: any) => {
+    setEditingSignatory(signatory);
+    setFormData({
+      name: signatory.name,
+      title: signatory.title,
+      nationalId: signatory.nationalId || "",
+      phone: signatory.phone || "",
+      email: signatory.email || "",
+      isDefault: signatory.isDefault || false,
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name || !formData.title) {
+      toast.error("يرجى إدخال اسم المفوض والمنصب");
+      return;
+    }
+
+    if (editingSignatory) {
+      updateMutation.mutate({
+        id: editingSignatory.id,
+        ...formData,
+      });
+    } else {
+      addMutation.mutate(formData);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              مفوضو التوقيع
+            </CardTitle>
+            <CardDescription>
+              إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية
+            </CardDescription>
+          </div>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة مفوض
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : signatories && signatories.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>الاسم</TableHead>
+                <TableHead>المنصب</TableHead>
+                <TableHead>رقم الهوية</TableHead>
+                <TableHead>الجوال</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {signatories.map((signatory: any) => (
+                <TableRow key={signatory.id}>
+                  <TableCell className="font-medium">{signatory.name}</TableCell>
+                  <TableCell>{signatory.title}</TableCell>
+                  <TableCell dir="ltr">{signatory.nationalId || "-"}</TableCell>
+                  <TableCell dir="ltr">{signatory.phone || "-"}</TableCell>
+                  <TableCell>
+                    {signatory.isDefault ? (
+                      <Badge className="bg-green-100 text-green-800">
+                        <Star className="h-3 w-3 ml-1" />
+                        افتراضي
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">نشط</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(signatory)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      {!signatory.isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                          title="تعيين كافتراضي"
+                        >
+                          <Star className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600"
+                        onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>لا يوجد مفوضون مسجلون</p>
+            <p className="text-sm">اضغط على "إضافة مفوض" لإضافة مفوض جديد</p>
+          </div>
+        )}
+
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            <strong>ملاحظة:</strong> المفوض الافتراضي سيظهر تلقائياً في العقود الجديدة. يمكنك اختيار مفوض مختلف عند إنشاء كل عقد.
+          </p>
+        </div>
+      </CardContent>
+
+      {/* نافذة إضافة/تعديل مفوض */}
+      <Dialog open={showAddDialog || !!editingSignatory} onOpenChange={(open) => {
+        if (!open) {
+          setShowAddDialog(false);
+          setEditingSignatory(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSignatory ? "تعديل بيانات المفوض" : "إضافة مفوض جديد"}
+            </DialogTitle>
+            <DialogDescription>
+              أدخل بيانات الشخص المفوض بالتوقيع على العقود
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>اسم المفوض *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="الاسم الكامل"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>المنصب *</Label>
+              <Input
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="مثال: رئيس مجلس الإدارة، المدير التنفيذي"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>رقم الهوية</Label>
+              <Input
+                value={formData.nationalId}
+                onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+                placeholder="رقم الهوية الوطنية"
+                dir="ltr"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>رقم الجوال</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="05XXXXXXXX"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>البريد الإلكتروني</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@example.com"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="isDefault">تعيين كمفوض افتراضي</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowAddDialog(false);
+              setEditingSignatory(null);
+              resetForm();
+            }}>
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={addMutation.isPending || updateMutation.isPending}
+            >
+              {(addMutation.isPending || updateMutation.isPending) && (
+                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+              )}
+              {editingSignatory ? "حفظ التعديلات" : "إضافة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
 
 export default function OrganizationSettings() {
   const { user } = useAuth();
@@ -246,71 +571,9 @@ export default function OrganizationSettings() {
             </Card>
           </TabsContent>
 
-          {/* معلومات مفوض التوقيع */}
+          {/* مفوضو التوقيع */}
           <TabsContent value="signatory">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  معلومات مفوض التوقيع
-                </CardTitle>
-                <CardDescription>
-                  بيانات الشخص المفوض بالتوقيع على العقود نيابة عن الجمعية
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="authorizedSignatory">اسم مفوض التوقيع</Label>
-                    <Input
-                      id="authorizedSignatory"
-                      value={orgSettings.authorizedSignatory}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, authorizedSignatory: e.target.value })}
-                      placeholder="الاسم الكامل"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signatoryTitle">صفة مفوض التوقيع</Label>
-                    <Input
-                      id="signatoryTitle"
-                      value={orgSettings.signatoryTitle}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, signatoryTitle: e.target.value })}
-                      placeholder="مثال: رئيس مجلس الإدارة"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signatoryPhone">رقم جوال مفوض التوقيع</Label>
-                    <Input
-                      id="signatoryPhone"
-                      value={orgSettings.signatoryPhone}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, signatoryPhone: e.target.value })}
-                      placeholder="05XXXXXXXX"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signatoryEmail">البريد الإلكتروني لمفوض التوقيع</Label>
-                    <Input
-                      id="signatoryEmail"
-                      type="email"
-                      value={orgSettings.signatoryEmail}
-                      onChange={(e) => setOrgSettings({ ...orgSettings, signatoryEmail: e.target.value })}
-                      placeholder="البريد الإلكتروني"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>ملاحظة:</strong> هذه البيانات ستظهر في جميع العقود كـ "الطرف الأول" وستُستخدم في التوقيع الإلكتروني
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <SignatoriesSection />
           </TabsContent>
 
           {/* البيانات البنكية */}

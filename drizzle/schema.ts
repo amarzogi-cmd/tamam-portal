@@ -719,6 +719,23 @@ export const organizationSettings = mysqlTable("organization_settings", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// مفوضو التوقيع
+export const signatories = mysqlTable("signatories", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // اسم المفوض
+  title: varchar("title", { length: 100 }).notNull(), // المنصب (المدير التنفيذي، رئيس مجلس الإدارة، إلخ)
+  nationalId: varchar("nationalId", { length: 20 }), // رقم الهوية
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  signatureUrl: varchar("signatureUrl", { length: 500 }), // صورة التوقيع
+  isDefault: boolean("isDefault").default(false), // هل هو المفوض الافتراضي
+  isActive: boolean("isActive").default(true),
+  sortOrder: int("sortOrder").default(0),
+  createdBy: int("createdBy").references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // أنواع العقود
 export const contractTypes = [
   "supervision",      // إشراف هندسي

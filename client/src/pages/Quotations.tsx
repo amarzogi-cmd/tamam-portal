@@ -160,6 +160,8 @@ export default function Quotations() {
     onSuccess: () => {
       toast.success("تم تحديث حالة عرض السعر بنجاح");
       refetchQuotations();
+      setShowApproveDialog(false);
+      setSelectedQuotationForApproval(null);
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث حالة عرض السعر");
