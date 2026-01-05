@@ -725,9 +725,7 @@ export default function RequestDetails() {
                     {/* ملخص التكلفة */}
                     {(() => {
                       const approvedQuotation = quotations?.quotations?.find((q: any) => q.status === 'approved' || q.status === 'accepted');
-                      const supplierCost = parseFloat(approvedQuotation?.approvedAmount || approvedQuotation?.totalAmount || '0');
-                      const supervisionFee = supplierCost * 0.10;
-                      const totalCost = supplierCost + supervisionFee;
+                      const supplierCost = parseFloat(approvedQuotation?.approvedAmount || approvedQuotation?.negotiatedAmount || approvedQuotation?.totalAmount || '0');
                       
                       return (
                         <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
@@ -740,18 +738,11 @@ export default function RequestDetails() {
                           <CardContent>
                             {approvedQuotation ? (
                               <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  <div className="p-4 bg-white rounded-lg text-center">
-                                    <p className="text-sm text-muted-foreground">تكلفة المورد</p>
-                                    <p className="text-xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
-                                  </div>
-                                  <div className="p-4 bg-white rounded-lg text-center">
-                                    <p className="text-sm text-muted-foreground">نسبة الإشراف (10%)</p>
-                                    <p className="text-xl font-bold text-green-700">{supervisionFee.toLocaleString()} ريال</p>
-                                  </div>
-                                  <div className="p-4 bg-white rounded-lg text-center border-2 border-green-500">
-                                    <p className="text-sm text-muted-foreground">الإجمالي النهائي</p>
-                                    <p className="text-xl font-bold text-green-700">{totalCost.toLocaleString()} ريال</p>
+                                <div className="flex justify-center">
+                                  <div className="p-6 bg-white rounded-lg text-center border-2 border-green-500 min-w-[250px]">
+                                    <p className="text-sm text-muted-foreground">تكلفة المورد المعتمدة</p>
+                                    <p className="text-2xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
+                                    <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>
                                   </div>
                                 </div>
                                 {/* زر إنشاء العقد */}
