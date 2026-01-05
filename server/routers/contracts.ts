@@ -315,6 +315,7 @@ export const contractsRouter = router({
         // التواريخ
         contractDate: z.string().optional(),
         contractDateHijri: z.string().optional(),
+        startDate: z.string().optional(),
         
         // القالب
         templateId: z.number().optional(),
@@ -354,44 +355,56 @@ export const contractsRouter = router({
       const contractAmountText = numberToArabicText(input.contractAmount);
       
       // إنشاء العقد
-      const [result] = await db.insert(contractsEnhanced).values({
+      const signatoryIdValue = (input.signatoryId && typeof input.signatoryId === 'number' && input.signatoryId > 0) ? input.signatoryId : undefined;
+      console.log('signatoryId value:', signatoryIdValue);
+      
+      const contractData: any = {
         contractNumber,
         contractYear: year,
         contractSequence: sequence,
         contractType: input.contractType,
         contractTitle: input.contractTitle,
-        projectId: input.projectId,
-        requestId: input.requestId,
+        projectId: input.projectId ?? null,
+        requestId: input.requestId ?? null,
         supplierId: input.supplierId,
         secondPartyName: input.secondPartyName,
-        secondPartyCommercialRegister: input.secondPartyCommercialRegister,
-        secondPartyRepresentative: input.secondPartyRepresentative,
-        secondPartyTitle: input.secondPartyTitle,
-        secondPartyAddress: input.secondPartyAddress,
-        secondPartyPhone: input.secondPartyPhone,
-        secondPartyEmail: input.secondPartyEmail || null,
-        secondPartyBankName: input.secondPartyBankName,
-        secondPartyIban: input.secondPartyIban,
-        secondPartyAccountName: input.secondPartyAccountName,
-        mosqueName: input.mosqueName,
-        mosqueNeighborhood: input.mosqueNeighborhood,
-        mosqueCity: input.mosqueCity,
+        secondPartyCommercialRegister: input.secondPartyCommercialRegister ?? null,
+        secondPartyRepresentative: input.secondPartyRepresentative ?? null,
+        secondPartyTitle: input.secondPartyTitle ?? null,
+        secondPartyAddress: input.secondPartyAddress ?? null,
+        secondPartyPhone: input.secondPartyPhone ?? null,
+        secondPartyEmail: input.secondPartyEmail ?? null,
+        secondPartyBankName: input.secondPartyBankName ?? null,
+        secondPartyIban: input.secondPartyIban ?? null,
+        secondPartyAccountName: input.secondPartyAccountName ?? null,
+        mosqueName: input.mosqueName ?? null,
+        mosqueNeighborhood: input.mosqueNeighborhood ?? null,
+        mosqueCity: input.mosqueCity ?? null,
         contractAmount: String(input.contractAmount),
         contractAmountText,
         duration: input.duration,
         durationUnit: input.durationUnit,
         contractDate: input.contractDate ? new Date(input.contractDate) : null,
-        contractDateHijri: input.contractDateHijri,
-        customTerms: input.customTerms,
-        customNotifications: input.customNotifications,
-        customGeneralTerms: input.customGeneralTerms,
-        templateId: input.templateId,
-        signatoryId: input.signatoryId,
-        paymentScheduleJson: input.paymentSchedule,
-        clauseValuesJson: input.clauseValues,
+        contractDateHijri: (input.contractDateHijri && input.contractDateHijri.trim() !== '') ? input.contractDateHijri : null,
+        startDate: input.startDate ? new Date(input.startDate) : null,
+        endDate: null,
+        customTerms: input.customTerms ?? null,
+        customNotifications: input.customNotifications ?? null,
+        customGeneralTerms: input.customGeneralTerms ?? null,
+        templateId: input.templateId ?? null,
+        signatoryId: signatoryIdValue ? signatoryIdValue : null,
+        paymentScheduleJson: input.paymentSchedule ?? null,
+        clauseValuesJson: input.clauseValues ?? null,
+        documentUrl: null,
+        signedDocumentUrl: null,
+        approvedBy: null,
+        approvedAt: null,
         status: "draft",
         createdBy: ctx.user.id,
-      });
+      };
+      
+      console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
+      const [result] = await db.insert(contractsEnhanced).values(contractData);
       
       const contractId = result.insertId;
       

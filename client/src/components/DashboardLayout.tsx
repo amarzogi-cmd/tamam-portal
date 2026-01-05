@@ -43,6 +43,7 @@ import {
   Receipt,
   CheckSquare,
   Banknote,
+  TrendingUp,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -78,6 +79,7 @@ const getMenuItems = (role: string) => {
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
+      { icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" },
     );
   }
 

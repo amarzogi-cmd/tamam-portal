@@ -20,6 +20,7 @@ import {
   Clock,
   History,
   MessageSquare,
+  Banknote,
 } from "lucide-react";
 import {
   Dialog,
@@ -452,6 +453,18 @@ export default function ContractPreview() {
                 </Dialog>
               );
             })()}
+
+            {/* زر طلب صرف - يظهر فقط للعقود المعتمدة */}
+            {contract.status === "approved" && (
+              <Button 
+                variant="outline" 
+                className="border-green-600 text-green-700 hover:bg-green-50"
+                onClick={() => navigate(`/disbursements?contractId=${contractId}`)}
+              >
+                <Banknote className="h-4 w-4 ml-2" />
+                طلب صرف
+              </Button>
+            )}
 
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="h-4 w-4 ml-2" />

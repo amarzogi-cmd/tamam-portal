@@ -14,9 +14,12 @@ interface Task {
   name: string;
   startDate: Date;
   endDate: Date;
+  actualStartDate?: Date;
+  actualEndDate?: Date;
   progress: number;
   status: "pending" | "in_progress" | "completed" | "delayed";
   dependencies?: number[];
+  description?: string;
 }
 
 interface GanttChartProps {
@@ -32,6 +35,26 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-green-500",
   delayed: "bg-red-500",
 };
+
+// دالة حساب التأخير بالأيام
+function calculateDelay(task: Task): number {
+  const today = new Date();
+  const plannedEnd = new Date(task.endDate);
+  
+  if (task.status === "completed" && task.actualEndDate) {
+    const actualEnd = new Date(task.actualEndDate);
+    if (actualEnd > plannedEnd) {
+      return Math.ceil((actualEnd.getTime() - plannedEnd.getTime()) / (1000 * 60 * 60 * 24));
+    }
+    return 0;
+  }
+  
+  if (task.status === "in_progress" && today > plannedEnd) {
+    return Math.ceil((today.getTime() - plannedEnd.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  
+  return 0;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "لم يبدأ",
@@ -221,22 +244,58 @@ export function GanttChart({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <div className="text-sm">
+                          <div className="text-sm space-y-1">
                             <p className="font-medium">{task.name}</p>
-                            <p>
-                              من:{" "}
-                              {new Date(task.startDate).toLocaleDateString(
-                                "ar-SA"
+                            <div className="border-t pt-1 mt-1">
+                              <p className="text-muted-foreground">التواريخ المخططة:</p>
+                              <p>
+                                من:{" "}
+                                {new Date(task.startDate).toLocaleDateString(
+                                  "ar-SA"
+                                )}
+                              </p>
+                              <p>
+                                إلى:{" "}
+                                {new Date(task.endDate).toLocaleDateString(
+                                  "ar-SA"
+                                )}
+                              </p>
+                            </div>
+                            {(task.actualStartDate || task.actualEndDate) && (
+                              <div className="border-t pt-1 mt-1">
+                                <p className="text-muted-foreground">التواريخ الفعلية:</p>
+                                {task.actualStartDate && (
+                                  <p>
+                                    بدأ:{" "}
+                                    {new Date(task.actualStartDate).toLocaleDateString(
+                                      "ar-SA"
+                                    )}
+                                  </p>
+                                )}
+                                {task.actualEndDate && (
+                                  <p>
+                                    انتهى:{" "}
+                                    {new Date(task.actualEndDate).toLocaleDateString(
+                                      "ar-SA"
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            <div className="border-t pt-1 mt-1">
+                              <p>الإنجاز: {task.progress}%</p>
+                              <p>الحالة: {STATUS_LABELS[task.status]}</p>
+                              {calculateDelay(task) > 0 && (
+                                <p className="text-red-500 font-medium">
+                                  تأخير: {calculateDelay(task)} يوم
+                                </p>
                               )}
-                            </p>
-                            <p>
-                              إلى:{" "}
-                              {new Date(task.endDate).toLocaleDateString(
-                                "ar-SA"
-                              )}
-                            </p>
-                            <p>الإنجاز: {task.progress}%</p>
-                            <p>الحالة: {STATUS_LABELS[task.status]}</p>
+                            </div>
+                            {task.description && (
+                              <p className="text-muted-foreground text-xs border-t pt-1 mt-1">
+                                {task.description}
+                              </p>
+                            )}
                           </div>
                         </TooltipContent>
                       </Tooltip>

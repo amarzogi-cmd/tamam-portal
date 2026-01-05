@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import SmartStatusBar from "@/components/SmartStatusBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -359,6 +360,18 @@ export default function RequestDetails() {
             </div>
           </CardContent>
         </Card>
+
+        {/* شريط الحالة الذكي */}
+        <SmartStatusBar
+          request={request}
+          user={user}
+          existingContract={existingContract}
+          quotations={quotations}
+          boqItems={boqItems}
+          onAdvanceStage={handleAdvanceStage}
+          onNavigate={navigate}
+          isLoading={updateStageMutation.isPending}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* التفاصيل الرئيسية */}

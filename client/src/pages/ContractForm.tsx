@@ -387,6 +387,7 @@ export default function ContractForm() {
       contractType: selectedTemplate?.type || "supply",
       contractTitle: contractData.subject,
       projectId: contractData.projectId || undefined,
+      requestId: contractData.requestId || undefined,
       supplierId: contractData.supplierId!,
       templateId: contractData.templateId || undefined,
       signatoryId: contractData.signatoryId || undefined,
@@ -406,6 +407,7 @@ export default function ContractForm() {
       duration: contractData.duration,
       durationUnit: contractData.durationUnit as any,
       contractDate: contractData.startDate,
+      startDate: contractData.startDate,
       // جدول الدفعات
       paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
       // بنود العقد المخصصة

@@ -61,6 +61,7 @@ import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractsList from "./pages/ContractsList";
 import DisbursementRequests from "./pages/DisbursementRequests";
+import ProgressReports from "./pages/ProgressReports";
 
 function Router() {
   return (
@@ -134,6 +135,9 @@ function Router() {
       
       {/* طلبات الصرف */}
       <Route path="/disbursements" component={DisbursementRequests} />
+      
+      {/* تقارير الإنجاز */}
+      <Route path="/progress-reports" component={ProgressReports} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />
