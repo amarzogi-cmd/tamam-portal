@@ -1197,3 +1197,7 @@
 - [x] إصلاح خطأ: Failed query: update `signatories` set `isDefault` = ? params: false
   - السبب: كان يتم تحديث جميع السجلات بدون where clause
   - الحل: إضافة where(eq(signatories.isDefault, true)) لتحديد السجلات المطلوبة فقط
+
+## المرحلة 43: إصلاح مشكلة جدول signatories
+- [x] التحقق من وجود جدول signatories في قاعدة البيانات
+- [x] إنشاء جدول signatories يدوياً (لم يكن موجوداً في قاعدة البيانات)
