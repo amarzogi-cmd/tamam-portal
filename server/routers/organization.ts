@@ -236,7 +236,7 @@ export const organizationRouter = router({
 
       // إذا كان المفوض الجديد افتراضي، ألغِ الافتراضي من الآخرين
       if (input.isDefault) {
-        await db.update(signatories).set({ isDefault: false });
+        await db.update(signatories).set({ isDefault: false }).where(eq(signatories.isDefault, true));
       }
 
       // حساب الترتيب
@@ -282,7 +282,7 @@ export const organizationRouter = router({
 
       // إذا كان المفوض افتراضي، ألغِ الافتراضي من الآخرين
       if (input.isDefault) {
-        await db.update(signatories).set({ isDefault: false });
+        await db.update(signatories).set({ isDefault: false }).where(eq(signatories.isDefault, true));
       }
 
       await db.update(signatories)
@@ -335,7 +335,7 @@ export const organizationRouter = router({
       }
 
       // إلغاء الافتراضي من الجميع
-      await db.update(signatories).set({ isDefault: false });
+      await db.update(signatories).set({ isDefault: false }).where(eq(signatories.isDefault, true));
 
       // تعيين المفوض الجديد كافتراضي
       await db.update(signatories)

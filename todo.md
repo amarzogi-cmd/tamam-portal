@@ -1192,3 +1192,8 @@
   - قسم خاص بالمشاريع
   - قسم التحويل البنكي / الشيك / العهدة
   - جدول التوقيعات
+
+## المرحلة 42: إصلاح خطأ إضافة المفوض
+- [x] إصلاح خطأ: Failed query: update `signatories` set `isDefault` = ? params: false
+  - السبب: كان يتم تحديث جميع السجلات بدون where clause
+  - الحل: إضافة where(eq(signatories.isDefault, true)) لتحديد السجلات المطلوبة فقط
