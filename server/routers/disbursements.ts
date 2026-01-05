@@ -377,12 +377,20 @@ export const disbursementsRouter = router({
           orderNumber: disbursementOrders.orderNumber,
           amount: disbursementOrders.amount,
           beneficiaryName: disbursementOrders.beneficiaryName,
+          beneficiaryBank: disbursementOrders.beneficiaryBank,
+          beneficiaryIban: disbursementOrders.beneficiaryIban,
+          beneficiaryAccountName: disbursementOrders.beneficiaryAccountName,
+          sadadNumber: disbursementOrders.sadadNumber,
+          billerCode: disbursementOrders.billerCode,
           paymentMethod: disbursementOrders.paymentMethod,
           status: disbursementOrders.status,
           createdAt: disbursementOrders.createdAt,
+          approvedAt: disbursementOrders.approvedAt,
           requestNumber: disbursementRequests.requestNumber,
           requestTitle: disbursementRequests.title,
+          projectId: projects.id,
           projectName: projects.name,
+          projectBudget: projects.budget,
         })
         .from(disbursementOrders)
         .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
@@ -392,13 +400,73 @@ export const disbursementsRouter = router({
         .limit(limit)
         .offset((page - 1) * limit);
 
+      // إضافة بيانات العقد والمبالغ المدفوعة
+      const ordersWithDetails = await Promise.all(
+        orders.map(async (order) => {
+          // جلب بيانات العقد
+          let contractAmount = 0;
+          let totalPaid = 0;
+          let remainingAmount = 0;
+
+          if (order.projectId) {
+            // جلب العقد المرتبط بالمشروع
+            const [contract] = await db
+              .select({ contractAmount: contractsEnhanced.contractAmount })
+              .from(contractsEnhanced)
+              .where(eq(contractsEnhanced.projectId, order.projectId));
+            
+            if (contract) {
+              contractAmount = Number(contract.contractAmount || 0);
+            }
+
+            // حساب إجمالي المدفوع
+            const [paidResult] = await db
+              .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+              .from(disbursementRequests)
+              .where(
+                and(
+                  eq(disbursementRequests.projectId, order.projectId),
+                  eq(disbursementRequests.status, "paid")
+                )
+              );
+            
+            totalPaid = Number(paidResult?.total || 0);
+            remainingAmount = contractAmount - totalPaid - Number(order.amount);
+          }
+
+          // جلب أسماء المستخدمين
+          const [creator] = await db
+            .select({ name: users.name })
+            .from(users)
+            .where(eq(users.id, (order as any).createdBy || 0));
+
+          let approverName = null;
+          if ((order as any).approvedBy) {
+            const [approver] = await db
+              .select({ name: users.name })
+              .from(users)
+              .where(eq(users.id, (order as any).approvedBy));
+            approverName = approver?.name;
+          }
+
+          return {
+            ...order,
+            contractAmount,
+            totalPaid,
+            remainingAmount,
+            createdByName: creator?.name,
+            approvedByName: approverName,
+          };
+        })
+      );
+
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
 
       return {
-        orders,
+        orders: ordersWithDetails,
         total: countResult?.count || 0,
         page,
         limit,
@@ -452,7 +520,10 @@ export const disbursementsRouter = router({
         beneficiaryName: z.string().min(1, "اسم المستفيد مطلوب"),
         beneficiaryBank: z.string().optional(),
         beneficiaryIban: z.string().optional(),
-        paymentMethod: z.enum(["bank_transfer", "check", "cash"]).default("bank_transfer"),
+        paymentMethod: z.enum(["bank_transfer", "check", "custody"]).default("bank_transfer"),
+        beneficiaryAccountName: z.string().optional(),
+        sadadNumber: z.string().optional(),
+        billerCode: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -674,6 +745,73 @@ export const disbursementsRouter = router({
 
       return { requests };
     }),
+
+  // جلب المشاريع مع بيانات العقد والمورد لنموذج طلب الصرف
+  getProjectsWithContractDetails: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    // جلب المشاريع التي لها عقود معتمدة أو نشطة
+    const projectsWithContracts = await db
+      .select({
+        // بيانات المشروع
+        projectId: projects.id,
+        projectNumber: projects.projectNumber,
+        projectName: projects.name,
+        projectDescription: projects.description,
+        projectBudget: projects.budget,
+        projectActualCost: projects.actualCost,
+        projectStatus: projects.status,
+        // بيانات العقد
+        contractId: contractsEnhanced.id,
+        contractNumber: contractsEnhanced.contractNumber,
+        contractTitle: contractsEnhanced.contractTitle,
+        contractAmount: contractsEnhanced.contractAmount,
+        contractStatus: contractsEnhanced.status,
+        // بيانات المورد
+        supplierId: contractsEnhanced.supplierId,
+        supplierName: contractsEnhanced.secondPartyName,
+        supplierBank: contractsEnhanced.secondPartyBankName,
+        supplierIban: contractsEnhanced.secondPartyIban,
+        supplierAccountName: contractsEnhanced.secondPartyAccountName,
+        supplierPhone: contractsEnhanced.secondPartyPhone,
+        supplierEmail: contractsEnhanced.secondPartyEmail,
+      })
+      .from(projects)
+      .innerJoin(contractsEnhanced, eq(projects.id, contractsEnhanced.projectId))
+      .where(
+        sql`${contractsEnhanced.status} IN ('approved', 'active')`
+      )
+      .orderBy(desc(projects.createdAt));
+
+    // حساب إجمالي المصروف لكل مشروع
+    const projectsWithTotals = await Promise.all(
+      projectsWithContracts.map(async (project) => {
+        // حساب إجمالي المصروف من طلبات الصرف المدفوعة
+        const [paidResult] = await db
+          .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+          .from(disbursementRequests)
+          .where(
+            and(
+              eq(disbursementRequests.projectId, project.projectId),
+              eq(disbursementRequests.status, "paid")
+            )
+          );
+
+        const totalPaid = Number(paidResult?.total || 0);
+        const contractAmount = Number(project.contractAmount || 0);
+        const remainingAmount = contractAmount - totalPaid;
+
+        return {
+          ...project,
+          totalPaid,
+          remainingAmount,
+        };
+      })
+    );
+
+    return { projects: projectsWithTotals };
+  }),
 
   // إحصائيات طلبات الصرف
   getStats: protectedProcedure.query(async () => {

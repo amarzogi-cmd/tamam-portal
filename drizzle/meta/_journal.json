@@ -141,6 +141,13 @@
       "when": 1767599297174,
       "tag": "0019_handy_ser_duncan",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1767611863437,
+      "tag": "0020_mature_northstar",
+      "breakpoints": true
     }
   ]
 }

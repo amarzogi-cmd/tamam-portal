@@ -925,7 +925,10 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   beneficiaryName: varchar("beneficiaryName", { length: 255 }).notNull(),
   beneficiaryBank: varchar("beneficiaryBank", { length: 255 }),
   beneficiaryIban: varchar("beneficiaryIban", { length: 50 }),
-  paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "check", "cash"]).default("bank_transfer"),
+  paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "check", "custody"]).default("bank_transfer"),
+  beneficiaryAccountName: varchar("beneficiaryAccountName", { length: 255 }),
+  sadadNumber: varchar("sadadNumber", { length: 50 }),
+  billerCode: varchar("billerCode", { length: 50 }),
   
   // الحالة
   status: mysqlEnum("status", disbursementOrderStatuses).default("draft"),

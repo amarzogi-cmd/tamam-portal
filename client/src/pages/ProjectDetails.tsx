@@ -119,9 +119,9 @@ export default function ProjectDetails() {
     startDate: new Date(phase.startDate || project?.startDate || new Date()),
     endDate: new Date(phase.endDate || new Date()),
     progress: phase.progress || 0,
-    status: phase.status === "completed" ? "completed" :
+    status: (phase.status === "completed" ? "completed" :
             phase.status === "in_progress" ? "in_progress" :
-            phase.status === "delayed" ? "delayed" : "pending",
+            phase.status === "delayed" ? "delayed" : "pending") as "pending" | "in_progress" | "completed" | "delayed",
   })) || [];
 
   const handleCreateReport = () => {
@@ -157,7 +157,7 @@ export default function ProjectDetails() {
   const budget = parseFloat(project.budget || "0");
   const spent = disbursements?.requests?.reduce((sum: number, d: any) => 
     d.status === "approved" ? sum + parseFloat(d.amount) : sum, 0) || 0;
-  const progress = project.overallProgress || 0;
+  const progress = (project as any).overallProgress || 0;
 
   return (
     <DashboardLayout>
@@ -236,7 +236,7 @@ export default function ProjectDetails() {
                 <div>
                   <p className="text-sm text-muted-foreground">تاريخ الانتهاء</p>
                   <p className="text-2xl font-bold text-foreground mt-1">
-                    {project.endDate ? new Date(project.endDate).toLocaleDateString("ar-SA") : "-"}
+                    {(project as any).endDate ? new Date((project as any).endDate).toLocaleDateString("ar-SA") : "-"}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -262,7 +262,7 @@ export default function ProjectDetails() {
             <GanttChart
               tasks={ganttTasks}
               projectStartDate={new Date(project.startDate || new Date())}
-              projectEndDate={new Date(project.endDate || new Date())}
+              projectEndDate={new Date((project as any).endDate || new Date())}
               title="الجدول الزمني للمشروع"
             />
           </TabsContent>

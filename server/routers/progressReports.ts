@@ -134,6 +134,7 @@ export const progressReportsRouter = router({
       const variance = input.actualProgress - input.plannedProgress;
 
       const [result] = await db.insert(progressReports).values({
+        reportNumber,
         projectId: input.projectId,
         title: input.title,
         reportDate: new Date(input.reportDate),

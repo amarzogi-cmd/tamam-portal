@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,10 @@ import {
   AlertCircle,
   Search,
   Filter,
+  Building2,
+  CreditCard,
+  Printer,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +67,62 @@ const PAYMENT_TYPE_MAP: Record<string, string> = {
   retention: "ضمان حسن التنفيذ",
 };
 
+const PAYMENT_METHOD_MAP: Record<string, string> = {
+  bank_transfer: "تحويل بنكي",
+  check: "إصدار شيك",
+  custody: "صرف من العهدة",
+};
+
+// دالة تحويل الأرقام إلى نص عربي
+function numberToArabicText(num: number): string {
+  if (num === 0) return "صفر ريال";
+  
+  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+
+  function convertHundreds(n: number): string {
+    if (n === 0) return "";
+    if (n < 10) return ones[n];
+    if (n < 20) return teens[n - 10];
+    if (n < 100) {
+      const t = Math.floor(n / 10);
+      const o = n % 10;
+      return o ? `${ones[o]} و${tens[t]}` : tens[t];
+    }
+    const h = Math.floor(n / 100);
+    const rest = n % 100;
+    return rest ? `${hundreds[h]} و${convertHundreds(rest)}` : hundreds[h];
+  }
+
+  function convertThousands(n: number): string {
+    if (n < 1000) return convertHundreds(n);
+    const thousands = Math.floor(n / 1000);
+    const rest = n % 1000;
+    let result = "";
+    if (thousands === 1) result = "ألف";
+    else if (thousands === 2) result = "ألفان";
+    else if (thousands >= 3 && thousands <= 10) result = `${ones[thousands]} آلاف`;
+    else result = `${convertHundreds(thousands)} ألف`;
+    return rest ? `${result} و${convertHundreds(rest)}` : result;
+  }
+
+  function convertMillions(n: number): string {
+    if (n < 1000000) return convertThousands(n);
+    const millions = Math.floor(n / 1000000);
+    const rest = n % 1000000;
+    let result = "";
+    if (millions === 1) result = "مليون";
+    else if (millions === 2) result = "مليونان";
+    else if (millions >= 3 && millions <= 10) result = `${ones[millions]} ملايين`;
+    else result = `${convertThousands(millions)} مليون`;
+    return rest ? `${result} و${convertThousands(rest)}` : result;
+  }
+
+  return `فقط ${convertMillions(Math.floor(num))} ريال`;
+}
+
 export default function DisbursementRequests() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -75,14 +136,20 @@ export default function DisbursementRequests() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCreateOrderDialog, setShowCreateOrderDialog] = useState(false);
+  const [showOrderPreviewDialog, setShowOrderPreviewDialog] = useState(false);
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  
+  // بيانات المشروع المختار
+  const [selectedProjectData, setSelectedProjectData] = useState<any>(null);
   
   // بيانات طلب صرف جديد
   const [newRequest, setNewRequest] = useState({
     projectId: 0,
+    contractId: 0,
     title: "",
     description: "",
     amount: "",
@@ -95,7 +162,10 @@ export default function DisbursementRequests() {
     beneficiaryName: "",
     beneficiaryBank: "",
     beneficiaryIban: "",
-    paymentMethod: "bank_transfer" as "bank_transfer" | "check" | "cash",
+    beneficiaryAccountName: "",
+    sadadNumber: "",
+    billerCode: "",
+    paymentMethod: "bank_transfer" as "bank_transfer" | "check" | "custody",
   });
 
   // استعلامات البيانات
@@ -107,21 +177,15 @@ export default function DisbursementRequests() {
   
   const { data: statsData } = trpc.disbursements.getStats.useQuery();
   
-  const { data: projectsData } = trpc.projects.getAll.useQuery({});
+  // استخدام endpoint جديد للمشاريع مع بيانات العقد
+  const { data: projectsWithContractsData } = trpc.disbursements.getProjectsWithContractDetails.useQuery();
 
   // Mutations
   const createRequestMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: () => {
       toast.success("تم إنشاء طلب الصرف بنجاح");
       setShowCreateDialog(false);
-      setNewRequest({
-        projectId: 0,
-        title: "",
-        description: "",
-        amount: "",
-        paymentType: "progress",
-        completionPercentage: "",
-      });
+      resetNewRequest();
       refetchRequests();
     },
     onError: (error) => {
@@ -157,12 +221,7 @@ export default function DisbursementRequests() {
     onSuccess: () => {
       toast.success("تم إنشاء أمر الصرف بنجاح");
       setShowCreateOrderDialog(false);
-      setNewOrder({
-        beneficiaryName: "",
-        beneficiaryBank: "",
-        beneficiaryIban: "",
-        paymentMethod: "bank_transfer",
-      });
+      resetNewOrder();
       refetchOrders();
       refetchRequests();
     },
@@ -192,6 +251,59 @@ export default function DisbursementRequests() {
     },
   });
 
+  // إعادة تعيين نموذج طلب الصرف
+  const resetNewRequest = () => {
+    setNewRequest({
+      projectId: 0,
+      contractId: 0,
+      title: "",
+      description: "",
+      amount: "",
+      paymentType: "progress",
+      completionPercentage: "",
+    });
+    setSelectedProjectData(null);
+  };
+
+  // إعادة تعيين نموذج أمر الصرف
+  const resetNewOrder = () => {
+    setNewOrder({
+      beneficiaryName: "",
+      beneficiaryBank: "",
+      beneficiaryIban: "",
+      beneficiaryAccountName: "",
+      sadadNumber: "",
+      billerCode: "",
+      paymentMethod: "bank_transfer",
+    });
+  };
+
+  // عند اختيار مشروع، تعبئة البيانات تلقائياً
+  const handleProjectSelect = (projectId: string) => {
+    const project = projectsWithContractsData?.projects?.find(
+      (p: any) => p.projectId.toString() === projectId
+    );
+    
+    if (project) {
+      setSelectedProjectData(project);
+      setNewRequest({
+        ...newRequest,
+        projectId: project.projectId,
+        contractId: project.contractId,
+        description: project.contractTitle || "",
+      });
+      
+      // تعبئة بيانات المورد في أمر الصرف
+      setNewOrder({
+        ...newOrder,
+        beneficiaryName: project.supplierName || "",
+        beneficiaryBank: project.supplierBank || "",
+        beneficiaryIban: project.supplierIban || "",
+        beneficiaryAccountName: project.supplierAccountName || "",
+      });
+    }
+  };
+
   // التحقق من الصلاحيات
   const canCreateRequest = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
   const canApproveRequest = ["super_admin", "system_admin", "general_manager", "financial"].includes(user?.role || "");
@@ -206,6 +318,7 @@ export default function DisbursementRequests() {
     }
     createRequestMutation.mutate({
       projectId: newRequest.projectId,
+      contractId: newRequest.contractId || undefined,
       title: newRequest.title,
       description: newRequest.description,
       amount: parseFloat(newRequest.amount),
@@ -225,6 +338,31 @@ export default function DisbursementRequests() {
     });
   };
 
+  // فتح نافذة إنشاء أمر صرف مع تعبئة البيانات
+  const openCreateOrderDialog = (request: any) => {
+    setSelectedRequest(request);
+    
+    // البحث عن بيانات المشروع والمورد
+    const project = projectsWithContractsData?.projects?.find(
+      (p: any) => p.projectId === request.projectId
+    );
+    
+    if (project) {
+      setSelectedProjectData(project);
+      setNewOrder({
+        beneficiaryName: project.supplierName || "",
+        beneficiaryBank: project.supplierBank || "",
+        beneficiaryIban: project.supplierIban || "",
+        beneficiaryAccountName: project.supplierAccountName || "",
+        sadadNumber: "",
+        billerCode: "",
+        paymentMethod: "bank_transfer",
+      });
+    }
+    
+    setShowCreateOrderDialog(true);
+  };
+
   const filteredRequests = requestsData?.requests?.filter((req) => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -236,6 +374,12 @@ export default function DisbursementRequests() {
     }
     return true;
   });
+
+  // تحويل الرقم إلى نص عربي
+  const numberToArabicText = (num: number): string => {
+    // تبسيط - يمكن استخدام مكتبة متخصصة
+    return `فقط ${num.toLocaleString("ar-SA")} ريال سعودي لا غير`;
+  };
 
   return (
     <DashboardLayout>
@@ -415,10 +559,7 @@ export default function DisbursementRequests() {
                                   variant="ghost"
                                   size="sm"
                                   className="text-blue-600"
-                                  onClick={() => {
-                                    setSelectedRequest(request);
-                                    setShowCreateOrderDialog(true);
-                                  }}
+                                  onClick={() => openCreateOrderDialog(request)}
                                 >
                                   <FileText className="h-4 w-4" />
                                 </Button>
@@ -467,11 +608,7 @@ export default function DisbursementRequests() {
                           <TableCell>{order.beneficiaryName}</TableCell>
                           <TableCell>{Number(order.amount).toLocaleString()} ريال</TableCell>
                           <TableCell>
-                            {order.paymentMethod === "bank_transfer"
-                              ? "تحويل بنكي"
-                              : order.paymentMethod === "check"
-                              ? "شيك"
-                              : "نقدي"}
+                            {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -498,6 +635,16 @@ export default function DisbursementRequests() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setShowOrderPreviewDialog(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               {canApproveOrder && order.status === "pending" && (
                                 <Button
                                   variant="ghost"
@@ -530,94 +677,242 @@ export default function DisbursementRequests() {
           </TabsContent>
         </Tabs>
 
-        {/* نافذة إنشاء طلب صرف */}
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogContent className="max-w-lg">
+        {/* نافذة إنشاء طلب صرف - محسنة */}
+        <Dialog open={showCreateDialog} onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) resetNewRequest();
+        }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>طلب صرف جديد</DialogTitle>
-              <DialogDescription>أدخل بيانات طلب الصرف</DialogDescription>
+              <DialogDescription>اختر المشروع وسيتم تعبئة البيانات تلقائياً</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
+              {/* اختيار المشروع */}
               <div className="space-y-2">
-                <Label>المشروع *</Label>
+                <Label className="text-base font-semibold">المشروع *</Label>
                 <Select
-                  value={newRequest.projectId.toString()}
-                  onValueChange={(v) => setNewRequest({ ...newRequest, projectId: parseInt(v) })}
+                  value={newRequest.projectId ? newRequest.projectId.toString() : ""}
+                  onValueChange={handleProjectSelect}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر المشروع" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projectsData?.map((project: any) => (
-                      <SelectItem key={project.id} value={project.id.toString()}>
-                        {project.name}
+                    {projectsWithContractsData?.projects?.map((project: any) => (
+                      <SelectItem key={project.projectId} value={project.projectId.toString()}>
+                        {project.projectNumber} - {project.projectName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>عنوان الطلب *</Label>
-                <Input
-                  value={newRequest.title}
-                  onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })}
-                  placeholder="مثال: دفعة مرحلية للأعمال الإنشائية"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>الوصف</Label>
-                <Textarea
-                  value={newRequest.description}
-                  onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
-                  placeholder="تفاصيل إضافية عن طلب الصرف..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* بيانات المشروع المختار */}
+              {selectedProjectData && (
+                <Card className="bg-muted/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      بيانات المشروع والعقد
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">اسم المشروع:</span>
+                        <p className="font-medium">{selectedProjectData.projectName}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">رقم المشروع:</span>
+                        <p className="font-medium">{selectedProjectData.projectNumber}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">وصف الأعمال:</span>
+                        <p className="font-medium">{selectedProjectData.contractTitle || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إجمالي قيمة العقد:</span>
+                        <p className="font-medium text-primary">
+                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} ريال
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إجمالي ما تم دفعه:</span>
+                        <p className="font-medium text-green-600">
+                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} ريال
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">المبلغ المتبقي:</span>
+                        <p className="font-medium text-orange-600">
+                          {Number(selectedProjectData.remainingAmount || 0).toLocaleString()} ريال
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">اسم المورد:</span>
+                        <p className="font-medium">{selectedProjectData.supplierName || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">البنك:</span>
+                        <p className="font-medium">{selectedProjectData.supplierBank || "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">رقم الآيبان:</span>
+                        <p className="font-medium font-mono" dir="ltr">
+                          {selectedProjectData.supplierIban || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Separator />
+
+              {/* بيانات طلب الصرف */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">بيانات طلب الصرف</Label>
+                
                 <div className="space-y-2">
-                  <Label>المبلغ (ريال) *</Label>
+                  <Label>عنوان الطلب *</Label>
                   <Input
-                    type="number"
-                    value={newRequest.amount}
-                    onChange={(e) => setNewRequest({ ...newRequest, amount: e.target.value })}
-                    placeholder="0"
+                    value={newRequest.title}
+                    onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })}
+                    placeholder="مثال: دفعة مرحلية للأعمال الإنشائية"
                   />
                 </div>
+                
                 <div className="space-y-2">
-                  <Label>نوع الدفعة</Label>
-                  <Select
-                    value={newRequest.paymentType}
-                    onValueChange={(v: any) => setNewRequest({ ...newRequest, paymentType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                      <SelectItem value="progress">دفعة مرحلية</SelectItem>
-                      <SelectItem value="final">دفعة نهائية</SelectItem>
-                      <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>الوصف</Label>
+                  <Textarea
+                    value={newRequest.description}
+                    onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
+                    placeholder="تفاصيل إضافية عن طلب الصرف..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>الدفعة المطلوبة (ريال) *</Label>
+                    <Input
+                      type="number"
+                      value={newRequest.amount}
+                      onChange={(e) => setNewRequest({ ...newRequest, amount: e.target.value })}
+                      placeholder="0"
+                    />
+                    {selectedProjectData && newRequest.amount && (
+                      <p className="text-xs text-muted-foreground">
+                        المتبقي بعد هذه الدفعة: {(Number(selectedProjectData.remainingAmount || 0) - Number(newRequest.amount || 0)).toLocaleString()} ريال
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>نوع الدفعة</Label>
+                    <Select
+                      value={newRequest.paymentType}
+                      onValueChange={(v: any) => setNewRequest({ ...newRequest, paymentType: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                        <SelectItem value="progress">دفعة مرحلية</SelectItem>
+                        <SelectItem value="final">دفعة نهائية</SelectItem>
+                        <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>نسبة الإنجاز المرتبطة (%)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newRequest.completionPercentage}
+                    onChange={(e) => setNewRequest({ ...newRequest, completionPercentage: e.target.value })}
+                    placeholder="مثال: 30"
+                  />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>نسبة الإنجاز المرتبطة (%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={newRequest.completionPercentage}
-                  onChange={(e) => setNewRequest({ ...newRequest, completionPercentage: e.target.value })}
-                  placeholder="مثال: 30"
-                />
-              </div>
             </div>
+            
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={handleCreateRequest} disabled={createRequestMutation.isPending}>
+              <Button 
+                onClick={handleCreateRequest} 
+                disabled={createRequestMutation.isPending || !newRequest.projectId}
+              >
                 {createRequestMutation.isPending ? "جاري الإنشاء..." : "إنشاء الطلب"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة تفاصيل طلب الصرف */}
+        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>تفاصيل طلب الصرف</DialogTitle>
+              <DialogDescription>
+                طلب رقم {selectedRequest?.requestNumber}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedRequest && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">العنوان</Label>
+                    <p className="font-medium">{selectedRequest.title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">المشروع</Label>
+                    <p className="font-medium">{selectedRequest.projectName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">المبلغ</Label>
+                    <p className="font-medium text-primary">
+                      {Number(selectedRequest.amount).toLocaleString()} ريال
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">نوع الدفعة</Label>
+                    <p className="font-medium">
+                      {PAYMENT_TYPE_MAP[selectedRequest.paymentType || "progress"]}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">الحالة</Label>
+                    <Badge variant={STATUS_MAP[selectedRequest.status || "pending"]?.variant}>
+                      {STATUS_MAP[selectedRequest.status || "pending"]?.label}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">تاريخ الطلب</Label>
+                    <p className="font-medium">
+                      {selectedRequest.requestedAt
+                        ? new Date(selectedRequest.requestedAt).toLocaleDateString("ar-SA")
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -706,49 +1001,89 @@ export default function DisbursementRequests() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة إنشاء أمر صرف */}
-        <Dialog open={showCreateOrderDialog} onOpenChange={setShowCreateOrderDialog}>
-          <DialogContent>
+        {/* نافذة إنشاء أمر صرف - محسنة */}
+        <Dialog open={showCreateOrderDialog} onOpenChange={(open) => {
+          setShowCreateOrderDialog(open);
+          if (!open) resetNewOrder();
+        }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إنشاء أمر صرف</DialogTitle>
               <DialogDescription>
                 إنشاء أمر صرف لطلب رقم {selectedRequest?.requestNumber}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="rounded-lg bg-muted p-4">
-                <p className="font-medium">{selectedRequest?.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  المبلغ: {Number(selectedRequest?.amount || 0).toLocaleString()} ريال
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>اسم المستفيد *</Label>
-                <Input
-                  value={newOrder.beneficiaryName}
-                  onChange={(e) => setNewOrder({ ...newOrder, beneficiaryName: e.target.value })}
-                  placeholder="اسم المورد أو المقاول"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>البنك</Label>
-                <Input
-                  value={newOrder.beneficiaryBank}
-                  onChange={(e) => setNewOrder({ ...newOrder, beneficiaryBank: e.target.value })}
-                  placeholder="اسم البنك"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>رقم الآيبان</Label>
-                <Input
-                  value={newOrder.beneficiaryIban}
-                  onChange={(e) => setNewOrder({ ...newOrder, beneficiaryIban: e.target.value })}
-                  placeholder="SA..."
-                  dir="ltr"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>طريقة الدفع</Label>
+            
+            <div className="space-y-6">
+              {/* معلومات الطلب */}
+              <Card className="bg-muted/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">بيانات طلب الصرف</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">العنوان:</span>
+                      <p className="font-medium">{selectedRequest?.title}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">المبلغ:</span>
+                      <p className="font-medium text-primary">
+                        {Number(selectedRequest?.amount || 0).toLocaleString()} ريال
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* خاص بالمشاريع */}
+              {selectedProjectData && (
+                <Card className="bg-blue-50/50 border-blue-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-blue-800">خاص بالمشاريع</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">اسم المشروع:</span>
+                        <p className="font-medium">{selectedProjectData.projectName}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">الجهة الداعمة:</span>
+                        <p className="font-medium">لا يوجد</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إجمالي قيمة الدعم:</span>
+                        <p className="font-medium">0 ريال</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إجمالي قيمة العقد:</span>
+                        <p className="font-medium">
+                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} ريال
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">إجمالي ما تم دفعه:</span>
+                        <p className="font-medium text-green-600">
+                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} ريال
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">المبلغ المتبقي بعد صرف المبلغ أعلاه:</span>
+                        <p className="font-medium text-orange-600">
+                          {(Number(selectedProjectData.remainingAmount || 0) - Number(selectedRequest?.amount || 0)).toLocaleString()} ريال
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Separator />
+
+              {/* طريقة الدفع */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">طريقة الدفع</Label>
                 <Select
                   value={newOrder.paymentMethod}
                   onValueChange={(v: any) => setNewOrder({ ...newOrder, paymentMethod: v })}
@@ -758,18 +1093,366 @@ export default function DisbursementRequests() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                    <SelectItem value="check">شيك</SelectItem>
-                    <SelectItem value="cash">نقدي</SelectItem>
+                    <SelectItem value="check">إصدار شيك</SelectItem>
+                    <SelectItem value="custody">صرف من العهدة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* بيانات التحويل البنكي */}
+              {newOrder.paymentMethod === "bank_transfer" && (
+                <Card className="bg-green-50/50 border-green-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-green-800 flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      تحويل بنكي من حساب الجمعية إلى
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>اسم الحساب *</Label>
+                        <Input
+                          value={newOrder.beneficiaryAccountName || newOrder.beneficiaryName}
+                          onChange={(e) => setNewOrder({ ...newOrder, beneficiaryAccountName: e.target.value })}
+                          placeholder="اسم صاحب الحساب"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>اسم البنك</Label>
+                        <Input
+                          value={newOrder.beneficiaryBank}
+                          onChange={(e) => setNewOrder({ ...newOrder, beneficiaryBank: e.target.value })}
+                          placeholder="مثال: مصرف الراجحي"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>رقم الآيبان</Label>
+                      <Input
+                        value={newOrder.beneficiaryIban}
+                        onChange={(e) => setNewOrder({ ...newOrder, beneficiaryIban: e.target.value })}
+                        placeholder="SA..."
+                        dir="ltr"
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>رقم سداد</Label>
+                        <Input
+                          value={newOrder.sadadNumber}
+                          onChange={(e) => setNewOrder({ ...newOrder, sadadNumber: e.target.value })}
+                          placeholder="رقم سداد (اختياري)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>رمز المفوتر</Label>
+                        <Input
+                          value={newOrder.billerCode}
+                          onChange={(e) => setNewOrder({ ...newOrder, billerCode: e.target.value })}
+                          placeholder="رمز المفوتر (اختياري)"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* بيانات الشيك */}
+              {newOrder.paymentMethod === "check" && (
+                <Card className="bg-purple-50/50 border-purple-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-purple-800">بيانات الشيك</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>اسم المستفيد *</Label>
+                      <Input
+                        value={newOrder.beneficiaryName}
+                        onChange={(e) => setNewOrder({ ...newOrder, beneficiaryName: e.target.value })}
+                        placeholder="اسم المستفيد من الشيك"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* صرف من العهدة */}
+              {newOrder.paymentMethod === "custody" && (
+                <Card className="bg-orange-50/50 border-orange-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-orange-800">صرف من العهدة</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>اسم المستلم *</Label>
+                      <Input
+                        value={newOrder.beneficiaryName}
+                        onChange={(e) => setNewOrder({ ...newOrder, beneficiaryName: e.target.value })}
+                        placeholder="اسم مستلم المبلغ"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
+            
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateOrderDialog(false)}>
                 إلغاء
               </Button>
               <Button onClick={handleCreateOrder} disabled={createOrderMutation.isPending}>
                 {createOrderMutation.isPending ? "جاري الإنشاء..." : "إنشاء أمر الصرف"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة معاينة أمر الصرف - حسب القالب */}
+        <Dialog open={showOrderPreviewDialog} onOpenChange={setShowOrderPreviewDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-full print:max-h-full print:overflow-visible">
+            <DialogHeader className="print:hidden">
+              <DialogTitle>معاينة أمر الصرف</DialogTitle>
+              <DialogDescription>
+                أمر صرف رقم {selectedOrder?.orderNumber}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedOrder && (
+              <div className="space-y-4 p-6 border rounded-lg bg-white print:border-none print:p-0" id="disbursement-order-print">
+                {/* رأس أمر الصرف */}
+                <div className="flex justify-between items-start border-b pb-4">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">رقم أمر الصرف</p>
+                    <p className="font-bold text-lg">{selectedOrder.orderNumber}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <h2 className="text-2xl font-bold text-primary">
+                      أمر صرف | {PAYMENT_METHOD_MAP[selectedOrder.paymentMethod || "bank_transfer"]}
+                    </h2>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs text-muted-foreground">التاريخ</p>
+                    <p className="font-medium">{new Date().toLocaleDateString("ar-SA")}</p>
+                  </div>
+                </div>
+
+                {/* بيانات الصرف الأساسية */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground text-sm">اصرفوا للمكرم/</span>
+                      <p className="font-bold text-lg">{selectedOrder.beneficiaryName}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-sm">رقم طلب الصرف/</span>
+                      <p className="font-bold">{selectedOrder.requestNumber}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-muted-foreground text-sm">مبلغ وقدره/ (رقماً)</span>
+                      <p className="font-bold text-xl text-primary">
+                        {Number(selectedOrder.amount).toLocaleString()} ريال
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-sm">(كتابة)</span>
+                      <p className="font-medium text-sm">
+                        {numberToArabicText(Number(selectedOrder.amount))}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-sm">وذلك مقابل/</span>
+                    <p className="font-medium">{selectedOrder.requestTitle || selectedOrder.projectName}</p>
+                  </div>
+                </div>
+
+                {/* خاص بالمشاريع */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-blue-600 text-white px-4 py-2 font-bold">
+                    خاص بالمشاريع
+                  </div>
+                  <div className="p-4">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="py-2 text-muted-foreground w-1/3">اسم المشروع</td>
+                          <td className="py-2 font-medium">{selectedOrder.projectName}</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2 text-muted-foreground">الجهة الداعمة</td>
+                          <td className="py-2 font-medium">لا يوجد</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2 text-muted-foreground">إجمالي قيمة الدعم</td>
+                          <td className="py-2 font-medium">0 ريال</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2 text-muted-foreground">إجمالي قيمة العقد</td>
+                          <td className="py-2 font-medium">
+                            {Number(selectedOrder.contractAmount || 0).toLocaleString()} ريال
+                          </td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2 text-muted-foreground">إجمالي ما تم دفعه</td>
+                          <td className="py-2 font-medium text-green-600">
+                            {Number(selectedOrder.totalPaid || 0).toLocaleString()} ريال
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 text-muted-foreground">المبلغ المتبقي بعد صرف المبلغ أعلاه</td>
+                          <td className="py-2 font-medium text-orange-600">
+                            {Number(selectedOrder.remainingAmount || 0).toLocaleString()} ريال
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* تحويل بنكي */}
+                {selectedOrder.paymentMethod === "bank_transfer" && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-green-600 text-white px-4 py-2 font-bold">
+                      تحويل بنكي من حساب الجمعية إلى
+                    </div>
+                    <div className="p-4">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          <tr className="border-b">
+                            <td className="py-2 text-muted-foreground w-1/3">اسم الحساب</td>
+                            <td className="py-2 font-medium">{selectedOrder.beneficiaryAccountName || selectedOrder.beneficiaryName}</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="py-2 text-muted-foreground">اسم البنك</td>
+                            <td className="py-2 font-medium">{selectedOrder.beneficiaryBank || "-"}</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="py-2 text-muted-foreground">رقم الآيبان</td>
+                            <td className="py-2 font-medium font-mono" dir="ltr">{selectedOrder.beneficiaryIban || "-"}</td>
+                          </tr>
+                          <tr className="border-b">
+                            <td className="py-2 text-muted-foreground">رقم سداد</td>
+                            <td className="py-2 font-medium">{selectedOrder.sadadNumber || "-"}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 text-muted-foreground">رمز المفوتر</td>
+                            <td className="py-2 font-medium">{selectedOrder.billerCode || "-"}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* إصدار شيك */}
+                {selectedOrder.paymentMethod === "check" && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-purple-600 text-white px-4 py-2 font-bold">
+                      بيانات الشيك
+                    </div>
+                    <div className="p-4">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          <tr>
+                            <td className="py-2 text-muted-foreground w-1/3">اسم المستفيد</td>
+                            <td className="py-2 font-medium">{selectedOrder.beneficiaryName}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* صرف من العهدة */}
+                {selectedOrder.paymentMethod === "custody" && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-orange-600 text-white px-4 py-2 font-bold">
+                      صرف من العهدة
+                    </div>
+                    <div className="p-4">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          <tr>
+                            <td className="py-2 text-muted-foreground w-1/3">اسم المستلم</td>
+                            <td className="py-2 font-medium">{selectedOrder.beneficiaryName}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* جدول التوقيعات */}
+                <div className="border rounded-lg overflow-hidden mt-6">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="py-3 px-4 text-right border-l">الوظيفة</th>
+                        <th className="py-3 px-4 text-right border-l">الاسم</th>
+                        <th className="py-3 px-4 text-right border-l">التوقيع</th>
+                        <th className="py-3 px-4 text-right">التاريخ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="py-4 px-4 border-l">المحاسب</td>
+                        <td className="py-4 px-4 border-l">{selectedOrder.createdByName || "-"}</td>
+                        <td className="py-4 px-4 border-l h-16"></td>
+                        <td className="py-4 px-4"></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-4 px-4 border-l">المدير التنفيذي</td>
+                        <td className="py-4 px-4 border-l">{selectedOrder.approvedByName || "-"}</td>
+                        <td className="py-4 px-4 border-l h-16"></td>
+                        <td className="py-4 px-4">
+                          {selectedOrder.approvedAt
+                            ? new Date(selectedOrder.approvedAt).toLocaleDateString("ar-SA")
+                            : ""}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* الحالة */}
+                <div className="flex justify-center mt-4">
+                  <Badge
+                    variant={
+                      selectedOrder.status === "executed"
+                        ? "outline"
+                        : selectedOrder.status === "approved"
+                        ? "default"
+                        : selectedOrder.status === "rejected"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                    className="text-base px-6 py-2"
+                  >
+                    {selectedOrder.status === "draft"
+                      ? "مسودة"
+                      : selectedOrder.status === "pending"
+                      ? "قيد الاعتماد"
+                      : selectedOrder.status === "approved"
+                      ? "معتمد"
+                      : selectedOrder.status === "rejected"
+                      ? "مرفوض"
+                      : "منفذ"}
+                  </Badge>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="print:hidden">
+              <Button variant="outline" onClick={() => setShowOrderPreviewDialog(false)}>
+                إغلاق
+              </Button>
+              <Button variant="outline" onClick={() => window.print()}>
+                <Printer className="h-4 w-4 ml-2" />
+                طباعة
               </Button>
             </DialogFooter>
           </DialogContent>
