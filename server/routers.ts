@@ -12,6 +12,8 @@ import { suppliersRouter } from "./routers/suppliers";
 import { contractsRouter } from "./routers/contracts";
 import { categoriesRouter } from "./routers/categories";
 import { organizationRouter } from "./routers/organization";
+import { disbursementsRouter } from "./routers/disbursements";
+import { progressReportsRouter } from "./routers/progressReports";
 
 export const appRouter = router({
   system: systemRouter,
@@ -45,6 +47,10 @@ export const appRouter = router({
   
   // إعدادات الجمعية
   organization: organizationRouter,
+  
+  // طلبات الصرف وأوامر الصرف
+  disbursements: disbursementsRouter,
+  progressReports: progressReportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

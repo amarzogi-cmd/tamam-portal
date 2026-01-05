@@ -659,7 +659,7 @@ export const projectsRouter = router({
   updateQuotationStatus: protectedProcedure
     .input(z.object({
       id: z.number(),
-      status: z.enum(["pending", "accepted", "rejected", "expired"]),
+      status: z.enum(["pending", "negotiating", "accepted", "rejected", "expired"]),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();

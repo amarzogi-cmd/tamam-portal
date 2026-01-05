@@ -21,7 +21,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
-import { 
+import {
   LayoutDashboard, 
   LogOut, 
   PanelLeft, 
@@ -42,6 +42,7 @@ import {
   Truck,
   Receipt,
   CheckSquare,
+  Banknote,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -76,6 +77,7 @@ const getMenuItems = (role: string) => {
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
+      { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
     );
   }
 
@@ -105,6 +107,7 @@ const getMenuItems = (role: string) => {
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: Wallet, label: "الدفعات", path: "/payments" },
       { icon: BarChart3, label: "التقارير المالية", path: "/financial-reports" },
+      { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
     );
   }
 

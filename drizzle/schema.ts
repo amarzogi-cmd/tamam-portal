@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext, date } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 // ==================== الأدوار والحالات ====================
@@ -853,6 +853,146 @@ export const contractPayments = mysqlTable("contract_payments", {
   paidAt: timestamp("paidAt"),
   paidBy: int("paidBy").references(() => users.id),
   notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// حالات طلبات الصرف
+export const disbursementRequestStatuses = [
+  "draft",           // مسودة
+  "pending",         // قيد المراجعة
+  "approved",        // معتمد
+  "rejected",        // مرفوض
+  "paid"             // مصروف
+] as const;
+
+// حالات أوامر الصرف
+export const disbursementOrderStatuses = [
+  "draft",           // مسودة
+  "pending",         // قيد الاعتماد
+  "approved",        // معتمد
+  "rejected",        // مرفوض
+  "executed"         // منفذ
+] as const;
+
+// جدول طلبات الصرف (مكتب المشاريع)
+export const disbursementRequests = mysqlTable("disbursement_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestNumber: varchar("requestNumber", { length: 50 }).notNull().unique(),
+  projectId: int("projectId").notNull().references(() => projects.id),
+  contractId: int("contractId").references(() => contractsEnhanced.id),
+  contractPaymentId: int("contractPaymentId").references(() => contractPayments.id),
+  
+  // بيانات الطلب
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  paymentType: mysqlEnum("paymentType", ["advance", "progress", "final", "retention"]).default("progress"),
+  completionPercentage: int("completionPercentage"), // نسبة الإنجاز المرتبطة بالدفعة
+  
+  // المرفقات
+  attachmentsJson: text("attachmentsJson"), // JSON array of attachments
+  
+  // الحالة
+  status: mysqlEnum("status", disbursementRequestStatuses).default("draft"),
+  
+  // مقدم الطلب
+  requestedBy: int("requestedBy").notNull().references(() => users.id),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  
+  // الاعتماد
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvedAt: timestamp("approvedAt"),
+  approvalNotes: text("approvalNotes"),
+  
+  // الرفض
+  rejectedBy: int("rejectedBy").references(() => users.id),
+  rejectedAt: timestamp("rejectedAt"),
+  rejectionReason: text("rejectionReason"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول أوامر الصرف (الإدارة المالية)
+export const disbursementOrders = mysqlTable("disbursement_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
+  disbursementRequestId: int("disbursementRequestId").notNull().references(() => disbursementRequests.id),
+  
+  // بيانات الأمر
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  beneficiaryName: varchar("beneficiaryName", { length: 255 }).notNull(),
+  beneficiaryBank: varchar("beneficiaryBank", { length: 255 }),
+  beneficiaryIban: varchar("beneficiaryIban", { length: 50 }),
+  paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "check", "cash"]).default("bank_transfer"),
+  
+  // الحالة
+  status: mysqlEnum("status", disbursementOrderStatuses).default("draft"),
+  
+  // منشئ الأمر
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  
+  // الاعتماد
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvedAt: timestamp("approvedAt"),
+  approvalNotes: text("approvalNotes"),
+  
+  // التنفيذ
+  executedBy: int("executedBy").references(() => users.id),
+  executedAt: timestamp("executedAt"),
+  transactionReference: varchar("transactionReference", { length: 255 }),
+  
+  // الرفض
+  rejectedBy: int("rejectedBy").references(() => users.id),
+  rejectedAt: timestamp("rejectedAt"),
+  rejectionReason: text("rejectionReason"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// تقارير الإنجاز
+export const progressReports = mysqlTable("progress_reports", {
+  id: int("id").autoincrement().primaryKey(),
+  reportNumber: varchar("reportNumber", { length: 50 }).notNull().unique(),
+  projectId: int("projectId").notNull().references(() => projects.id),
+  
+  // بيانات التقرير
+  title: varchar("title", { length: 255 }).notNull(),
+  reportDate: date("reportDate").notNull(),
+  reportPeriodStart: date("reportPeriodStart"),
+  reportPeriodEnd: date("reportPeriodEnd"),
+  
+  // نسب الإنجاز
+  overallProgress: int("overallProgress").default(0), // نسبة الإنجاز الإجمالية
+  plannedProgress: int("plannedProgress").default(0), // نسبة الإنجاز المخططة
+  actualProgress: int("actualProgress").default(0), // نسبة الإنجاز الفعلية
+  variance: int("variance").default(0), // الانحراف (موجب = متقدم، سالب = متأخر)
+  
+  // ملخص الأعمال
+  workSummary: text("workSummary"), // ملخص الأعمال المنجزة
+  challenges: text("challenges"), // التحديات والمعوقات
+  nextSteps: text("nextSteps"), // الخطوات القادمة
+  recommendations: text("recommendations"), // التوصيات
+  
+  // المالية
+  budgetSpent: decimal("budgetSpent", { precision: 15, scale: 2 }).default("0"), // المبلغ المصروف
+  budgetRemaining: decimal("budgetRemaining", { precision: 15, scale: 2 }).default("0"), // المبلغ المتبقي
+  
+  // المرفقات
+  attachments: json("attachments"), // قائمة المرفقات
+  photos: json("photos"), // صور الموقع
+  
+  // الحالة
+  status: mysqlEnum("status", ["draft", "submitted", "reviewed", "approved"]).default("draft"),
+  
+  // المنشئ والمراجع
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  reviewedBy: int("reviewedBy").references(() => users.id),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNotes: text("reviewNotes"),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

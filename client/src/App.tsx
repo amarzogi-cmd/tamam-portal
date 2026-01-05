@@ -60,6 +60,7 @@ import FinancialApproval from "./pages/FinancialApproval";
 import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractsList from "./pages/ContractsList";
+import DisbursementRequests from "./pages/DisbursementRequests";
 
 function Router() {
   return (
@@ -130,6 +131,9 @@ function Router() {
       
       {/* إدارة التصنيفات */}
       <Route path="/categories" component={CategoriesManagement} />
+      
+      {/* طلبات الصرف */}
+      <Route path="/disbursements" component={DisbursementRequests} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

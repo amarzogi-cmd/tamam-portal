@@ -128,6 +128,12 @@ export default function RequestDetails() {
     { requestId },
     { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
   );
+  
+  // جلب العقد المرتبط بالطلب
+  const { data: existingContract } = trpc.contracts.getByRequestId.useQuery(
+    { requestId },
+    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+  );
 
   const utils = trpc.useUtils();
 
@@ -766,14 +772,46 @@ export default function RequestDetails() {
                                     <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>
                                   </div>
                                 </div>
-                                {/* زر إنشاء العقد */}
+                                {/* زر إنشاء العقد أو عرض العقد الموجود */}
                                 <div className="flex justify-center pt-4 border-t border-green-200">
-                                  <Link href={`/contracts/new/request/${requestId}`}>
-                                    <Button className="bg-green-600 hover:bg-green-700 text-white px-8">
-                                      <FileText className="w-4 h-4 ml-2" />
-                                      إنشاء عقد للطلب
-                                    </Button>
-                                  </Link>
+                                  {existingContract ? (
+                                    <div className="flex flex-col items-center gap-3">
+                                      <div className="flex items-center gap-2 text-green-700">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                        <span className="font-medium">يوجد عقد مرتبط بهذا الطلب</span>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Link href={`/contracts/${existingContract.id}/preview`}>
+                                          <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
+                                            <Eye className="w-4 h-4 ml-2" />
+                                            عرض العقد
+                                          </Button>
+                                        </Link>
+                                        {existingContract.status === 'approved' && request?.currentStage !== 'execution' && (
+                                          <Button 
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                            onClick={() => {
+                                              updateStageMutation.mutate({ 
+                                                requestId, 
+                                                newStage: 'execution',
+                                                notes: 'تم الانتقال لمرحلة التنفيذ بعد اعتماد العقد'
+                                              });
+                                            }}
+                                          >
+                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                            الانتقال لمرحلة التنفيذ
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <Link href={`/contracts/new/request/${requestId}`}>
+                                      <Button className="bg-green-600 hover:bg-green-700 text-white px-8">
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        إنشاء عقد للطلب
+                                      </Button>
+                                    </Link>
+                                  )}
                                 </div>
                               </div>
                             ) : (
