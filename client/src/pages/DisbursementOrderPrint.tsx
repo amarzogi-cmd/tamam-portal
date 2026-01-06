@@ -59,7 +59,6 @@ function toHijriDate(date: Date): string {
   const gregorianMonth = date.getMonth() + 1;
   const gregorianDay = date.getDate();
   
-  // تحويل تقريبي
   const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
   const hijriMonth = ((gregorianMonth + 9) % 12) + 1;
   const hijriDay = gregorianDay;
@@ -87,7 +86,6 @@ export default function DisbursementOrderPrint() {
     { enabled: !!params.id }
   );
 
-  // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const handlePrint = () => {
@@ -122,7 +120,7 @@ export default function DisbursementOrderPrint() {
 
   return (
     <>
-      {/* أزرار التحكم - تختفي عند الطباعة */}
+      {/* أزرار التحكم */}
       <div className="print:hidden fixed top-4 right-4 z-50 flex gap-2">
         <Button variant="outline" onClick={() => navigate("/disbursements")}>
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -134,46 +132,37 @@ export default function DisbursementOrderPrint() {
         </Button>
       </div>
 
-      {/* صفحة الطباعة */}
-      <div className="min-h-screen bg-white p-8 print:p-4" dir="rtl">
-        <div className="max-w-4xl mx-auto">
+      {/* صفحة الطباعة - تصميم مضغوط */}
+      <div className="min-h-screen bg-white print:p-0" dir="rtl">
+        <div className="max-w-[210mm] mx-auto p-4 print:p-3 print:max-w-none">
+          
           {/* الترويسة */}
-          <div className="flex justify-between items-start mb-6 border-b-4 border-primary pb-4">
-            {/* شعار رؤية 2030 */}
+          <div className="flex justify-between items-start mb-3 border-b-2 border-primary pb-2">
             <div className="text-left">
               <img 
                 src="/vision-2030-logo.png" 
                 alt="رؤية 2030" 
-                className="h-16 w-auto"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                className="h-10 w-auto print:h-8"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
-              <div className="text-xs text-gray-500 mt-1">
-                KINGDOM OF SAUDI ARABIA
-              </div>
+              <div className="text-[9px] text-gray-500">KINGDOM OF SAUDI ARABIA</div>
             </div>
 
-            {/* العنوان */}
             <div className="text-center flex-1">
-              <h1 className="text-2xl font-bold text-primary mb-2">
-                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+              <h1 className="text-base font-bold text-primary print:text-sm">
+                {orgSettings?.organizationName || "جمعية عمارة المساجد (منارة)"}
               </h1>
-              <div className="text-lg font-bold text-gray-600">
-                {order.orderNumber}
-              </div>
+              <h2 className="text-lg font-bold mt-1 print:text-base">
+                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+              </h2>
+              <div className="text-sm font-mono text-gray-600 print:text-xs">{order.orderNumber}</div>
             </div>
 
-            {/* شعار الجمعية */}
             <div className="text-right">
               {orgSettings?.logoUrl ? (
-                <img 
-                  src={orgSettings.logoUrl} 
-                  alt="شعار الجمعية" 
-                  className="h-16 w-auto"
-                />
+                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-10 w-auto print:h-8" />
               ) : (
-                <div className="text-primary font-bold text-lg">
+                <div className="text-primary font-bold text-sm print:text-xs">
                   {orgSettings?.organizationName || "جمعية عمارة المساجد"}
                 </div>
               )}
@@ -181,148 +170,140 @@ export default function DisbursementOrderPrint() {
           </div>
 
           {/* التاريخ */}
-          <div className="flex justify-between items-center mb-6 bg-gray-50 p-3 rounded-lg border">
-            <div className="flex items-center gap-4">
-              <span className="font-bold">التاريخ</span>
-              <span className="bg-white px-3 py-1 rounded border">{toHijriDate(orderDate)}</span>
-              <span className="text-gray-500">الموافق</span>
-              <span className="bg-white px-3 py-1 rounded border">{formatGregorianDate(orderDate)}</span>
-            </div>
+          <div className="flex items-center gap-2 mb-3 text-xs print:text-[10px]">
+            <span className="font-bold">التاريخ</span>
+            <span className="bg-gray-100 px-2 py-0.5 rounded border text-[10px]">{toHijriDate(orderDate)}</span>
+            <span className="text-gray-500">الموافق</span>
+            <span className="bg-gray-100 px-2 py-0.5 rounded border text-[10px]">{formatGregorianDate(orderDate)}</span>
           </div>
 
           {/* بيانات الصرف الرئيسية */}
-          <div className="mb-6 border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <tbody>
-                <tr className="border-b">
-                  <td className="p-3 bg-gray-50 font-bold w-32">اصرفوا للمكرم/</td>
-                  <td className="p-3 font-bold text-lg">{order.beneficiaryName}</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-3 bg-gray-50 font-bold">مبلغ وقدره/</td>
-                  <td className="p-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-gray-500 ml-2">رقماً</span>
-                        <span className="font-bold text-lg">{amount.toLocaleString()} ريال</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 ml-2">كتابة</span>
-                        <span className="font-medium">{numberToArabicText(amount)}</span>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-3 bg-gray-50 font-bold">رقم طلب الصرف/</td>
-                  <td className="p-3 font-mono">{request?.requestNumber || "-"}</td>
-                </tr>
-                <tr>
-                  <td className="p-3 bg-gray-50 font-bold">وذلك مقابل/</td>
-                  <td className="p-3">{request?.description || request?.title || "-"}</td>
-                </tr>
-              </tbody>
-            </table>
+          <table className="w-full border-collapse text-xs print:text-[10px] mb-3">
+            <tbody>
+              <tr className="border">
+                <td className="p-1.5 bg-gray-50 font-bold w-24 border-l">اصرفوا للمكرم/</td>
+                <td className="p-1.5 font-bold">{order.beneficiaryName}</td>
+              </tr>
+              <tr className="border">
+                <td className="p-1.5 bg-gray-50 font-bold border-l">مبلغ وقدره/</td>
+                <td className="p-1.5">
+                  <span className="text-gray-500 ml-1">رقماً</span>
+                  <span className="font-bold">{amount.toLocaleString()} ريال</span>
+                  <span className="text-gray-500 mx-2">|</span>
+                  <span className="text-gray-500 ml-1">كتابة</span>
+                  <span>{numberToArabicText(amount)}</span>
+                </td>
+              </tr>
+              <tr className="border">
+                <td className="p-1.5 bg-gray-50 font-bold border-l">رقم طلب الصرف/</td>
+                <td className="p-1.5 font-mono">{request?.requestNumber || "-"}</td>
+              </tr>
+              <tr className="border">
+                <td className="p-1.5 bg-gray-50 font-bold border-l">وذلك مقابل/</td>
+                <td className="p-1.5">{request?.description || request?.title || "-"}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* المبلغ المطلوب - إبراز خاص */}
+          <div className="mb-3 bg-gradient-to-l from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-3 print:p-2">
+            <div className="text-center">
+              <div className="text-xs text-primary font-bold mb-1 print:text-[10px]">المبلغ المطلوب دفعه</div>
+              <div className="text-2xl font-bold text-primary print:text-xl">
+                {amount.toLocaleString()} <span className="text-lg print:text-base">ريال سعودي</span>
+              </div>
+              <div className="text-xs text-gray-600 mt-1 print:text-[9px]">{numberToArabicText(amount)}</div>
+            </div>
           </div>
 
           {/* خاص بالمشاريع */}
           {project && (
-            <div className="mb-6">
-              <h3 className="font-bold text-lg mb-3 text-primary">خاص بالمشاريع:</h3>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold w-40">اسم المشروع</td>
-                      <td className="p-3">{project.name}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold">الجهة الداعمة</td>
-                      <td className="p-3">{(project as any).fundingSource || "لا يوجد"}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 bg-gray-50 font-bold">إجمالي قيمة الدعم</td>
-                      <td className="p-3">{((project as any).fundingAmount || 0).toLocaleString()}</td>
-                      <td className="p-3 bg-gray-50 font-bold">إجمالي قيمة العقد</td>
-                      <td className="p-3">{((project as any).contractAmount || 0).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 bg-gray-50 font-bold">إجمالي ما تم دفعه</td>
-                      <td className="p-3">{((project as any).totalPaid || 0).toLocaleString()}</td>
-                      <td className="p-3 bg-gray-50 font-bold">المبلغ المتبقي بعد صرف المبلغ أعلاه</td>
-                      <td className="p-3">{((project as any).remainingAmount || 0).toLocaleString()}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div className="mb-3">
+              <h3 className="font-bold text-xs mb-1 text-primary print:text-[10px]">خاص بالمشاريع:</h3>
+              <table className="w-full border-collapse text-[10px] print:text-[9px]">
+                <tbody>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold w-24 border-l">اسم المشروع</td>
+                    <td className="p-1">{project.name}</td>
+                    <td className="p-1 bg-gray-50 font-bold w-24 border-l">الجهة الداعمة</td>
+                    <td className="p-1">{(project as any).fundingSource || "لا يوجد"}</td>
+                  </tr>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold border-l">إجمالي قيمة الدعم</td>
+                    <td className="p-1">{((project as any).fundingAmount || 0).toLocaleString()}</td>
+                    <td className="p-1 bg-gray-50 font-bold border-l">إجمالي قيمة العقد</td>
+                    <td className="p-1">{((project as any).contractAmount || 0).toLocaleString()}</td>
+                  </tr>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold border-l">إجمالي ما تم دفعه</td>
+                    <td className="p-1">{((project as any).totalPaid || 0).toLocaleString()}</td>
+                    <td className="p-1 bg-gray-50 font-bold border-l">المبلغ المتبقي بعد صرف المبلغ أعلاه</td>
+                    <td className="p-1">{((project as any).remainingAmount || 0).toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
 
-          {/* تحويل بنكي من حساب الجمعية إلى */}
+          {/* تحويل بنكي */}
           {order.paymentMethod === "bank_transfer" && (
-            <div className="mb-6">
-              <h3 className="font-bold text-lg mb-3 text-primary">تحويل بنكي من حساب الجمعية إلى:</h3>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold w-32">اسم الحساب</td>
-                      <td className="p-3">{order.beneficiaryName}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold">اسم البنك</td>
-                      <td className="p-3">{order.beneficiaryBank || "-"}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold">رقم الآيبان</td>
-                      <td className="p-3 font-mono" dir="ltr">{order.beneficiaryIban || "-"}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50 font-bold">رقم سداد</td>
-                      <td className="p-3">{(order as any).sadadNumber || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 bg-gray-50 font-bold">رمز المفوتر</td>
-                      <td className="p-3">{(order as any).billerCode || "-"}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div className="mb-3">
+              <h3 className="font-bold text-xs mb-1 text-primary print:text-[10px]">تحويل بنكي من حساب الجمعية إلى:</h3>
+              <table className="w-full border-collapse text-[10px] print:text-[9px]">
+                <tbody>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold w-20 border-l">اسم الحساب</td>
+                    <td className="p-1">{order.beneficiaryName}</td>
+                    <td className="p-1 bg-gray-50 font-bold w-16 border-l">اسم البنك</td>
+                    <td className="p-1">{order.beneficiaryBank || "-"}</td>
+                  </tr>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold border-l">رقم الآيبان</td>
+                    <td className="p-1 font-mono" dir="ltr">{order.beneficiaryIban || "-"}</td>
+                    <td className="p-1 bg-gray-50 font-bold border-l">رقم سداد</td>
+                    <td className="p-1">{(order as any).sadadNumber || "-"}</td>
+                  </tr>
+                  <tr className="border">
+                    <td className="p-1 bg-gray-50 font-bold border-l">رمز المفوتر</td>
+                    <td className="p-1" colSpan={3}>{(order as any).billerCode || "-"}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
 
           {/* جدول التوقيعات */}
-          <div className="mt-8">
-            <table className="w-full border-collapse border">
+          <div className="mt-3">
+            <table className="w-full border-collapse text-[10px] print:text-[9px]">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border p-3 text-right">الوظيفة</th>
-                  <th className="border p-3 text-right">الاسم</th>
-                  <th className="border p-3 text-right">التوقيع</th>
-                  <th className="border p-3 text-right">التاريخ</th>
+                  <th className="border p-1.5 text-right w-24">الوظيفة</th>
+                  <th className="border p-1.5 text-right">الاسم</th>
+                  <th className="border p-1.5 text-right w-28">التوقيع</th>
+                  <th className="border p-1.5 text-right w-20">التاريخ</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="border p-3 font-bold">المحاسب</td>
-                  <td className="border p-3">{(order as any).accountantName || ""}</td>
-                  <td className="border p-3 h-16"></td>
-                  <td className="border p-3"></td>
+                  <td className="border p-1.5 font-bold">المحاسب</td>
+                  <td className="border p-1.5">{(order as any).accountantName || ""}</td>
+                  <td className="border p-1.5 h-10"></td>
+                  <td className="border p-1.5"></td>
                 </tr>
                 <tr>
-                  <td className="border p-3 font-bold">المدير التنفيذي</td>
-                  <td className="border p-3">{(order as any).executiveDirectorName || ""}</td>
-                  <td className="border p-3 h-16"></td>
-                  <td className="border p-3"></td>
+                  <td className="border p-1.5 font-bold">المدير التنفيذي</td>
+                  <td className="border p-1.5">{(order as any).executiveDirectorName || ""}</td>
+                  <td className="border p-1.5 h-10"></td>
+                  <td className="border p-1.5"></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* تذييل الصفحة */}
-          <div className="mt-8 pt-4 border-t text-center text-gray-500 text-sm print:mt-4">
+          <div className="mt-3 pt-2 border-t text-center text-gray-500 text-[9px] print:text-[8px]">
             <p>تم إنشاء هذا المستند آلياً من نظام بوابة تمام للعناية بالمساجد</p>
-            <p className="mt-1">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")}</p>
+            <p className="mt-0.5">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")}</p>
           </div>
         </div>
       </div>
@@ -332,7 +313,7 @@ export default function DisbursementOrderPrint() {
         @media print {
           @page {
             size: A4;
-            margin: 1cm;
+            margin: 8mm;
           }
           body {
             -webkit-print-color-adjust: exact;
