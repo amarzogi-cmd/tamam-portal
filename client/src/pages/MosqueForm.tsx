@@ -121,7 +121,7 @@ export default function MosqueForm() {
   const createMutation = trpc.mosques.create.useMutation({
     onSuccess: () => {
       toast.success("تم إرسال طلب تسجيل المسجد بنجاح. سيتم مراجعته من قبل الإدارة.");
-      navigate("/requester/mosques");
+      navigate("/mosques");
     },
     onError: (error) => {
       toast.error(error.message);

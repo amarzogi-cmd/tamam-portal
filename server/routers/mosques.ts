@@ -48,24 +48,24 @@ export const mosquesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const mosqueData: InsertMosque = {
+      const mosqueData = {
         name: input.name,
-        latitude: input.latitude?.toString() || null,
-        longitude: input.longitude?.toString() || null,
+        latitude: input.latitude ? input.latitude.toString() : null,
+        longitude: input.longitude ? input.longitude.toString() : null,
         address: input.address || null,
         city: input.city,
         district: input.district || null,
         governorate: input.governorate || null,
         center: input.center || null,
-        area: input.area?.toString() || null,
+        area: input.area ? input.area.toString() : null,
         capacity: input.capacity || null,
-        hasPrayerHall: input.hasPrayerHall || false,
+        hasPrayerHall: input.hasPrayerHall ?? false,
         mosqueAge: input.mosqueAge || null,
         imamName: input.imamName || null,
         imamPhone: input.imamPhone || null,
         imamEmail: input.imamEmail || null,
         registeredBy: ctx.user.id,
-        approvalStatus: ctx.user.role === "service_requester" ? "pending" : "approved",
+        approvalStatus: ctx.user.role === "service_requester" ? "pending" as const : "approved" as const,
         approvalDate: ctx.user.role !== "service_requester" ? new Date() : null,
         approvedBy: ctx.user.role !== "service_requester" ? ctx.user.id : null,
         notes: input.notes || null,
