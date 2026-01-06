@@ -387,7 +387,7 @@ export default function DisbursementRequests() {
         {/* العنوان والإحصائيات */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">طلبات الصرف وأوامر الصرف</h1>
+            <h1 className="text-2xl font-bold">طلبات الصرف</h1>
             <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
           {canCreateRequest && (
@@ -440,11 +440,10 @@ export default function DisbursementRequests() {
           </Card>
         </div>
 
-        {/* التبويبات */}
+        {/* طلبات الصرف */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
+          <TabsList className="hidden">
             <TabsTrigger value="requests">طلبات الصرف</TabsTrigger>
-            <TabsTrigger value="orders">أوامر الصرف</TabsTrigger>
           </TabsList>
 
           {/* طلبات الصرف */}

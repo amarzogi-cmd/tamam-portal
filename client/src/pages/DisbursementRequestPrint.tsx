@@ -132,10 +132,27 @@ export default function DisbursementRequestPrint() {
       <div className="min-h-screen bg-white print:p-0" dir="rtl">
         <div className="max-w-[210mm] mx-auto p-6 print:p-4 print:max-w-none">
           
-          {/* الترويسة */}
+          {/* الترويسة - الشعار على اليمين */}
           <div className="flex justify-between items-start mb-4">
-            {/* التاريخ والرقم */}
-            <div className="text-xs space-y-1">
+            {/* الشعار على اليمين */}
+            <div className="flex items-center gap-3">
+              {orgSettings?.logoUrl ? (
+                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto print:h-12" />
+              ) : (
+                <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center print:w-12 print:h-12">
+                  <span className="text-primary font-bold text-xl">ت</span>
+                </div>
+              )}
+              <div>
+                <div className="text-sm font-bold text-primary print:text-xs">
+                  {orgSettings?.organizationName || "جمعية عمارة المساجد"}
+                </div>
+                <div className="text-xs text-gray-600">مكتب إدارة المشاريع PMO</div>
+              </div>
+            </div>
+
+            {/* التاريخ والرقم على اليسار */}
+            <div className="text-xs space-y-1 text-left">
               <div className="flex gap-2">
                 <span className="font-bold">التاريخ:</span>
                 <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(requestDate)}</span>
@@ -148,18 +165,6 @@ export default function DisbursementRequestPrint() {
                 <span className="font-bold">رقم التسلسل:</span>
                 <span className="border-b border-dotted border-gray-400 px-3 font-mono">{request.requestNumber}</span>
               </div>
-            </div>
-
-            {/* شعار الجمعية */}
-            <div className="text-center">
-              {orgSettings?.logoUrl ? (
-                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto mx-auto print:h-12" />
-              ) : (
-                <div className="text-primary font-bold text-base">
-                  {orgSettings?.organizationName || "جمعية عمارة المساجد"}
-                </div>
-              )}
-              <div className="text-xs text-gray-600 mt-1">مكتب إدارة المشاريع PMO</div>
             </div>
           </div>
 

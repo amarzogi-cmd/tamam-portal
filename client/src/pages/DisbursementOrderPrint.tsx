@@ -136,8 +136,34 @@ export default function DisbursementOrderPrint() {
       <div className="min-h-screen bg-white print:p-0" dir="rtl">
         <div className="max-w-[210mm] mx-auto p-6 print:p-4 print:max-w-none">
           
-          {/* الترويسة */}
+          {/* الترويسة - الشعار على اليمين */}
           <div className="flex justify-between items-start mb-4 border-b-2 border-primary pb-3">
+            {/* الشعار على اليمين */}
+            <div className="flex items-center gap-3">
+              {orgSettings?.logoUrl ? (
+                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto print:h-12" />
+              ) : (
+                <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center print:w-12 print:h-12">
+                  <span className="text-primary font-bold text-xl">ت</span>
+                </div>
+              )}
+              <div>
+                <h1 className="text-sm font-bold text-primary print:text-xs">
+                  {orgSettings?.organizationName || "جمعية عمارة المساجد (منارة)"}
+                </h1>
+                <div className="text-[10px] text-gray-500">{orgSettings?.organizationNameShort || ""}</div>
+              </div>
+            </div>
+
+            {/* عنوان المستند */}
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-primary print:text-base">
+                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+              </h2>
+              <div className="text-sm font-mono text-gray-600">{order.orderNumber}</div>
+            </div>
+
+            {/* رؤية 2030 على اليسار */}
             <div className="text-left">
               <img 
                 src="/vision-2030-logo.png" 
@@ -146,26 +172,6 @@ export default function DisbursementOrderPrint() {
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
               <div className="text-[10px] text-gray-500 mt-1">KINGDOM OF SAUDI ARABIA</div>
-            </div>
-
-            <div className="text-center flex-1">
-              <h1 className="text-sm font-bold text-primary print:text-xs">
-                {orgSettings?.organizationName || "جمعية عمارة المساجد (منارة)"}
-              </h1>
-              <h2 className="text-lg font-bold mt-1 print:text-base">
-                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
-              </h2>
-              <div className="text-sm font-mono text-gray-600">{order.orderNumber}</div>
-            </div>
-
-            <div className="text-right">
-              {orgSettings?.logoUrl ? (
-                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 w-auto print:h-10" />
-              ) : (
-                <div className="text-primary font-bold text-sm">
-                  {orgSettings?.organizationName || "جمعية عمارة المساجد"}
-                </div>
-              )}
             </div>
           </div>
 

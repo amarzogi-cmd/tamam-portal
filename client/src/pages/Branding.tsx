@@ -3,14 +3,89 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Eye, Save } from "lucide-react";
+import { Palette, Upload, Eye, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
 
 export default function Branding() {
   const [primaryColor, setPrimaryColor] = useState("#0D9488");
   const [secondaryColor, setSecondaryColor] = useState("#6366F1");
   const [accentColor, setAccentColor] = useState("#F59E0B");
+  
+  // حالات الشعارات
+  const [mainLogo, setMainLogo] = useState<string | null>(null);
+  const [whiteLogo, setWhiteLogo] = useState<string | null>(null);
+  const [darkLogo, setDarkLogo] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  
+  // مراجع حقول الملفات
+  const mainLogoRef = useRef<HTMLInputElement>(null);
+  const whiteLogoRef = useRef<HTMLInputElement>(null);
+  const darkLogoRef = useRef<HTMLInputElement>(null);
+  
+  // جلب إعدادات الجمعية
+  const { data: orgSettings, refetch } = trpc.organization.getSettings.useQuery();
+  const uploadLogoMutation = trpc.organization.uploadLogo.useMutation();
+  
+  // تحميل الشعارات الموجودة
+  useEffect(() => {
+    if (orgSettings) {
+      if (orgSettings.logoUrl) setMainLogo(orgSettings.logoUrl);
+      if (orgSettings.secondaryLogoUrl) setWhiteLogo(orgSettings.secondaryLogoUrl);
+      if (orgSettings.stampUrl) setDarkLogo(orgSettings.stampUrl);
+    }
+  }, [orgSettings]);
+  
+  // دالة رفع الشعار
+  const handleLogoUpload = async (
+    file: File, 
+    type: "logo" | "secondaryLogo" | "stamp",
+    setLogo: (url: string | null) => void
+  ) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("حجم الملف يجب أن يكون أقل من 2MB");
+      return;
+    }
+    
+    setUploading(type);
+    
+    try {
+      // تحويل الملف إلى base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        
+        const result = await uploadLogoMutation.mutateAsync({
+          type,
+          fileData: base64,
+          fileName: file.name,
+          mimeType: file.type,
+        });
+        
+        if (result.success && result.url) {
+          setLogo(result.url);
+          toast.success("تم رفع الشعار بنجاح");
+          refetch();
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error("فشل في رفع الشعار");
+      console.error(error);
+    } finally {
+      setUploading(null);
+    }
+  };
+  
+  // دالة حذف الشعار
+  const handleRemoveLogo = (
+    type: "logo" | "secondaryLogo" | "stamp",
+    setLogo: (url: string | null) => void
+  ) => {
+    setLogo(null);
+    toast.success("تم حذف الشعار");
+  };
 
   return (
     <DashboardLayout>
@@ -128,53 +203,127 @@ export default function Branding() {
               <CardDescription>رفع شعارات البوابة بألوان مختلفة</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* الشعار الرئيسي */}
               <div className="space-y-2">
                 <Label>الشعار الرئيسي (ملون)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
-                  <Input type="file" accept="image/*" className="hidden" />
-                </div>
+                {mainLogo ? (
+                  <div className="border-2 border-primary rounded-lg p-4 relative">
+                    <img src={mainLogo} alt="الشعار الرئيسي" className="max-h-20 mx-auto" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 left-2 h-6 w-6"
+                      onClick={() => handleRemoveLogo("logo", setMainLogo)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
+                    onClick={() => mainLogoRef.current?.click()}
+                  >
+                    {uploading === "logo" ? (
+                      <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
+                    <input 
+                      ref={mainLogoRef}
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, "logo", setMainLogo);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
+              {/* الشعار الأبيض */}
               <div className="space-y-2">
                 <Label>الشعار الأبيض (للخلفيات الداكنة)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer bg-foreground/5">
-                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
-                  <Input type="file" accept="image/*" className="hidden" />
-                </div>
+                {whiteLogo ? (
+                  <div className="border-2 border-primary rounded-lg p-4 relative bg-gray-800">
+                    <img src={whiteLogo} alt="الشعار الأبيض" className="max-h-20 mx-auto" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 left-2 h-6 w-6"
+                      onClick={() => handleRemoveLogo("secondaryLogo", setWhiteLogo)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer bg-foreground/5"
+                    onClick={() => whiteLogoRef.current?.click()}
+                  >
+                    {uploading === "secondaryLogo" ? (
+                      <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
+                    <input 
+                      ref={whiteLogoRef}
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, "secondaryLogo", setWhiteLogo);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
+              {/* الشعار الداكن */}
               <div className="space-y-2">
                 <Label>الشعار الداكن (للخلفيات الفاتحة)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
-                  <Input type="file" accept="image/*" className="hidden" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>أيقونة الموقع (Favicon)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                      <span className="text-xs">16</span>
-                    </div>
-                    <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                      <span className="text-xs">32</span>
-                    </div>
-                    <div className="flex-1 text-right">
-                      <p className="text-sm text-muted-foreground">رفع أيقونة</p>
-                      <p className="text-xs text-muted-foreground">ICO, PNG (16x16, 32x32)</p>
-                    </div>
+                {darkLogo ? (
+                  <div className="border-2 border-primary rounded-lg p-4 relative">
+                    <img src={darkLogo} alt="الشعار الداكن" className="max-h-20 mx-auto" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 left-2 h-6 w-6"
+                      onClick={() => handleRemoveLogo("stamp", setDarkLogo)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Input type="file" accept="image/*,.ico" className="hidden" />
-                </div>
+                ) : (
+                  <div 
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
+                    onClick={() => darkLogoRef.current?.click()}
+                  >
+                    {uploading === "stamp" ? (
+                      <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">اسحب الملف هنا أو انقر للرفع</p>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, SVG (حد أقصى 2MB)</p>
+                    <input 
+                      ref={darkLogoRef}
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, "stamp", setDarkLogo);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -194,9 +343,13 @@ export default function Branding() {
               {/* شريط علوي */}
               <div className="h-16 flex items-center px-6" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                    <span className="text-white font-bold">ت</span>
-                  </div>
+                  {mainLogo ? (
+                    <img src={mainLogo} alt="الشعار" className="h-10 w-auto" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                      <span className="text-white font-bold">ت</span>
+                    </div>
+                  )}
                   <div className="text-white">
                     <p className="font-bold">بوابة تمام</p>
                     <p className="text-xs opacity-80">للعناية بالمساجد</p>
