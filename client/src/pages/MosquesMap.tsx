@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MapView } from "@/components/Map";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,28 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, Search, Filter, List, Map as MapIcon, ChevronRight } from "lucide-react";
+import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users } from "lucide-react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 
-// ألوان حالات المساجد
-const STATUS_COLORS: Record<string, string> = {
-  new: "#22c55e",      // أخضر
-  existing: "#3b82f6", // أزرق
-  under_construction: "#f59e0b", // برتقالي
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "جديد",
-  existing: "قائم",
-  under_construction: "تحت الإنشاء",
-};
-
-const OWNERSHIP_LABELS: Record<string, string> = {
-  government: "حكومي",
-  waqf: "وقف",
-  private: "أهلي",
-};
+// لون افتراضي للمساجد
+const MOSQUE_COLOR = "#0d9488"; // تركوازي
 
 export default function MosquesMap() {
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -36,14 +20,12 @@ export default function MosquesMap() {
   
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [selectedMosque, setSelectedMosque] = useState<any>(null);
 
   // جلب المساجد
   const { data: mosquesData, isLoading } = trpc.mosques.search.useQuery({
     search: searchQuery || undefined,
-    status: statusFilter !== "all" ? statusFilter as any : undefined,
     city: cityFilter !== "all" ? cityFilter : undefined,
     limit: 500,
   });
@@ -81,7 +63,7 @@ export default function MosquesMap() {
       const markerContent = document.createElement("div");
       markerContent.innerHTML = `
         <div style="
-          background-color: ${STATUS_COLORS[mosque.status || 'existing']};
+          background-color: ${MOSQUE_COLOR};
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -115,16 +97,9 @@ export default function MosquesMap() {
             <p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;">
               <strong>المدينة:</strong> ${mosque.city}
             </p>
+            ${mosque.governorate ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>المحافظة:</strong> ${mosque.governorate}</p>` : ''}
             ${mosque.district ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>الحي:</strong> ${mosque.district}</p>` : ''}
-            <p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;">
-              <strong>الحالة:</strong> 
-              <span style="background-color: ${STATUS_COLORS[mosque.status || 'existing']}20; color: ${STATUS_COLORS[mosque.status || 'existing']}; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
-                ${STATUS_LABELS[mosque.status || 'existing']}
-              </span>
-            </p>
-            <p style="margin: 0 0 8px 0; font-size: 13px; color: #6b7280;">
-              <strong>الملكية:</strong> ${OWNERSHIP_LABELS[mosque.ownership || 'government']}
-            </p>
+            ${mosque.capacity ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>عدد المصلين:</strong> ${mosque.capacity}</p>` : ''}
             <a href="/mosques/${mosque.id}" style="
               display: inline-block;
               background-color: #0d9488;
@@ -205,18 +180,6 @@ export default function MosquesMap() {
                 />
               </div>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="new">جديد</SelectItem>
-                  <SelectItem value="existing">قائم</SelectItem>
-                  <SelectItem value="under_construction">تحت الإنشاء</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Select value={cityFilter} onValueChange={setCityFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="المدينة" />
@@ -243,22 +206,6 @@ export default function MosquesMap() {
                   initialZoom={6}
                   onMapReady={handleMapReady}
                 />
-
-                {/* مفتاح الألوان */}
-                <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-3">
-                  <p className="text-sm font-medium mb-2">دليل الألوان</p>
-                  <div className="space-y-1">
-                    {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                      <div key={key} className="flex items-center gap-2 text-xs">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: STATUS_COLORS[key] }}
-                        />
-                        <span>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 {/* عداد المساجد */}
                 <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2">
@@ -287,14 +234,8 @@ export default function MosquesMap() {
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg">{mosque.name}</CardTitle>
-                      <Badge 
-                        variant="secondary"
-                        style={{ 
-                          backgroundColor: `${STATUS_COLORS[mosque.status || 'existing']}20`,
-                          color: STATUS_COLORS[mosque.status || 'existing']
-                        }}
-                      >
-                        {STATUS_LABELS[mosque.status || 'existing']}
+                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                        مسجد
                       </Badge>
                     </div>
                   </CardHeader>
@@ -304,10 +245,12 @@ export default function MosquesMap() {
                         <MapPin className="w-4 h-4" />
                         <span>{mosque.city}{mosque.district ? ` - ${mosque.district}` : ''}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        <span>{OWNERSHIP_LABELS[mosque.ownership || 'government']}</span>
-                      </div>
+                      {mosque.capacity && (
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>{mosque.capacity} مصلي</span>
+                        </div>
+                      )}
                     </div>
                     <Link href={`/mosques/${mosque.id}`}>
                       <Button variant="outline" size="sm" className="w-full">

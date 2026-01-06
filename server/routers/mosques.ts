@@ -13,10 +13,12 @@ const createMosqueSchema = z.object({
   address: z.string().optional(),
   city: z.string().min(2, "المدينة مطلوبة"),
   district: z.string().optional(),
-  area: z.number().optional(),
-  capacity: z.number().optional(),
-  status: z.enum(["new", "existing", "under_construction"]).default("existing"),
-  ownership: z.enum(["government", "waqf", "private"]).default("waqf"),
+  governorate: z.string().optional(), // المحافظة
+  center: z.string().optional(), // المركز
+  area: z.number().optional(), // مساحة المسجد
+  capacity: z.number().optional(), // عدد المصلين
+  hasPrayerHall: z.boolean().optional(), // هل يوجد مصلى
+  mosqueAge: z.number().optional(), // عمر المسجد بالسنوات
   imamName: z.string().optional(),
   imamPhone: z.string().optional(),
   imamEmail: z.string().email().optional().or(z.literal("")),
@@ -32,8 +34,7 @@ const updateMosqueSchema = createMosqueSchema.partial().extend({
 const searchMosquesSchema = z.object({
   search: z.string().optional(),
   city: z.string().optional(),
-  status: z.enum(["new", "existing", "under_construction"]).optional(),
-  ownership: z.enum(["government", "waqf", "private"]).optional(),
+  governorate: z.string().optional(),
   approvalStatus: z.enum(["pending", "approved", "rejected"]).optional(),
   page: z.number().default(1),
   limit: z.number().default(20),
@@ -54,10 +55,12 @@ export const mosquesRouter = router({
         address: input.address || null,
         city: input.city,
         district: input.district || null,
+        governorate: input.governorate || null,
+        center: input.center || null,
         area: input.area?.toString() || null,
         capacity: input.capacity || null,
-        status: input.status,
-        ownership: input.ownership,
+        hasPrayerHall: input.hasPrayerHall || false,
+        mosqueAge: input.mosqueAge || null,
         imamName: input.imamName || null,
         imamPhone: input.imamPhone || null,
         imamEmail: input.imamEmail || null,
@@ -113,10 +116,12 @@ export const mosquesRouter = router({
       if (updateData.address !== undefined) updateValues.address = updateData.address;
       if (updateData.city) updateValues.city = updateData.city;
       if (updateData.district !== undefined) updateValues.district = updateData.district;
+      if (updateData.governorate !== undefined) updateValues.governorate = updateData.governorate;
+      if (updateData.center !== undefined) updateValues.center = updateData.center;
       if (updateData.area !== undefined) updateValues.area = updateData.area?.toString();
       if (updateData.capacity !== undefined) updateValues.capacity = updateData.capacity;
-      if (updateData.status) updateValues.status = updateData.status;
-      if (updateData.ownership) updateValues.ownership = updateData.ownership;
+      if (updateData.hasPrayerHall !== undefined) updateValues.hasPrayerHall = updateData.hasPrayerHall;
+      if (updateData.mosqueAge !== undefined) updateValues.mosqueAge = updateData.mosqueAge;
       if (updateData.imamName !== undefined) updateValues.imamName = updateData.imamName;
       if (updateData.imamPhone !== undefined) updateValues.imamPhone = updateData.imamPhone;
       if (updateData.imamEmail !== undefined) updateValues.imamEmail = updateData.imamEmail;
@@ -179,11 +184,8 @@ export const mosquesRouter = router({
       if (input.city) {
         conditions.push(eq(mosques.city, input.city));
       }
-      if (input.status) {
-        conditions.push(eq(mosques.status, input.status));
-      }
-      if (input.ownership) {
-        conditions.push(eq(mosques.ownership, input.ownership));
+      if (input.governorate) {
+        conditions.push(eq(mosques.governorate, input.governorate));
       }
       if (input.approvalStatus) {
         conditions.push(eq(mosques.approvalStatus, input.approvalStatus));
@@ -329,30 +331,24 @@ export const mosquesRouter = router({
   // إحصائيات المساجد
   getStats: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) return { total: 0, byStatus: {}, byOwnership: {}, byCity: {} };
+    if (!db) return { total: 0, byCity: {}, byGovernorate: {} };
 
     const total = await db.select({ count: sql<number>`count(*)` }).from(mosques);
-    
-    const byStatus = await db.select({
-      status: mosques.status,
-      count: sql<number>`count(*)`,
-    }).from(mosques).groupBy(mosques.status);
-
-    const byOwnership = await db.select({
-      ownership: mosques.ownership,
-      count: sql<number>`count(*)`,
-    }).from(mosques).groupBy(mosques.ownership);
 
     const byCity = await db.select({
       city: mosques.city,
       count: sql<number>`count(*)`,
     }).from(mosques).groupBy(mosques.city).limit(10);
 
+    const byGovernorate = await db.select({
+      governorate: mosques.governorate,
+      count: sql<number>`count(*)`,
+    }).from(mosques).groupBy(mosques.governorate).limit(10);
+
     return {
       total: total[0]?.count || 0,
-      byStatus: Object.fromEntries(byStatus.map(s => [s.status, s.count])),
-      byOwnership: Object.fromEntries(byOwnership.map(o => [o.ownership, o.count])),
       byCity: Object.fromEntries(byCity.map(c => [c.city, c.count])),
+      byGovernorate: Object.fromEntries(byGovernorate.filter(g => g.governorate).map(g => [g.governorate, g.count])),
     };
   }),
 });

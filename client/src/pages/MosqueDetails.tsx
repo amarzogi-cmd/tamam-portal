@@ -127,11 +127,11 @@ export default function MosqueDetails() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">الحالة</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{statusLabels[mosque.status]}</p>
+                  <p className="text-sm text-muted-foreground">المحافظة</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{mosque.governorate || "-"}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-600" />
+                  <MapPin className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -141,11 +141,11 @@ export default function MosqueDetails() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">الملكية</p>
-                  <p className="text-xl font-bold text-foreground mt-1">{ownershipLabels[mosque.ownership]}</p>
+                  <p className="text-sm text-muted-foreground">عمر المسجد</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{mosque.mosqueAge ? `${mosque.mosqueAge} سنة` : "-"}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <Clock className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>

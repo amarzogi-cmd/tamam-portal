@@ -129,10 +129,12 @@ export const mosques = mysqlTable("mosques", {
   address: text("address"),
   city: varchar("city", { length: 100 }).notNull(),
   district: varchar("district", { length: 100 }), // الحي
+  governorate: varchar("governorate", { length: 100 }), // المحافظة
+  center: varchar("center", { length: 100 }), // المركز
   area: decimal("area", { precision: 10, scale: 2 }), // المساحة بالمتر المربع
   capacity: int("capacity"), // السعة (عدد المصلين)
-  status: mysqlEnum("status", mosqueStatuses).default("new").notNull(),
-  ownership: mysqlEnum("ownership", mosqueOwnership).default("waqf").notNull(),
+  hasPrayerHall: boolean("hasPrayerHall").default(false), // هل يوجد مصلى
+  mosqueAge: int("mosqueAge"), // عمر المسجد بالسنوات
   imamName: varchar("imamName", { length: 255 }),
   imamPhone: varchar("imamPhone", { length: 20 }),
   imamEmail: varchar("imamEmail", { length: 320 }),

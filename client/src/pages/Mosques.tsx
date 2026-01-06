@@ -14,6 +14,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  Users,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -32,32 +33,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const statusLabels: Record<string, string> = {
-  new: "جديد",
-  existing: "قائم",
-  under_construction: "تحت الإنشاء",
-};
-
-const ownershipLabels: Record<string, string> = {
-  government: "حكومي",
-  endowment: "وقف",
-  private: "أهلي",
-};
-
-const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  existing: "bg-green-100 text-green-800",
-  under_construction: "bg-yellow-100 text-yellow-800",
-};
-
 export default function Mosques() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
 
   const { data: mosquesData, isLoading } = trpc.mosques.search.useQuery({
     search: search || undefined,
-    status: statusFilter !== "all" ? statusFilter as "new" | "existing" | "under_construction" : undefined,
     city: cityFilter !== "all" ? cityFilter : undefined,
   });
   const mosques = mosquesData?.mosques || [];
@@ -85,7 +66,7 @@ export default function Mosques() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -104,11 +85,11 @@ export default function Mosques() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">مساجد جديدة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.byStatus?.new || 0}</p>
+                  <p className="text-sm text-muted-foreground">المدن</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{Object.keys(stats?.byCity || {}).length}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-blue-600" />
+                  <MapPin className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -118,25 +99,11 @@ export default function Mosques() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">مساجد قائمة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.byStatus?.existing || 0}</p>
+                  <p className="text-sm text-muted-foreground">المحافظات</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{Object.keys(stats?.byGovernorate || {}).length}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">تحت الإنشاء</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.byStatus?.under_construction || 0}</p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-yellow-600" />
+                  <MapPin className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -156,17 +123,6 @@ export default function Mosques() {
                   className="pr-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="حالة المسجد" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="new">جديد</SelectItem>
-                  <SelectItem value="existing">قائم</SelectItem>
-                  <SelectItem value="under_construction">تحت الإنشاء</SelectItem>
-                </SelectContent>
-              </Select>
               <Select value={cityFilter} onValueChange={setCityFilter}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="المدينة" />
@@ -197,9 +153,9 @@ export default function Mosques() {
                     <TableRow>
                       <TableHead className="text-right">اسم المسجد</TableHead>
                       <TableHead className="text-right">المدينة</TableHead>
+                      <TableHead className="text-right">المحافظة</TableHead>
                       <TableHead className="text-right">الحي</TableHead>
-                      <TableHead className="text-right">الحالة</TableHead>
-                      <TableHead className="text-right">الملكية</TableHead>
+                      <TableHead className="text-right">عدد المصلين</TableHead>
                       <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -213,18 +169,20 @@ export default function Mosques() {
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{mosque.name}</p>
-                              <p className="text-sm text-muted-foreground">{mosque.mosqueNumber}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>{mosque.city}</TableCell>
+                        <TableCell>{mosque.governorate || "-"}</TableCell>
                         <TableCell>{mosque.district || "-"}</TableCell>
                         <TableCell>
-                          <span className={`badge ${statusColors[mosque.status]}`}>
-                            {statusLabels[mosque.status]}
-                          </span>
+                          {mosque.capacity ? (
+                            <div className="flex items-center gap-1">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              <span>{mosque.capacity}</span>
+                            </div>
+                          ) : "-"}
                         </TableCell>
-                        <TableCell>{ownershipLabels[mosque.ownership] || mosque.ownership}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

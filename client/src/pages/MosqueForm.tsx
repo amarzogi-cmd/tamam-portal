@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { LocationPicker } from "@/components/LocationPicker";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const mosqueTypes = [
   { value: "jami", label: "جامع" },
@@ -20,16 +21,55 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
-const mosqueStatuses = [
-  { value: "new", label: "جديد (مقترح)" },
-  { value: "existing", label: "قائم" },
-  { value: "under_construction", label: "تحت الإنشاء" },
-];
-
-const ownershipTypes = [
-  { value: "government", label: "حكومي" },
-  { value: "waqf", label: "وقف" },
-  { value: "private", label: "أهلي" },
+// مدن ومراكز منطقة عسير (47 موقع)
+const asirLocations = [
+  "أبها",
+  "خميس مشيط",
+  "بيشة",
+  "محايل عسير",
+  "النماص",
+  "تثليث",
+  "ظهران الجنوب",
+  "سراة عبيدة",
+  "رجال ألمع",
+  "بلقرن",
+  "أحد رفيدة",
+  "تنومة",
+  "بارق",
+  "المجاردة",
+  "طريب",
+  "البرك",
+  "الحرجة",
+  "الأمواه",
+  "السودة",
+  "بللحمر",
+  "بللسمر",
+  "طبب",
+  "مربة",
+  "القحمة",
+  "وادي بن هشبل",
+  "تمنية",
+  "ثلوث المنظر",
+  "بحر أبو سكينة",
+  "خاط",
+  "ثربان",
+  "البشائر",
+  "خثعم",
+  "باشوت",
+  "الجوة",
+  "الفرشة",
+  "وادي الحيا",
+  "المضة",
+  "الصبيخة",
+  "العرين",
+  "الخنقة",
+  "ذهبان",
+  "العمائر",
+  "علب",
+  "منصبة",
+  "الحمضة",
+  "جاش",
+  "الزرق",
 ];
 
 // ترجمة صفة طالب الخدمة
@@ -51,15 +91,17 @@ export default function MosqueForm() {
   const [formData, setFormData] = useState({
     name: "",
     mosqueType: "",
-    mosqueStatus: "",
-    ownershipType: "",
     city: "",
+    governorate: "عسير", // منطقة عسير ثابتة
+    center: "",
     district: "",
-    area: "",
     address: "",
     latitude: "",
     longitude: "",
+    area: "",
     capacity: "",
+    hasPrayerHall: false,
+    mosqueAge: "",
     description: "",
   });
 
@@ -86,7 +128,7 @@ export default function MosqueForm() {
     },
   });
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -115,15 +157,17 @@ export default function MosqueForm() {
 
     createMutation.mutate({
       name: formData.name,
-      status: (formData.mosqueStatus as any) || "existing",
-      ownership: (formData.ownershipType as any) || "government",
       city: formData.city,
+      governorate: formData.governorate || undefined,
+      center: formData.center || undefined,
       district: formData.district || undefined,
       area: formData.area ? parseInt(formData.area) : undefined,
       address: formData.address || undefined,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+      hasPrayerHall: formData.hasPrayerHall,
+      mosqueAge: formData.mosqueAge ? parseInt(formData.mosqueAge) : undefined,
       // بيانات مقدم الطلب تُضاف تلقائياً من الخادم
     });
   };
@@ -249,39 +293,39 @@ export default function MosqueForm() {
                   </Select>
                 </div>
                 <div>
-                  <Label>حالة المسجد</Label>
-                  <Select value={formData.mosqueStatus} onValueChange={(v) => handleChange("mosqueStatus", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الحالة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mosqueStatuses.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>مساحة المسجد (م²)</Label>
+                  <Input
+                    type="number"
+                    value={formData.area}
+                    onChange={(e) => handleChange("area", e.target.value)}
+                    placeholder="مثال: 500"
+                  />
                 </div>
                 <div>
-                  <Label>نوع الملكية</Label>
-                  <Select value={formData.ownershipType} onValueChange={(v) => handleChange("ownershipType", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع الملكية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ownershipTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>السعة (عدد المصلين)</Label>
+                  <Label>عدد المصلين</Label>
                   <Input
                     type="number"
                     value={formData.capacity}
                     onChange={(e) => handleChange("capacity", e.target.value)}
-                    placeholder="مثال: 500"
+                    placeholder="مثال: 300"
                   />
+                </div>
+                <div>
+                  <Label>عمر المسجد (بالسنوات)</Label>
+                  <Input
+                    type="number"
+                    value={formData.mosqueAge}
+                    onChange={(e) => handleChange("mosqueAge", e.target.value)}
+                    placeholder="مثال: 15"
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-6">
+                  <Checkbox
+                    id="hasPrayerHall"
+                    checked={formData.hasPrayerHall}
+                    onCheckedChange={(checked) => handleChange("hasPrayerHall", checked === true)}
+                  />
+                  <Label htmlFor="hasPrayerHall" className="cursor-pointer">هل يوجد مصلى نساء؟</Label>
                 </div>
               </div>
             </CardContent>
@@ -306,15 +350,53 @@ export default function MosqueForm() {
                 onChange={handleLocationChange}
               />
 
+              {/* معلومات الموقع من الخريطة */}
+              {(formData.latitude || formData.longitude || formData.address) && (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+                  <h4 className="font-semibold text-primary flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    معلومات الموقع من الخريطة
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">خط العرض (Latitude)</Label>
+                      <p className="font-mono text-sm bg-background px-3 py-2 rounded border">{formData.latitude || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">خط الطول (Longitude)</Label>
+                      <p className="font-mono text-sm bg-background px-3 py-2 rounded border">{formData.longitude || "-"}</p>
+                    </div>
+                  </div>
+                  {formData.address && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">العنوان من خرائط جوجل</Label>
+                      <p className="text-sm bg-background px-3 py-2 rounded border">{formData.address}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* حقول الموقع اليدوية */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
                 <div>
-                  <Label>المدينة *</Label>
+                  <Label>المدينة / المركز *</Label>
+                  <Select value={formData.city} onValueChange={(v) => handleChange("city", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المدينة أو المركز" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {asirLocations.map((location) => (
+                        <SelectItem key={location} value={location}>{location}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>المنطقة</Label>
                   <Input
-                    value={formData.city}
-                    onChange={(e) => handleChange("city", e.target.value)}
-                    placeholder="مثال: الرياض"
-                    required
+                    value={formData.governorate}
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
                 <div>
@@ -323,14 +405,6 @@ export default function MosqueForm() {
                     value={formData.district}
                     onChange={(e) => handleChange("district", e.target.value)}
                     placeholder="مثال: النسيم"
-                  />
-                </div>
-                <div>
-                  <Label>المنطقة</Label>
-                  <Input
-                    value={formData.area}
-                    onChange={(e) => handleChange("area", e.target.value)}
-                    placeholder="مثال: منطقة الرياض"
                   />
                 </div>
               </div>
@@ -342,28 +416,6 @@ export default function MosqueForm() {
                   placeholder="العنوان التفصيلي للمسجد..."
                   rows={2}
                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>خط العرض (Latitude)</Label>
-                  <Input
-                    value={formData.latitude}
-                    onChange={(e) => handleChange("latitude", e.target.value)}
-                    placeholder="مثال: 24.7136"
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label>خط الطول (Longitude)</Label>
-                  <Input
-                    value={formData.longitude}
-                    onChange={(e) => handleChange("longitude", e.target.value)}
-                    placeholder="مثال: 46.6753"
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>
