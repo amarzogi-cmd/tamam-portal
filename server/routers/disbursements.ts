@@ -306,6 +306,29 @@ export const disbursementsRouter = router({
         relatedId: input.id,
       });
 
+      // إرسال إشعار للإدارة المالية لإنشاء أمر الصرف
+      const financialUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, "financial"));
+
+      // جلب بيانات المشروع
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, request.projectId));
+
+      for (const user of financialUsers) {
+        await db.insert(notifications).values({
+          userId: user.id,
+          title: "طلب صرف معتمد - يحتاج إنشاء أمر صرف",
+          message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى إنشاء أمر الصرف.`,
+          type: "warning",
+          relatedType: "disbursement_request",
+          relatedId: input.id,
+        });
+      }
+
       return { success: true, message: "تم اعتماد طلب الصرف بنجاح" };
     }),
 
@@ -579,6 +602,29 @@ export const disbursementsRouter = router({
         createdBy: ctx.user.id,
       });
 
+      // إرسال إشعار للمدير العام لاعتماد أمر الصرف
+      const managers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager')`);
+
+      // جلب بيانات المشروع
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, request.projectId));
+
+      for (const manager of managers) {
+        await db.insert(notifications).values({
+          userId: manager.id,
+          title: "أمر صرف جديد يحتاج اعتماد",
+          message: `تم إنشاء أمر صرف رقم ${orderNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى الاعتماد.`,
+          type: "warning",
+          relatedType: "disbursement_order",
+          relatedId: Number(result.insertId),
+        });
+      }
+
       return {
         success: true,
         id: result.insertId,
@@ -626,6 +672,23 @@ export const disbursementsRouter = router({
           approvalNotes: input.notes,
         })
         .where(eq(disbursementOrders.id, input.id));
+
+      // إرسال إشعار للإدارة المالية لتنفيذ أمر الصرف
+      const financialUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, "financial"));
+
+      for (const user of financialUsers) {
+        await db.insert(notifications).values({
+          userId: user.id,
+          title: "أمر صرف معتمد - جاهز للتنفيذ",
+          message: `تم اعتماد أمر الصرف رقم ${order.orderNumber} بمبلغ ${Number(order.amount).toLocaleString("ar-SA")} ريال. يرجى تنفيذ الدفع.`,
+          type: "success",
+          relatedType: "disbursement_order",
+          relatedId: input.id,
+        });
+      }
 
       return { success: true, message: "تم اعتماد أمر الصرف بنجاح" };
     }),
@@ -817,6 +880,106 @@ export const disbursementsRouter = router({
 
     return { projects: projectsWithTotals };
   }),
+
+  // التقرير المالي الشامل
+  getFinancialReport: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        projectId: z.number().optional(),
+        groupBy: z.enum(["project", "month", "fundingSource"]).default("project"),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // إجمالي المصروفات حسب المشروع
+      const byProject = await db
+        .select({
+          projectId: projects.id,
+          projectName: projects.name,
+          projectNumber: projects.projectNumber,
+          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          approvedCount: sql<number>`SUM(CASE WHEN ${disbursementRequests.status} IN ('approved', 'paid') THEN 1 ELSE 0 END)`,
+          paidCount: sql<number>`SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN 1 ELSE 0 END)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+        })
+        .from(disbursementRequests)
+        .innerJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .groupBy(projects.id, projects.name, projects.projectNumber)
+        .orderBy(desc(sql`totalRequested`));
+
+      // إجمالي المصروفات حسب الشهر
+      const byMonth = await db
+        .select({
+          month: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m')`,
+          monthName: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%M %Y')`,
+          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          requestCount: sql<number>`COUNT(*)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+        })
+        .from(disbursementRequests)
+        .groupBy(sql`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m')`)
+        .orderBy(desc(sql`month`));
+
+      // إجمالي المصروفات حسب نوع الدفعة
+      const byFundingSource = await db
+        .select({
+          fundingSource: disbursementRequests.paymentType,
+          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          requestCount: sql<number>`COUNT(*)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+        })
+        .from(disbursementRequests)
+        .groupBy(disbursementRequests.paymentType)
+        .orderBy(desc(sql`totalRequested`));
+
+      // إجمالي أوامر الصرف حسب الحالة
+      const ordersByStatus = await db
+        .select({
+          status: disbursementOrders.status,
+          count: sql<number>`COUNT(*)`,
+          totalAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
+        })
+        .from(disbursementOrders)
+        .groupBy(disbursementOrders.status);
+
+      // إجماليات عامة
+      const [totals] = await db
+        .select({
+          totalRequests: sql<number>`COUNT(*)`,
+          totalRequestedAmount: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          totalPaidAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+          pendingAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} IN ('pending', 'approved') THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+        })
+        .from(disbursementRequests);
+
+      const [orderTotals] = await db
+        .select({
+          totalOrders: sql<number>`COUNT(*)`,
+          totalOrderAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
+          executedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementOrders.status} IN ('executed', 'paid') THEN ${disbursementOrders.amount} ELSE 0 END), 0)`,
+        })
+        .from(disbursementOrders);
+
+      return {
+        byProject,
+        byMonth,
+        byFundingSource,
+        ordersByStatus,
+        summary: {
+          totalRequests: totals?.totalRequests || 0,
+          totalRequestedAmount: Number(totals?.totalRequestedAmount || 0),
+          totalPaidAmount: Number(totals?.totalPaidAmount || 0),
+          pendingAmount: Number(totals?.pendingAmount || 0),
+          totalOrders: orderTotals?.totalOrders || 0,
+          totalOrderAmount: Number(orderTotals?.totalOrderAmount || 0),
+          executedAmount: Number(orderTotals?.executedAmount || 0),
+        },
+      };
+    }),
 
   // إحصائيات طلبات الصرف
   getStats: protectedProcedure.query(async () => {

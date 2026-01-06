@@ -67,6 +67,7 @@ import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
 import DisbursementOrders from "./pages/DisbursementOrders";
+import FinancialReport from "./pages/FinancialReport";
 
 function Router() {
   return (
@@ -154,6 +155,9 @@ function Router() {
       
       {/* تقارير الإنجاز */}
       <Route path="/progress-reports" component={ProgressReports} />
+      
+      {/* التقرير المالي */}
+      <Route path="/financial-report" component={FinancialReport} />
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

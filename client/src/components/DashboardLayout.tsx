@@ -81,6 +81,7 @@ const getMenuItems = (role: string) => {
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" },
+      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     );
   }
 
@@ -112,6 +113,7 @@ const getMenuItems = (role: string) => {
       { icon: BarChart3, label: "التقارير المالية", path: "/financial-reports" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
+      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     );
   }
 
