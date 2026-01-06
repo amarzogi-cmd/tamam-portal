@@ -77,25 +77,41 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
 
   // معالجة تغيير الموقع
   const handleLocationChange = async (position: { lat: number; lng: number }) => {
-    setCurrentLocation(position);
+    // التحقق من صحة الإحداثيات
+    if (!position) {
+      console.error("Invalid position: null or undefined");
+      return;
+    }
+
+    // التأكد من أن الإحداثيات أرقام صحيحة
+    const lat = typeof position.lat === 'number' ? position.lat : parseFloat(String(position.lat));
+    const lng = typeof position.lng === 'number' ? position.lng : parseFloat(String(position.lng));
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error("Invalid coordinates - NaN detected:", { lat, lng });
+      return;
+    }
+
+    const validPosition = { lat, lng };
+    setCurrentLocation(validPosition);
 
     // الحصول على العنوان من الإحداثيات
     if (geocoderRef.current) {
       try {
-        const response = await geocoderRef.current.geocode({ location: position });
+        const response = await geocoderRef.current.geocode({ location: validPosition });
         if (response.results[0]) {
           const formattedAddress = response.results[0].formatted_address;
           setAddress(formattedAddress);
-          onChange?.({ ...position, address: formattedAddress });
+          onChange?.(validPosition);
         } else {
-          onChange?.(position);
+          onChange?.(validPosition);
         }
       } catch (error) {
         console.error("Geocoding error:", error);
-        onChange?.(position);
+        onChange?.(validPosition);
       }
     } else {
-      onChange?.(position);
+      onChange?.(validPosition);
     }
   };
 
