@@ -588,4 +588,106 @@ export const authRouter = router({
 
       return { success: true, message: "تم تعيين كلمة المرور بنجاح" };
     }),
+
+  // منح استثناء لتسجيل مسجد إضافي (للمدراء فقط)
+  grantMosqueExemption: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+      exemptions: z.number().min(1).max(10).default(1), // عدد الاستثناءات الممنوحة
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المستخدم (مدراء فقط)
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمنح الاستثناءات" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود المستخدم
+      const targetUser = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      // التحقق من أن المستخدم طالب خدمة
+      if (targetUser[0].role !== "service_requester") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن منح الاستثناءات لطالبي الخدمة فقط" });
+      }
+
+      // تحديث عدد الاستثناءات
+      const currentExemptions = targetUser[0].mosqueExemptions || 0;
+      const newExemptions = currentExemptions + input.exemptions;
+
+      await db.update(users).set({ mosqueExemptions: newExemptions }).where(eq(users.id, input.userId));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "mosque_exemption_granted",
+        entityType: "user",
+        entityId: input.userId,
+        newValues: { 
+          exemptionsGranted: input.exemptions, 
+          totalExemptions: newExemptions,
+          reason: input.reason || "لم يتم تحديد سبب",
+          grantedBy: ctx.user.email 
+        },
+      });
+
+      return { 
+        success: true, 
+        message: `تم منح ${input.exemptions} استثناء للمستخدم. إجمالي الاستثناءات: ${newExemptions}`,
+        totalExemptions: newExemptions
+      };
+    }),
+
+  // إلغاء استثناء (للمدراء فقط)
+  revokeMosqueExemption: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+      exemptions: z.number().min(1).default(1), // عدد الاستثناءات الملغاة
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المستخدم (مدراء فقط)
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإلغاء الاستثناءات" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود المستخدم
+      const targetUser = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      const currentExemptions = targetUser[0].mosqueExemptions || 0;
+      const newExemptions = Math.max(0, currentExemptions - input.exemptions);
+
+      await db.update(users).set({ mosqueExemptions: newExemptions }).where(eq(users.id, input.userId));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "mosque_exemption_revoked",
+        entityType: "user",
+        entityId: input.userId,
+        newValues: { 
+          exemptionsRevoked: input.exemptions, 
+          totalExemptions: newExemptions,
+          reason: input.reason || "لم يتم تحديد سبب",
+          revokedBy: ctx.user.email 
+        },
+      });
+
+      return { 
+        success: true, 
+        message: `تم إلغاء ${input.exemptions} استثناء. الاستثناءات المتبقية: ${newExemptions}`,
+        totalExemptions: newExemptions
+      };
+    }),
 });

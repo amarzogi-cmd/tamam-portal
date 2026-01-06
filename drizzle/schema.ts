@@ -90,6 +90,7 @@ export const users = mysqlTable("users", {
   city: varchar("city", { length: 100 }),
   requesterType: varchar("requesterType", { length: 50 }), // صفة طالب التسجيل (إمام، مؤذن، عضو مجلس إدارة)
   proofDocument: varchar("proofDocument", { length: 500 }), // إثبات الصفة
+  mosqueExemptions: int("mosqueExemptions").default(0), // عدد الاستثناءات الممنوحة لتسجيل مساجد إضافية
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

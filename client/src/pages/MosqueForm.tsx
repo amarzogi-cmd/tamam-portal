@@ -70,6 +70,11 @@ export default function MosqueForm() {
   );
 
   const hasExistingMosque = existingMosques && existingMosques.length > 0;
+  // التحقق من الاستثناءات الممنوحة
+  const exemptionsGranted = user?.mosqueExemptions || 0;
+  const mosquesRegistered = existingMosques?.length || 0;
+  // يمكن للمستخدم تسجيل مسجد واحد مجاناً + عدد الاستثناءات
+  const canRegisterMore = mosquesRegistered < (1 + exemptionsGranted);
 
   const createMutation = trpc.mosques.create.useMutation({
     onSuccess: () => {
@@ -102,8 +107,8 @@ export default function MosqueForm() {
       return;
     }
 
-    // التحقق من عدم وجود طلب سابق
-    if (hasExistingMosque) {
+    // التحقق من عدم وجود طلب سابق (مع مراعاة الاستثناءات)
+    if (user?.role === "service_requester" && !canRegisterMore) {
       toast.error("لا يمكنك تقديم أكثر من طلب تسجيل مسجد واحد. يرجى التواصل مع الإدارة للحصول على استثناء.");
       return;
     }
@@ -123,8 +128,8 @@ export default function MosqueForm() {
     });
   };
 
-  // إذا كان لديه طلب سابق، عرض رسالة تنبيه
-  if (hasExistingMosque && user?.role === "service_requester") {
+  // إذا كان لديه طلب سابق ولا يملك استثناءات، عرض رسالة تنبيه
+  if (hasExistingMosque && user?.role === "service_requester" && !canRegisterMore) {
     return (
       <DashboardLayout>
         <div className="space-y-6 max-w-4xl mx-auto">
