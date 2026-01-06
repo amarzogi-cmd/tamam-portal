@@ -14,6 +14,8 @@ import {
   Calendar,
   DollarSign,
   Building2,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -32,6 +34,8 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
 
 const statusLabels: Record<string, string> = {
   planning: "التخطيط",
@@ -49,22 +53,24 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
-// بيانات تجريبية
-const projectsData = [
-  { id: 1, name: "بناء مسجد الرحمة", mosque: "مسجد الرحمة", program: "بنيان", status: "in_progress", budget: 500000, spent: 250000, progress: 50, startDate: "2024-01-15" },
-  { id: 2, name: "ترميم مسجد النور", mosque: "مسجد النور", program: "عناية", status: "planning", budget: 150000, spent: 0, progress: 0, startDate: "2024-02-01" },
-  { id: 3, name: "تجهيز مسجد الهدى", mosque: "مسجد الهدى", program: "إمداد", status: "completed", budget: 80000, spent: 78000, progress: 100, startDate: "2023-10-01" },
-];
-
 export default function Projects() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const filteredProjects = projectsData.filter(p => {
-    const matchesSearch = p.name.includes(search) || p.mosque.includes(search);
+  // جلب المشاريع من قاعدة البيانات
+  const { data: projectsData, isLoading } = trpc.projects.getAll.useQuery({});
+
+  const filteredProjects = (projectsData || []).filter((p: any) => {
+    const matchesSearch = p.name?.includes(search) || p.projectNumber?.includes(search);
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // حساب الإحصائيات
+  const totalProjects = projectsData?.length || 0;
+  const inProgressProjects = projectsData?.filter((p: any) => p.status === "in_progress").length || 0;
+  const completedProjects = projectsData?.filter((p: any) => p.status === "completed").length || 0;
+  const totalBudget = projectsData?.reduce((sum: number, p: any) => sum + parseFloat(p.budget || "0"), 0) || 0;
 
   return (
     <DashboardLayout>
@@ -75,7 +81,7 @@ export default function Projects() {
             <h1 className="text-2xl font-bold text-foreground">إدارة المشاريع</h1>
             <p className="text-muted-foreground">متابعة وإدارة مشاريع المساجد</p>
           </div>
-          <Button className="gradient-primary text-white" onClick={() => toast.info("قريباً")}>
+          <Button className="gradient-primary text-white" onClick={() => toast.info("يتم إنشاء المشاريع تلقائياً من الطلبات المعتمدة")}>
             <Plus className="w-4 h-4 ml-2" />
             مشروع جديد
           </Button>
@@ -88,7 +94,7 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي المشاريع</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{projectsData.length}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{totalProjects}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-primary" />
@@ -102,9 +108,7 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">قيد التنفيذ</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {projectsData.filter(p => p.status === "in_progress").length}
-                  </p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{inProgressProjects}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-yellow-600" />
@@ -118,9 +122,7 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">مكتملة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {projectsData.filter(p => p.status === "completed").length}
-                  </p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{completedProjects}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-green-600" />
@@ -135,7 +137,7 @@ export default function Projects() {
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي الميزانية</p>
                   <p className="text-2xl font-bold text-foreground mt-1">
-                    {(projectsData.reduce((sum, p) => sum + p.budget, 0) / 1000).toFixed(0)}K
+                    {totalBudget > 0 ? `${(totalBudget / 1000).toFixed(0)}K` : "0"}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -177,22 +179,26 @@ export default function Projects() {
         {/* جدول المشاريع */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
-            {filteredProjects.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredProjects.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-right">المشروع</TableHead>
-                      <TableHead className="text-right">المسجد</TableHead>
-                      <TableHead className="text-right">البرنامج</TableHead>
+                      <TableHead className="text-right">رقم المشروع</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-right">التقدم</TableHead>
                       <TableHead className="text-right">الميزانية</TableHead>
+                      <TableHead className="text-right">تاريخ الإنشاء</TableHead>
                       <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProjects.map((project) => (
+                    {filteredProjects.map((project: any) => (
                       <TableRow key={project.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -200,38 +206,40 @@ export default function Projects() {
                               <FolderKanban className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                              <p className="font-medium text-foreground">{project.name}</p>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {project.startDate}
-                              </p>
+                              <p className="font-medium">{project.name}</p>
+                              {project.managerName && (
+                                <p className="text-xs text-muted-foreground">مدير: {project.managerName}</p>
+                              )}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="flex items-center gap-1">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                            {project.mosque}
-                          </span>
-                        </TableCell>
-                        <TableCell>{project.program}</TableCell>
-                        <TableCell>
-                          <span className={`badge ${statusColors[project.status]}`}>
-                            {statusLabels[project.status]}
-                          </span>
+                          <span className="text-sm font-mono">{project.projectNumber}</span>
                         </TableCell>
                         <TableCell>
-                          <div className="w-24">
-                            <Progress value={project.progress} className="h-2" />
-                            <p className="text-xs text-muted-foreground mt-1">{project.progress}%</p>
+                          <Badge className={statusColors[project.status || "planning"]}>
+                            {statusLabels[project.status || "planning"]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={project.completionPercentage || 0} className="w-20 h-2" />
+                            <span className="text-sm text-muted-foreground">{project.completionPercentage || 0}%</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{project.budget.toLocaleString()} ر.س</p>
-                            <p className="text-xs text-muted-foreground">
-                              صرف: {project.spent.toLocaleString()} ر.س
-                            </p>
+                          {project.budget ? (
+                            <span className="font-medium">{parseFloat(project.budget).toLocaleString()} ريال</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm">
+                              {new Date(project.createdAt).toLocaleDateString("ar-SA")}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -243,15 +251,23 @@ export default function Projects() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <Link href={`/projects/${project.id}`}>
-                                <DropdownMenuItem className="cursor-pointer">
+                                <DropdownMenuItem>
                                   <Eye className="w-4 h-4 ml-2" />
                                   عرض التفاصيل
                                 </DropdownMenuItem>
                               </Link>
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => toast.info("قريباً")}>
+                              <DropdownMenuItem onClick={() => toast.info("قريباً")}>
                                 <Edit className="w-4 h-4 ml-2" />
                                 تعديل
                               </DropdownMenuItem>
+                              {project.requestId && (
+                                <Link href={`/requests/${project.requestId}`}>
+                                  <DropdownMenuItem>
+                                    <FileText className="w-4 h-4 ml-2" />
+                                    عرض الطلب
+                                  </DropdownMenuItem>
+                                </Link>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -261,9 +277,12 @@ export default function Projects() {
                 </Table>
               </div>
             ) : (
-              <div className="p-8 text-center">
-                <FolderKanban className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <div className="text-center py-12">
+                <FolderKanban className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground">لا توجد مشاريع</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  يتم إنشاء المشاريع تلقائياً عند اعتماد الطلبات
+                </p>
               </div>
             )}
           </CardContent>

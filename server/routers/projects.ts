@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -134,21 +134,20 @@ export const projectsRouter = router({
         .where(eq(projectPhases.projectId, input.id))
         .orderBy(projectPhases.phaseOrder);
 
-      // جلب العقود
+      // جلب العقود (من جدول contracts_enhanced)
       const projectContracts = await db
         .select({
-          id: contracts.id,
-          contractNumber: contracts.contractNumber,
-          contractType: contracts.contractType,
-          amount: contracts.amount,
-          status: contracts.status,
-          startDate: contracts.startDate,
-          endDate: contracts.endDate,
-          supplierName: suppliers.name,
+          id: contractsEnhanced.id,
+          contractNumber: contractsEnhanced.contractNumber,
+          contractType: contractsEnhanced.contractType,
+          amount: contractsEnhanced.contractAmount,
+          status: contractsEnhanced.status,
+          startDate: contractsEnhanced.startDate,
+          endDate: contractsEnhanced.endDate,
+          supplierName: contractsEnhanced.secondPartyName,
         })
-        .from(contracts)
-        .leftJoin(suppliers, eq(contracts.supplierId, suppliers.id))
-        .where(eq(contracts.projectId, input.id));
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.projectId, input.id));
 
       // جلب الدفعات
       const projectPayments = await db
