@@ -61,6 +61,10 @@ import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractsList from "./pages/ContractsList";
 import DisbursementRequests from "./pages/DisbursementRequests";
+import NewDisbursementRequest from "./pages/NewDisbursementRequest";
+import NewDisbursementOrder from "./pages/NewDisbursementOrder";
+import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
+import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
 
 function Router() {
@@ -135,6 +139,14 @@ function Router() {
       
       {/* طلبات الصرف */}
       <Route path="/disbursements" component={DisbursementRequests} />
+      <Route path="/disbursements/new" component={NewDisbursementRequest} />
+      <Route path="/disbursements/new/:projectId" component={NewDisbursementRequest} />
+      <Route path="/disbursements/new/contract/:contractId" component={NewDisbursementRequest} />
+      
+      {/* أوامر الصرف */}
+      <Route path="/disbursements/orders/new/:requestId" component={NewDisbursementOrder} />
+      <Route path="/disbursements/orders/:id/print" component={DisbursementOrderPrint} />
+      <Route path="/disbursements/requests/:id/print" component={DisbursementRequestPrint} />
       
       {/* تقارير الإنجاز */}
       <Route path="/progress-reports" component={ProgressReports} />

@@ -178,6 +178,14 @@ export const disbursementsRouter = router({
         amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
         paymentType: z.enum(["advance", "progress", "final", "retention"]).default("progress"),
         completionPercentage: z.number().min(0).max(100).optional(),
+        // الحقول الجديدة
+        fundingSourceId: z.number().optional(),
+        fundingSourceName: z.string().optional(),
+        ownerDepartmentId: z.number().optional(),
+        ownerDepartmentName: z.string().optional(),
+        workDescription: z.string().optional(),
+        actualCost: z.number().optional(),
+        adminFees: z.number().optional(),
         attachments: z.array(z.object({
           name: z.string(),
           url: z.string(),

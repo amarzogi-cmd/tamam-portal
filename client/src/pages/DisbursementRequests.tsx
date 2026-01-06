@@ -505,7 +505,7 @@ export default function DisbursementRequests() {
                           <TableCell>{request.title}</TableCell>
                           <TableCell>{request.projectName}</TableCell>
                           <TableCell>{Number(request.amount).toLocaleString()} ريال</TableCell>
-                          <TableCell>{PAYMENT_TYPE_MAP[request.paymentType || "progress"]}</TableCell>
+                          <TableCell>{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
                           <TableCell>
                             <Badge variant={STATUS_MAP[request.status || "pending"]?.variant}>
                               {STATUS_MAP[request.status || "pending"]?.label}
@@ -560,10 +560,19 @@ export default function DisbursementRequests() {
                                   size="sm"
                                   className="text-blue-600"
                                   onClick={() => openCreateOrderDialog(request)}
+                                  title="إنشاء أمر صرف"
                                 >
                                   <FileText className="h-4 w-4" />
                                 </Button>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                title="طباعة طلب الصرف"
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -661,10 +670,19 @@ export default function DisbursementRequests() {
                                   size="sm"
                                   className="text-blue-600"
                                   onClick={() => executeOrderMutation.mutate({ id: order.id })}
+                                  title="تنفيذ الصرف"
                                 >
                                   <Banknote className="h-4 w-4" />
                                 </Button>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/disbursements/orders/${order.id}/print`)}
+                                title="طباعة أمر الصرف"
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
