@@ -9,7 +9,6 @@ import { Building2, Eye, EyeOff, Loader2, User, Users } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { getLoginUrl } from "@/const";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -151,34 +150,6 @@ export default function Login() {
                   </p>
                 </div>
               )}
-
-              {/* خيار الدخول عبر Manus - للتطوير فقط */}
-              <div className="mt-6 pt-6 border-t border-border">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">أو الدخول عبر</span>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full mt-4 border-primary/30 hover:bg-primary/5"
-                  onClick={() => window.location.href = getLoginUrl()}
-                >
-                  <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  الدخول عبر Manus
-                </Button>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  (للتطوير فقط - سيتم إزالته لاحقاً)
-                </p>
-              </div>
             </CardContent>
           </Card>
 
