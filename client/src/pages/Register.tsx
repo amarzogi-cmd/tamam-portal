@@ -38,6 +38,8 @@ export default function Register() {
     nationalId: "",
     city: "",
     requesterType: "",
+    otherType: "",
+    proofFile: null as File | null,
     password: "",
     confirmPassword: "",
   });
@@ -55,6 +57,11 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormData((prev) => ({ ...prev, proofFile: file }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -68,6 +75,18 @@ export default function Register() {
       return;
     }
 
+    // التحقق من المرفق عند اختيار إمام أو مؤذن
+    if (["imam", "muezzin"].includes(formData.requesterType) && !formData.proofFile) {
+      toast.error("يجب رفع مرفق يثبت الصفة");
+      return;
+    }
+
+    // التحقق من الصفة الأخرى
+    if (formData.requesterType === "other" && !formData.otherType.trim()) {
+      toast.error("يجب إدخال الصفة");
+      return;
+    }
+
     registerMutation.mutate({
       name: formData.name,
       email: formData.email,
@@ -75,7 +94,8 @@ export default function Register() {
       phone: formData.phone || undefined,
       nationalId: formData.nationalId || undefined,
       city: formData.city || undefined,
-      requesterType: formData.requesterType || undefined,
+      requesterType: formData.requesterType === "other" ? formData.otherType : formData.requesterType || undefined,
+      proofFile: formData.proofFile || undefined,
     });
   };
 
@@ -205,7 +225,7 @@ export default function Register() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="requesterType">صفة طالب الخدمة</Label>
+                    <Label htmlFor="requesterType">صفة طالب الخدمة <span className="text-destructive">*</span></Label>
                     <Select value={formData.requesterType} onValueChange={(value) => handleChange("requesterType", value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الصفة" />
@@ -218,6 +238,49 @@ export default function Register() {
                     </Select>
                   </div>
                 </div>
+
+                {/* حقل الصفة الأخرى */}
+                {formData.requesterType === "other" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="otherType">حدد صفتك <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="otherType"
+                      placeholder="أدخل صفتك"
+                      value={formData.otherType}
+                      onChange={(e) => handleChange("otherType", e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* حقل رفع المرفق للإمام والمؤذن */}
+                {["imam", "muezzin"].includes(formData.requesterType) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="proofFile">رفع مرفق يثبت الصفة <span className="text-destructive">*</span></Label>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
+                      <input
+                        id="proofFile"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <label htmlFor="proofFile" className="cursor-pointer block">
+                        <div className="text-sm text-muted-foreground">
+                          {formData.proofFile ? (
+                            <div className="text-green-600 font-medium">
+                              ✓ {formData.proofFile.name}
+                            </div>
+                          ) : (
+                            <>
+                              <p className="mb-1">اضغط لاختيار ملف أو اسحبه هنا</p>
+                              <p className="text-xs">PDF، صور، أو مستندات</p>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
 
                 {/* كلمة المرور */}
                 <div className="space-y-2">

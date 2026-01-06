@@ -37,6 +37,7 @@ const registerSchema = z.object({
   nationalId: z.string().optional(),
   city: z.string().optional(),
   requesterType: z.string().optional(),
+  proofFile: z.instanceof(File).optional(),
 });
 
 // مخطط التحقق من بيانات تسجيل الدخول
@@ -94,6 +95,7 @@ export const authRouter = router({
         nationalId: input.nationalId || null,
         city: input.city || null,
         requesterType: input.requesterType || null,
+        proofDocument: null,
         role: "service_requester",
         status: "pending", // يحتاج اعتماد
         loginMethod: "local",
