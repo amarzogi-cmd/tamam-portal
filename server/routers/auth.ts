@@ -432,6 +432,28 @@ export const authRouter = router({
       return await query;
     }),
 
+  // الحصول على بيانات مستخدم معين
+  getUserById: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // التحقق من الصلاحية
+      if (!['super_admin', 'system_admin', 'projects_office'].includes(ctx.user.role)) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية لعرض بيانات المستخدمين' });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'قاعدة البيانات غير متاحة' });
+
+      const userResult = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (userResult.length === 0) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'المستخدم غير موجود' });
+      }
+
+      return userResult[0];
+    }),
+
   // تحديث الملف الشخصي
   updateProfile: protectedProcedure
     .input(z.object({

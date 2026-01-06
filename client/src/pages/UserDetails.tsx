@@ -1,26 +1,55 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowRight, User, Mail, Phone, Shield, Calendar, MapPin, FileText } from "lucide-react";
+import { ArrowRight, User, Mail, Phone, Shield, Calendar, MapPin, FileText, Loader2 } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { ROLE_LABELS } from "@shared/constants";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function UserDetails() {
   const params = useParams<{ id: string }>();
-  const userId = params.id;
+  const userId = parseInt(params.id || "0");
 
-  // يمكن إضافة استعلام لجلب بيانات المستخدم هنا
-  const user = {
-    id: userId,
-    name: "محمد أحمد",
-    email: "mohammed@example.com",
-    phone: "0501234567",
-    role: "service_requester",
-    status: "active",
-    city: "الرياض",
-    createdAt: new Date(),
-  };
+  // جلب بيانات المستخدم من قاعدة البيانات
+  const { data: user, isLoading, error } = trpc.auth.getUserById.useQuery(
+    { userId },
+    { enabled: userId > 0 }
+  );
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="border-0 shadow-sm max-w-md w-full">
+            <CardContent className="p-6 text-center">
+              <p className="text-destructive mb-4">حدث خطأ في تحميل بيانات المستخدم</p>
+              <Link href="/users">
+                <Button variant="outline" className="w-full">
+                  العودة إلى قائمة المستخدمين
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -53,8 +82,14 @@ export default function UserDetails() {
                   <Shield className="w-4 h-4" />
                   {ROLE_LABELS[user.role] || user.role}
                 </p>
-                <span className={`badge mt-3 ${user.status === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                  {user.status === "active" ? "نشط" : "قيد الانتظار"}
+                <span className={`inline-block mt-3 px-3 py-1 rounded-full text-sm font-medium ${
+                  user.status === "active" 
+                    ? "bg-green-100 text-green-800" 
+                    : user.status === "pending"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-red-100 text-red-800"
+                }`}>
+                  {user.status === "active" ? "نشط" : user.status === "pending" ? "قيد الانتظار" : "معلق"}
                 </span>
               </div>
             </CardContent>
@@ -93,7 +128,9 @@ export default function UserDetails() {
                   <Calendar className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">تاريخ التسجيل</p>
-                    <p className="font-medium">{new Date(user.createdAt).toLocaleDateString("ar-SA")}</p>
+                    <p className="font-medium">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "-"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -111,10 +148,9 @@ export default function UserDetails() {
             <CardDescription>الطلبات المقدمة من هذا المستخدم</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">لا توجد طلبات</p>
-            </div>
+            <p className="text-muted-foreground text-center py-8">
+              لا توجد طلبات لهذا المستخدم حالياً
+            </p>
           </CardContent>
         </Card>
       </div>
