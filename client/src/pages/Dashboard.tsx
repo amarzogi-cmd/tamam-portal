@@ -14,7 +14,8 @@ import {
   ArrowUpRight,
   Plus,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 
@@ -33,6 +34,14 @@ const programIcons: Record<string, string> = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
+  
+  // توجيه طالب الخدمة إلى لوحة تحكمه الخاصة
+  useEffect(() => {
+    if (user && user.role === "service_requester") {
+      navigate("/requester/dashboard");
+    }
+  }, [user, navigate]);
   
   // جلب الإحصائيات
   const { data: requestStats } = trpc.requests.getStats.useQuery();
