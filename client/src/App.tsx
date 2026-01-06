@@ -67,6 +67,7 @@ import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
 import DisbursementOrders from "./pages/DisbursementOrders";
+import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import FinancialReport from "./pages/FinancialReport";
 
 function Router() {
@@ -149,6 +150,7 @@ function Router() {
       <Route path="/disbursement-orders" component={DisbursementOrders} />
       <Route path="/disbursement-orders/new/:requestId" component={NewDisbursementOrder} />
       <Route path="/disbursement-orders/:id/print" component={DisbursementOrderPrint} />
+      <Route path="/disbursement-orders/:id" component={DisbursementOrderDetails} />
       <Route path="/disbursements/orders/new/:requestId" component={NewDisbursementOrder} />
       <Route path="/disbursements/orders/:id/print" component={DisbursementOrderPrint} />
       <Route path="/disbursements/requests/:id/print" component={DisbursementRequestPrint} />
