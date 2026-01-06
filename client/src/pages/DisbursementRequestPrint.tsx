@@ -304,7 +304,7 @@ export default function DisbursementRequestPrint() {
             <div className="text-center">
               <div className="font-bold mb-8">المدير التنفيذي</div>
               <div className="border-t border-gray-400 w-36 pt-1">
-                {orgSettings?.authorizedSignatory || ""}
+                {orgSettings?.executiveDirectorName || ""}
               </div>
             </div>
           </div>

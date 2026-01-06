@@ -361,6 +361,15 @@ export default function OrganizationSettings() {
     email: "",
     website: "",
     
+    // جهات الإشراف
+    administrativeSupervisor: "",
+    technicalSupervisor: "",
+    
+    // أسماء المسؤولين
+    boardChairmanName: "",
+    executiveDirectorName: "",
+    accountantName: "",
+    
     // معلومات مفوض التوقيع
     authorizedSignatory: "",
     signatoryTitle: "",
@@ -403,6 +412,11 @@ export default function OrganizationSettings() {
         phone: settings.phone || "",
         email: settings.email || "",
         website: settings.website || "",
+        administrativeSupervisor: settings.administrativeSupervisor || "",
+        technicalSupervisor: settings.technicalSupervisor || "",
+        boardChairmanName: settings.boardChairmanName || "",
+        executiveDirectorName: settings.executiveDirectorName || "",
+        accountantName: settings.accountantName || "",
         authorizedSignatory: settings.authorizedSignatory || "",
         signatoryTitle: settings.signatoryTitle || "",
         signatoryPhone: settings.signatoryPhone || "",
@@ -427,6 +441,11 @@ export default function OrganizationSettings() {
       phone: orgSettings.phone || undefined,
       email: orgSettings.email || undefined,
       website: orgSettings.website || undefined,
+      administrativeSupervisor: orgSettings.administrativeSupervisor || undefined,
+      technicalSupervisor: orgSettings.technicalSupervisor || undefined,
+      boardChairmanName: orgSettings.boardChairmanName || undefined,
+      executiveDirectorName: orgSettings.executiveDirectorName || undefined,
+      accountantName: orgSettings.accountantName || undefined,
       authorizedSignatory: orgSettings.authorizedSignatory || undefined,
       signatoryTitle: orgSettings.signatoryTitle || undefined,
       signatoryPhone: orgSettings.signatoryPhone || undefined,
@@ -566,6 +585,65 @@ export default function OrganizationSettings() {
                     placeholder="https://www.example.com"
                     dir="ltr"
                   />
+                </div>
+
+                {/* جهات الإشراف */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-semibold mb-4">جهات الإشراف</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="administrativeSupervisor">جهة الإشراف الإداري</Label>
+                      <Input
+                        id="administrativeSupervisor"
+                        value={orgSettings.administrativeSupervisor}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, administrativeSupervisor: e.target.value })}
+                        placeholder="مثال: وزارة الموارد البشرية والتنمية الاجتماعية"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="technicalSupervisor">جهة الإشراف الفني</Label>
+                      <Input
+                        id="technicalSupervisor"
+                        value={orgSettings.technicalSupervisor}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, technicalSupervisor: e.target.value })}
+                        placeholder="مثال: وزارة الشؤون الإسلامية"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* أسماء المسؤولين */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-semibold mb-4">أسماء المسؤولين</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="boardChairmanName">رئيس مجلس الإدارة</Label>
+                      <Input
+                        id="boardChairmanName"
+                        value={orgSettings.boardChairmanName}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, boardChairmanName: e.target.value })}
+                        placeholder="اسم رئيس مجلس الإدارة"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="executiveDirectorName">المدير التنفيذي</Label>
+                      <Input
+                        id="executiveDirectorName"
+                        value={orgSettings.executiveDirectorName}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, executiveDirectorName: e.target.value })}
+                        placeholder="اسم المدير التنفيذي"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="accountantName">المحاسب</Label>
+                      <Input
+                        id="accountantName"
+                        value={orgSettings.accountantName}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, accountantName: e.target.value })}
+                        placeholder="اسم المحاسب"
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

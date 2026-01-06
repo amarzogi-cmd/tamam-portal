@@ -691,6 +691,10 @@ export const organizationSettings = mysqlTable("organization_settings", {
   licenseNumber: varchar("licenseNumber", { length: 50 }),
   administrativeSupervisor: varchar("administrativeSupervisor", { length: 255 }), // جهة الإشراف الإداري
   technicalSupervisor: varchar("technicalSupervisor", { length: 255 }), // جهة الإشراف الفني
+  // أسماء المسؤولين
+  boardChairmanName: varchar("boardChairmanName", { length: 255 }), // اسم رئيس مجلس الإدارة
+  executiveDirectorName: varchar("executiveDirectorName", { length: 255 }), // اسم المدير التنفيذي
+  accountantName: varchar("accountantName", { length: 255 }), // اسم المحاسب
   aboutOrganization: text("aboutOrganization"), // نبذة عن الجمعية
   // بيانات التواصل
   address: text("address"),

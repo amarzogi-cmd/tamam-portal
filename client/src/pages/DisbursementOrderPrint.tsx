@@ -292,13 +292,13 @@ export default function DisbursementOrderPrint() {
               <tbody>
                 <tr>
                   <td className="border p-2 font-bold">المحاسب</td>
-                  <td className="border p-2">{(order as any).accountantName || ""}</td>
+                  <td className="border p-2">{orgSettings?.accountantName || ""}</td>
                   <td className="border p-2 h-12"></td>
                   <td className="border p-2"></td>
                 </tr>
                 <tr>
                   <td className="border p-2 font-bold">المدير التنفيذي</td>
-                  <td className="border p-2">{(order as any).executiveDirectorName || ""}</td>
+                  <td className="border p-2">{orgSettings?.executiveDirectorName || ""}</td>
                   <td className="border p-2 h-12"></td>
                   <td className="border p-2"></td>
                 </tr>
