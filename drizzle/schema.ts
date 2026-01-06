@@ -884,7 +884,7 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   contractPaymentId: int("contractPaymentId").references(() => contractPayments.id),
   
   // بيانات الطلب
-  title: varchar("title", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }),
   description: text("description"),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   paymentType: mysqlEnum("paymentType", ["advance", "progress", "final", "retention"]).default("progress"),
@@ -925,7 +925,7 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   beneficiaryName: varchar("beneficiaryName", { length: 255 }).notNull(),
   beneficiaryBank: varchar("beneficiaryBank", { length: 255 }),
   beneficiaryIban: varchar("beneficiaryIban", { length: 50 }),
-  paymentMethod: mysqlEnum("paymentMethod", ["bank_transfer", "check", "custody"]).default("bank_transfer"),
+  paymentMethod: varchar("paymentMethod", { length: 50 }).default("bank_transfer"),
   beneficiaryAccountName: varchar("beneficiaryAccountName", { length: 255 }),
   sadadNumber: varchar("sadadNumber", { length: 50 }),
   billerCode: varchar("billerCode", { length: 50 }),
