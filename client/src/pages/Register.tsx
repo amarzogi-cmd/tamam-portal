@@ -11,11 +11,9 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 const requesterTypes = [
-  { value: "imam", label: "إمام المسجد" },
-  { value: "muezzin", label: "مؤذن المسجد" },
-  { value: "board_member", label: "عضو مجلس إدارة" },
-  { value: "committee_member", label: "عضو لجنة" },
-  { value: "volunteer", label: "متطوع" },
+  { value: "imam", label: "إمام" },
+  { value: "muezzin", label: "مؤذن" },
+  { value: "donor", label: "متبرع" },
   { value: "other", label: "أخرى" },
 ];
 
@@ -131,10 +129,10 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* الجانب الأيسر - النموذج */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background overflow-y-auto">
-        <div className="w-full max-w-lg py-8">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      {/* النموذج في الوسط */}
+      <div className="w-full max-w-lg p-8">
+        <div className="w-full">
           {/* الشعار */}
           <Link href="/" className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
@@ -362,35 +360,6 @@ export default function Register() {
             {" "}و{" "}
             <a href="#" className="text-primary hover:underline">سياسة الخصوصية</a>
           </p>
-        </div>
-      </div>
-
-      {/* الجانب الأيمن - الصورة */}
-      <div className="hidden lg:flex flex-1 gradient-hero islamic-pattern items-center justify-center p-12">
-        <div className="max-w-lg text-white text-center">
-          <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-8">
-            <Building2 className="w-10 h-10" />
-          </div>
-          <h2 className="text-3xl font-bold mb-4">
-            انضم إلى بوابة تمام
-          </h2>
-          <p className="text-lg opacity-90 mb-8">
-            سجل الآن واستفد من خدمات البوابة لمسجدك
-          </p>
-          
-          <div className="space-y-4 text-right">
-            {[
-              "تسجيل المساجد وإدارتها",
-              "تقديم طلبات الخدمة بسهولة",
-              "متابعة حالة الطلبات",
-              "التواصل مع فريق الدعم",
-            ].map((feature, index) => (
-              <div key={index} className="flex items-center gap-3 bg-white/10 rounded-lg p-3">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                <span>{feature}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

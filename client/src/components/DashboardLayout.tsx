@@ -53,9 +53,12 @@ import { ROLE_LABELS } from "@shared/constants";
 
 // عناصر القائمة حسب الدور
 const getMenuItems = (role: string) => {
-  const items = [
-    { icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" },
-  ];
+  const items: { icon: any; label: string; path: string }[] = [];
+  
+  // لوحة التحكم لغير طالبي الخدمة فقط
+  if (role !== "service_requester") {
+    items.push({ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" });
+  }
 
   // للمدراء
   if (["super_admin", "system_admin"].includes(role)) {
