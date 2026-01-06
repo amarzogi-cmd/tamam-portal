@@ -257,9 +257,33 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
-    // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
+    const signedInAt = new Date();
+
+    // محاولة التحقق من JWT المحلي أولاً
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+      const { payload } = await jwtVerify(sessionCookie || "", secret, {
+        algorithms: ["HS256"],
+      });
+      
+      const userId = (payload as any).userId;
+      if (userId) {
+        // JWT محلي صحيح
+        const user = await db.getUserById(userId);
+        if (user) {
+          // تحديث آخر تسجيل دخول
+          await db.updateUser(userId, { lastSignedIn: signedInAt });
+          return user;
+        }
+      }
+    } catch (error) {
+      // لم يكن JWT محلي صحيح، جرب Manus OAuth
+      console.log("[Auth] Local JWT verification failed, trying Manus OAuth");
+    }
+
+    // محاولة التحقق من جلسة Manus OAuth
     const session = await this.verifySession(sessionCookie);
 
     if (!session) {
@@ -267,7 +291,6 @@ class SDKServer {
     }
 
     const sessionUserId = session.openId;
-    const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
     // If user not in DB, sync from OAuth server automatically
