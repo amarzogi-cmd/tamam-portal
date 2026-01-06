@@ -491,4 +491,77 @@ export const authRouter = router({
 
       return { success: true, message: "تم تغيير كلمة المرور بنجاح" };
     }),
+
+  // إعادة تعيين كلمة المرور (للمدراء فقط)
+  resetUserPassword: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+      newPassword: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من الصلاحية - فقط المدراء يمكنهم إعادة تعيين كلمات المرور
+      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإعادة تعيين كلمات المرور" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود المستخدم
+      const userResult = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (userResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      const targetUser = userResult[0];
+
+      // إنشاء salt جديد وتشفير كلمة المرور
+      const newSalt = generateSalt();
+      const newPasswordHash = hashPassword(input.newPassword, newSalt);
+
+      await db.update(users).set({ 
+        passwordHash: `${newSalt}:${newPasswordHash}`,
+        loginMethod: "local"
+      }).where(eq(users.id, input.userId));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "password_reset_by_admin",
+        entityType: "user",
+        entityId: input.userId,
+        newValues: { resetBy: ctx.user.email, targetUser: targetUser.email },
+      });
+
+      return { success: true, message: "تم إعادة تعيين كلمة المرور بنجاح" };
+    }),
+
+  // تعيين كلمة مرور للمستخدم (للمستخدمين الذين سجلوا عبر OAuth)
+  setPassword: protectedProcedure
+    .input(z.object({
+      newPassword: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // إنشاء salt جديد وتشفير كلمة المرور
+      const newSalt = generateSalt();
+      const newPasswordHash = hashPassword(input.newPassword, newSalt);
+
+      await db.update(users).set({ 
+        passwordHash: `${newSalt}:${newPasswordHash}`,
+        loginMethod: "local"
+      }).where(eq(users.id, ctx.user.id));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "password_set",
+        entityType: "user",
+        entityId: ctx.user.id,
+      });
+
+      return { success: true, message: "تم تعيين كلمة المرور بنجاح" };
+    }),
 });

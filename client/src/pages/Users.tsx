@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   Users as UsersIcon, 
   Plus, 
@@ -15,6 +16,9 @@ import {
   CheckCircle,
   XCircle,
   Shield,
+  KeyRound,
+  Eye as EyeIcon,
+  EyeOff,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +28,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -33,6 +38,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
@@ -52,6 +65,12 @@ export default function Users() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // حالة نافذة إعادة تعيين كلمة المرور
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const { data: users, isLoading, refetch } = trpc.auth.getAllUsers.useQuery({
     role: roleFilter !== "all" ? roleFilter : undefined,
@@ -77,6 +96,48 @@ export default function Users() {
       toast.error(error.message);
     },
   });
+
+  const resetPasswordMutation = trpc.auth.resetUserPassword.useMutation({
+    onSuccess: () => {
+      toast.success("تم إعادة تعيين كلمة المرور بنجاح");
+      setResetPasswordOpen(false);
+      setSelectedUser(null);
+      setNewPassword("");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleResetPassword = () => {
+    if (!selectedUser || !newPassword) return;
+    if (newPassword.length < 8) {
+      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
+      return;
+    }
+    resetPasswordMutation.mutate({
+      userId: selectedUser.id,
+      newPassword: newPassword,
+    });
+  };
+
+  const openResetPasswordDialog = (user: any) => {
+    setSelectedUser(user);
+    setNewPassword("");
+    setShowPassword(false);
+    setResetPasswordOpen(true);
+  };
+
+  // توليد كلمة مرور عشوائية
+  const generateRandomPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(password);
+    setShowPassword(true);
+  };
 
   return (
     <DashboardLayout>
@@ -201,6 +262,15 @@ export default function Users() {
                                 <Edit className="w-4 h-4 ml-2" />
                                 تعديل
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="cursor-pointer text-blue-600"
+                                onClick={() => openResetPasswordDialog(user)}
+                              >
+                                <KeyRound className="w-4 h-4 ml-2" />
+                                إعادة تعيين كلمة المرور
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               {user.status === "pending" && (
                                 <DropdownMenuItem 
                                   className="cursor-pointer text-green-600"
@@ -236,6 +306,77 @@ export default function Users() {
           </CardContent>
         </Card>
       </div>
+
+      {/* نافذة إعادة تعيين كلمة المرور */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              إعادة تعيين كلمة المرور
+            </DialogTitle>
+            <DialogDescription>
+              إعادة تعيين كلمة المرور للمستخدم: <strong>{selectedUser?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="أدخل كلمة المرور الجديدة"
+                  className="pl-10"
+                  dir="ltr"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                يجب أن تكون كلمة المرور 8 أحرف على الأقل
+              </p>
+            </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={generateRandomPassword}
+              className="w-full"
+            >
+              توليد كلمة مرور عشوائية
+            </Button>
+            {newPassword && showPassword && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">كلمة المرور الجديدة:</p>
+                <p className="font-mono text-sm select-all" dir="ltr">{newPassword}</p>
+                <p className="text-xs text-amber-600 mt-2">
+                  تأكد من نسخ كلمة المرور وإرسالها للمستخدم بطريقة آمنة
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setResetPasswordOpen(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleResetPassword}
+              disabled={!newPassword || newPassword.length < 8 || resetPasswordMutation.isPending}
+              className="gradient-primary text-white"
+            >
+              {resetPasswordMutation.isPending ? "جاري الحفظ..." : "حفظ كلمة المرور"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
