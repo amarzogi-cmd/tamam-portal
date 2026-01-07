@@ -76,6 +76,12 @@ export default function Quotations() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // حماية الصفحة - منع طالب الخدمة من الوصول
+  if (user?.role === "service_requester") {
+    navigate("/requester");
+    return null;
+  }
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");

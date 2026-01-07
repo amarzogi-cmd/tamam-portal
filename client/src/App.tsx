@@ -70,6 +70,14 @@ import ProgressReports from "./pages/ProgressReports";
 import DisbursementOrders from "./pages/DisbursementOrders";
 import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import FinancialReport from "./pages/FinancialReport";
+import AdminGuard from "./components/AdminGuard";
+
+// مكون لحماية المسارات الإدارية
+const AdminRoute = ({ component: Component }: { component: React.ComponentType }) => (
+  <AdminGuard>
+    <Component />
+  </AdminGuard>
+);
 
 function Router() {
   return (
@@ -82,86 +90,86 @@ function Router() {
       <Route path="/service-request" component={MosqueServiceRequest} />
       
       {/* لوحات التحكم */}
-      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
       <Route path="/requester" component={RequesterDashboard} />
       <Route path="/requester/dashboard" component={RequesterDashboard} />
       <Route path="/my-requests" component={MyRequests} />
       
-      {/* المساجد */}
-      <Route path="/mosques" component={Mosques} />
-      <Route path="/mosques/map" component={MosquesMap} />
+      {/* المساجد - الصفحات الإدارية */}
+      <Route path="/mosques">{() => <AdminRoute component={Mosques} />}</Route>
+      <Route path="/mosques/map">{() => <AdminRoute component={MosquesMap} />}</Route>
       <Route path="/mosques/new" component={MosqueForm} />
       <Route path="/mosques/:id" component={MosqueDetails} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />
       <Route path="/my-mosques" component={MyMosques} />
       
-      {/* الطلبات */}
-      <Route path="/requests" component={Requests} />
-      <Route path="/requests/new" component={RequestForm} />
+      {/* الطلبات - الصفحات الإدارية */}
+      <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
+      <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
-      <Route path="/requests/:id/edit" component={RequestForm} />
-      <Route path="/requests/:requestId/field-inspection" component={FieldInspectionForm} />
-      <Route path="/requests/:requestId/quick-response" component={QuickResponseReportForm} />
+      <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
+      <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
+      <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requester/requests/:id" component={RequestDetails} />
       
-      {/* المستخدمون */}
-      <Route path="/users" component={Users} />
-      <Route path="/users/:id" component={UserDetails} />
+      {/* المستخدمون - إدارية */}
+      <Route path="/users">{() => <AdminRoute component={Users} />}</Route>
+      <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
       
-      {/* المشاريع */}
-      <Route path="/projects" component={Projects} />
-      <Route path="/projects/:id" component={ProjectDetailsPage} />
-      <Route path="/project-management" component={ProjectManagement} />
+      {/* المشاريع - إدارية */}
+      <Route path="/projects">{() => <AdminRoute component={Projects} />}</Route>
+      <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
+      <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
       
-      {/* صفحات أخرى */}
-      <Route path="/partners" component={Partners} />
-      <Route path="/branding" component={Branding} />
-      <Route path="/settings" component={Settings} />
+      {/* صفحات أخرى - إدارية */}
+      <Route path="/partners">{() => <AdminRoute component={Partners} />}</Route>
+      <Route path="/branding">{() => <AdminRoute component={Branding} />}</Route>
+      <Route path="/settings">{() => <AdminRoute component={Settings} />}</Route>
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
-      <Route path="/reports" component={Reports} />
+      <Route path="/reports">{() => <AdminRoute component={Reports} />}</Route>
       
-      {/* الموردين */}
+      {/* الموردين - إدارية */}
       <Route path="/supplier/register" component={SupplierRegistration} />
       <Route path="/supplier/dashboard" component={RequesterDashboard} />
-      <Route path="/suppliers" component={SuppliersManagement} />
-      <Route path="/organization-settings" component={OrganizationSettings} />
-      <Route path="/contracts" component={ContractsList} />
-      <Route path="/contracts/new" component={ContractForm} />
-      <Route path="/contracts/new/:projectId" component={ContractForm} />
-      <Route path="/contracts/new/request/:requestId" component={ContractForm} />
-      <Route path="/contracts/:id/preview" component={ContractPreview} />
-      <Route path="/contracts/:id" component={ContractPreview} />
-      <Route path="/contract-templates" component={ContractTemplates} />
+      <Route path="/suppliers">{() => <AdminRoute component={SuppliersManagement} />}</Route>
+      <Route path="/organization-settings">{() => <AdminRoute component={OrganizationSettings} />}</Route>
+      <Route path="/contracts">{() => <AdminRoute component={ContractsList} />}</Route>
+      <Route path="/contracts/new">{() => <AdminRoute component={ContractForm} />}</Route>
+      <Route path="/contracts/new/:projectId">{() => <AdminRoute component={ContractForm} />}</Route>
+      <Route path="/contracts/new/request/:requestId">{() => <AdminRoute component={ContractForm} />}</Route>
+      <Route path="/contracts/:id/preview">{() => <AdminRoute component={ContractPreview} />}</Route>
+      <Route path="/contracts/:id">{() => <AdminRoute component={ContractPreview} />}</Route>
+      <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
       
-      {/* التقييم المالي */}
-      <Route path="/boq" component={BOQ} />
-      <Route path="/quotations" component={Quotations} />
-      <Route path="/financial-approval" component={FinancialApproval} />
+      {/* التقييم المالي - إدارية */}
+      <Route path="/boq">{() => <AdminRoute component={BOQ} />}</Route>
+      <Route path="/quotations">{() => <AdminRoute component={Quotations} />}</Route>
+      <Route path="/financial-approval">{() => <AdminRoute component={FinancialApproval} />}</Route>
       
-      {/* إدارة التصنيفات */}
-      <Route path="/categories" component={CategoriesManagement} />
+      {/* إدارة التصنيفات - إدارية */}
+      <Route path="/categories">{() => <AdminRoute component={CategoriesManagement} />}</Route>
       
-      {/* طلبات الصرف */}
-      <Route path="/disbursements" component={DisbursementRequests} />
-      <Route path="/disbursements/new" component={NewDisbursementRequest} />
-      <Route path="/disbursements/new/:projectId" component={NewDisbursementRequest} />
-      <Route path="/disbursements/new/contract/:contractId" component={NewDisbursementRequest} />
+      {/* طلبات الصرف - إدارية */}
+      <Route path="/disbursements">{() => <AdminRoute component={DisbursementRequests} />}</Route>
+      <Route path="/disbursements/new">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
+      <Route path="/disbursements/new/:projectId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
+      <Route path="/disbursements/new/contract/:contractId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       
-      {/* أوامر الصرف */}
-      <Route path="/disbursement-orders" component={DisbursementOrders} />
-      <Route path="/disbursement-orders/new/:requestId" component={NewDisbursementOrder} />
-      <Route path="/disbursement-orders/:id/print" component={DisbursementOrderPrint} />
-      <Route path="/disbursement-orders/:id" component={DisbursementOrderDetails} />
-      <Route path="/disbursements/orders/new/:requestId" component={NewDisbursementOrder} />
-      <Route path="/disbursements/orders/:id/print" component={DisbursementOrderPrint} />
-      <Route path="/disbursements/requests/:id/print" component={DisbursementRequestPrint} />
+      {/* أوامر الصرف - إدارية */}
+      <Route path="/disbursement-orders">{() => <AdminRoute component={DisbursementOrders} />}</Route>
+      <Route path="/disbursement-orders/new/:requestId">{() => <AdminRoute component={NewDisbursementOrder} />}</Route>
+      <Route path="/disbursement-orders/:id/print">{() => <AdminRoute component={DisbursementOrderPrint} />}</Route>
+      <Route path="/disbursement-orders/:id">{() => <AdminRoute component={DisbursementOrderDetails} />}</Route>
+      <Route path="/disbursements/orders/new/:requestId">{() => <AdminRoute component={NewDisbursementOrder} />}</Route>
+      <Route path="/disbursements/orders/:id/print">{() => <AdminRoute component={DisbursementOrderPrint} />}</Route>
+      <Route path="/disbursements/requests/:id/print">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       
-      {/* تقارير الإنجاز */}
-      <Route path="/progress-reports" component={ProgressReports} />
+      {/* تقارير الإنجاز - إدارية */}
+      <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
       
-      {/* التقرير المالي */}
-      <Route path="/financial-report" component={FinancialReport} />
+      {/* التقرير المالي - إدارية */}
+      <Route path="/financial-report">{() => <AdminRoute component={FinancialReport} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />
