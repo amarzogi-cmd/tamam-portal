@@ -331,7 +331,7 @@ export const mosquesRouter = router({
   // إحصائيات المساجد
   getStats: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) return { total: 0, byCity: {}, byGovernorate: {} };
+    if (!db) return { total: 0, byCity: {}, byGovernorate: {}, byApprovalStatus: {} };
 
     const total = await db.select({ count: sql<number>`count(*)` }).from(mosques);
 
@@ -345,10 +345,17 @@ export const mosquesRouter = router({
       count: sql<number>`count(*)`,
     }).from(mosques).groupBy(mosques.governorate).limit(10);
 
+    // إحصائيات حسب حالة الاعتماد
+    const byApprovalStatus = await db.select({
+      status: mosques.approvalStatus,
+      count: sql<number>`count(*)`,
+    }).from(mosques).groupBy(mosques.approvalStatus);
+
     return {
       total: total[0]?.count || 0,
       byCity: Object.fromEntries(byCity.map(c => [c.city, c.count])),
       byGovernorate: Object.fromEntries(byGovernorate.filter(g => g.governorate).map(g => [g.governorate, g.count])),
+      byApprovalStatus: Object.fromEntries(byApprovalStatus.map(s => [s.status, s.count])),
     };
   }),
 });
