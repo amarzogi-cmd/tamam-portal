@@ -19,6 +19,7 @@ import Mosques from "./pages/Mosques";
 import MosqueDetails from "./pages/MosqueDetails";
 import MosqueForm from "./pages/MosqueForm";
 import MosquesMap from "./pages/MosquesMap";
+import MyMosques from "./pages/MyMosques";
 
 // صفحات الطلبات
 import Requests from "./pages/Requests";
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/mosques/new" component={MosqueForm} />
       <Route path="/mosques/:id" component={MosqueDetails} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />
+      <Route path="/my-mosques" component={MyMosques} />
       
       {/* الطلبات */}
       <Route path="/requests" component={Requests} />
