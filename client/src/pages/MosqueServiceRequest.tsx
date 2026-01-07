@@ -101,11 +101,14 @@ export default function MosqueServiceRequest() {
     hasWaterFridge: "",
   });
 
-  // جلب المساجد المسجلة للمستخدم
-  const { data: userMosques } = trpc.mosques.search.useQuery(
-    {},
+  // جلب المساجد المسجلة بواسطة المستخدم الحالي
+  const { data: myMosques } = trpc.mosques.getMyMosques.useQuery(
+    undefined,
     { enabled: isAuthenticated }
   );
+  
+  // تحويل البيانات للتوافق مع الكود الحالي
+  const userMosques = { mosques: myMosques || [] };
 
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
