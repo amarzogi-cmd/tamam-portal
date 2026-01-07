@@ -408,17 +408,30 @@ export default function Quotations() {
                       </TableCell>
                       <TableCell>{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>
                       <TableCell>
-                        <Button
-                          variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedRequestId(request.id.toString());
-                          }}
-                        >
-                          <Eye className="h-4 w-4 ml-1" />
-                          {selectedRequestId === request.id.toString() ? "محدد" : "عرض"}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRequestId(request.id.toString());
+                            }}
+                          >
+                            <Eye className="h-4 w-4 ml-1" />
+                            {selectedRequestId === request.id.toString() ? "محدد" : "عرض"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/requests/${request.id}`);
+                            }}
+                          >
+                            <FileText className="h-4 w-4 ml-1" />
+                            تفاصيل الطلب
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

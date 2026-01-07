@@ -960,6 +960,180 @@ export const requestsRouter = router({
       };
     }),
 
+  // إسناد الزيارة الميدانية لموظف
+  assignFieldVisit: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      assignedTo: z.number(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (!["projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إسناد الزيارات الميدانية" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود الطلب
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من وجود الموظف
+      const assignee = await db.select().from(users).where(eq(users.id, input.assignedTo)).limit(1);
+      if (assignee.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الموظف غير موجود" });
+      }
+
+      await db.update(mosqueRequests).set({
+        fieldVisitAssignedTo: input.assignedTo,
+        fieldVisitNotes: input.notes || null,
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إرسال إشعار للموظف المسند إليه
+      await db.insert(notifications).values({
+        userId: input.assignedTo,
+        title: 'مهمة زيارة ميدانية جديدة',
+        message: `تم إسناد الطلب رقم ${request[0].requestNumber} إليك للزيارة الميدانية`,
+        type: 'info',
+        relatedType: 'request',
+        relatedId: input.requestId,
+      });
+
+      // إضافة سجل في تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: 'field_visit_assigned',
+        notes: `تم إسناد الزيارة الميدانية إلى ${assignee[0].name}`,
+      });
+
+      return { success: true, message: `تم إسناد الزيارة الميدانية إلى ${assignee[0].name}` };
+    }),
+
+  // جدولة الزيارة الميدانية
+  scheduleFieldVisit: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      scheduledDate: z.string(),
+      scheduledTime: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية جدولة الزيارات الميدانية" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود الطلب
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      await db.update(mosqueRequests).set({
+        fieldVisitScheduledDate: new Date(input.scheduledDate),
+        fieldVisitScheduledTime: input.scheduledTime || null,
+        fieldVisitNotes: input.notes || request[0].fieldVisitNotes,
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إرسال إشعار لمقدم الطلب
+      await db.insert(notifications).values({
+        userId: request[0].userId,
+        title: 'تم جدولة زيارة ميدانية',
+        message: `تم جدولة زيارة ميدانية لطلبك رقم ${request[0].requestNumber} بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')}`,
+        type: 'info',
+        relatedType: 'request',
+        relatedId: input.requestId,
+      });
+
+      // إضافة سجل في تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: 'field_visit_scheduled',
+        notes: `تم جدولة الزيارة الميدانية بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')} ${input.scheduledTime || ''}`,
+      });
+
+      return { success: true, message: 'تم جدولة الزيارة الميدانية بنجاح' };
+    }),
+
+  // الحصول على الزيارات المجدولة (تقويم الزيارات)
+  getScheduledVisits: protectedProcedure
+    .input(z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      assignedTo: z.number().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض تقويم الزيارات" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // إذا كان المستخدم من الفريق الميداني، يرى فقط الزيارات المسندة إليه
+      const assignedToFilter = ctx.user.role === 'field_team' 
+        ? ctx.user.id 
+        : input.assignedTo;
+
+      const conditions = [sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`];
+      
+      if (assignedToFilter) {
+        conditions.push(eq(mosqueRequests.fieldVisitAssignedTo, assignedToFilter));
+      }
+
+      const visits = await db.select({
+        id: mosqueRequests.id,
+        requestNumber: mosqueRequests.requestNumber,
+        programType: mosqueRequests.programType,
+        currentStage: mosqueRequests.currentStage,
+        scheduledDate: mosqueRequests.fieldVisitScheduledDate,
+        scheduledTime: mosqueRequests.fieldVisitScheduledTime,
+        notes: mosqueRequests.fieldVisitNotes,
+        assignedToId: mosqueRequests.fieldVisitAssignedTo,
+        mosqueId: mosqueRequests.mosqueId,
+        mosqueName: mosques.name,
+        mosqueCity: mosques.city,
+        assignedToName: users.name,
+      })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.fieldVisitAssignedTo, users.id))
+        .where(and(...conditions))
+        .orderBy(mosqueRequests.fieldVisitScheduledDate);
+
+      return visits;
+    }),
+
+  // الحصول على موظفي الفريق الميداني
+  getFieldTeamMembers: protectedProcedure
+    .query(async ({ ctx }) => {
+      if (!["projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض موظفي الفريق الميداني" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const members = await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+      })
+        .from(users)
+        .where(inArray(users.role, ['field_team', 'projects_office', 'super_admin', 'system_admin']))
+        .orderBy(users.name);
+
+      return members;
+    }),
+
   // الحصول على طلب برقم الطلب (للتتبع العام)
   getByNumber: publicProcedure
     .input(z.object({ requestNumber: z.string() }))

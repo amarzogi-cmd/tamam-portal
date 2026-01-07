@@ -19,7 +19,9 @@ import {
   FileText, 
   Building2, 
   Calendar, 
+  CalendarDays,
   User,
+  Users,
   MessageSquare,
   Paperclip,
   Clock,
@@ -115,6 +117,14 @@ export default function RequestDetails() {
   const [selectedQuotationForApproval, setSelectedQuotationForApproval] = useState<any>(null);
   const [approvedAmount, setApprovedAmount] = useState("");
   const [approvalNotes, setApprovalNotes] = useState("");
+  
+  // حالات إسناد المهمة وجدولة الزيارة
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [visitNotes, setVisitNotes] = useState("");
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
@@ -134,6 +144,12 @@ export default function RequestDetails() {
   const { data: existingContract } = trpc.contracts.getByRequestId.useQuery(
     { requestId },
     { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+  );
+  
+  // جلب موظفي الفريق الميداني
+  const { data: fieldTeamMembers } = trpc.requests.getFieldTeamMembers.useQuery(
+    undefined,
+    { enabled: !!request && ['initial_review', 'field_visit'].includes(request.currentStage) }
   );
 
   const utils = trpc.useUtils();
@@ -229,6 +245,62 @@ export default function RequestDetails() {
   // إعادة عرض مرفوض للمراجعة
   const handleReactivateQuotation = (id: number) => {
     updateQuotationStatusMutation.mutate({ id, status: "pending" });
+  };
+  
+  // mutation لإسناد الزيارة الميدانية
+  const assignFieldVisitMutation = trpc.requests.assignFieldVisit.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowAssignDialog(false);
+      setSelectedAssignee(null);
+      setVisitNotes("");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  
+  // mutation لجدولة الزيارة الميدانية
+  const scheduleFieldVisitMutation = trpc.requests.scheduleFieldVisit.useMutation({
+    onSuccess: () => {
+      toast.success("تم جدولة الزيارة الميدانية بنجاح");
+      setShowScheduleDialog(false);
+      setScheduledDate("");
+      setScheduledTime("");
+      setVisitNotes("");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  
+  // تنفيذ إسناد الزيارة الميدانية
+  const handleAssignFieldVisit = () => {
+    if (!selectedAssignee) {
+      toast.error("يرجى اختيار الموظف");
+      return;
+    }
+    assignFieldVisitMutation.mutate({
+      requestId,
+      assignedTo: selectedAssignee,
+      notes: visitNotes || undefined,
+    });
+  };
+  
+  // تنفيذ جدولة الزيارة الميدانية
+  const handleScheduleFieldVisit = () => {
+    if (!scheduledDate) {
+      toast.error("يرجى تحديد تاريخ الزيارة");
+      return;
+    }
+    scheduleFieldVisitMutation.mutate({
+      requestId,
+      scheduledDate,
+      scheduledTime: scheduledTime || undefined,
+      notes: visitNotes || undefined,
+    });
   };
 
   // دالة لتحويل الطلب للمرحلة التالية
@@ -494,46 +566,55 @@ export default function RequestDetails() {
               <TabsContent value="comments">
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-4 space-y-4">
-                    {/* إضافة تعليق */}
-                    <div className="flex gap-3">
-                      <Textarea
-                        placeholder="أضف تعليقاً..."
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={() => addCommentMutation.mutate({ requestId, comment: comment })}
-                        disabled={!comment.trim() || addCommentMutation.isPending}
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* قائمة التعليقات */}
-                    {request.comments && request.comments.length > 0 ? (
-                      <div className="space-y-4 pt-4 border-t">
-                        {request.comments.map((c: any) => (
-                          <div key={c.id} className="flex gap-3">
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                              <User className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 bg-muted/50 rounded-lg p-3">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-sm">{c.userName || "مستخدم"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(c.createdAt).toLocaleString("ar-SA")}
-                                </p>
-                              </div>
-                              <p className="text-sm mt-1">{c.content}</p>
-                            </div>
-                          </div>
-                        ))}
+                    {/* إضافة تعليق - للموظفين فقط */}
+                    {user?.role !== "service_requester" && (
+                      <div className="flex gap-3">
+                        <Textarea
+                          placeholder="أضف تعليقاً..."
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={() => addCommentMutation.mutate({ requestId, comment: comment })}
+                          disabled={!comment.trim() || addCommentMutation.isPending}
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
                       </div>
+                    )}
+
+                    {/* قائمة التعليقات - للموظفين فقط */}
+                    {user?.role !== "service_requester" ? (
+                      request.comments && request.comments.length > 0 ? (
+                        <div className="space-y-4 pt-4 border-t">
+                          {request.comments.map((c: any) => (
+                            <div key={c.id} className="flex gap-3">
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                <User className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 bg-muted/50 rounded-lg p-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-sm">{c.userName || "مستخدم"}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(c.createdAt).toLocaleString("ar-SA")}
+                                  </p>
+                                </div>
+                                <p className="text-sm mt-1">{c.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">لا توجد تعليقات</p>
+                        </div>
+                      )
                     ) : (
                       <div className="text-center py-8">
                         <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">لا توجد تعليقات</p>
+                        <p className="text-muted-foreground">التعليقات متاحة للموظفين فقط</p>
                       </div>
                     )}
                   </CardContent>
@@ -543,7 +624,12 @@ export default function RequestDetails() {
               <TabsContent value="attachments">
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-4">
-                    {attachments && attachments.length > 0 ? (
+                    {user?.role === "service_requester" ? (
+                      <div className="text-center py-8">
+                        <Paperclip className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">المرفقات متاحة للموظفين فقط</p>
+                      </div>
+                    ) : attachments && attachments.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {attachments.map((attachment: any) => (
                           <div key={attachment.id} className="border rounded-lg overflow-hidden">
@@ -922,7 +1008,48 @@ export default function RequestDetails() {
                   <CardTitle>الإجراءات</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* أزرار النماذج الميدانية */}
+                  {/* أزرار إسناد المهمة وجدولة الزيارة */}
+                  {(user?.role === "projects_office" || user?.role === "super_admin" || user?.role === "system_admin") && (
+                  <>
+                    {(request.currentStage === "initial_review" || request.currentStage === "field_visit") && (
+                      <>
+                        <Button 
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
+                          onClick={() => setShowAssignDialog(true)}
+                        >
+                          <Users className="w-4 h-4 ml-2" />
+                          إسناد الزيارة الميدانية
+                        </Button>
+                        <Button 
+                          className="w-full bg-teal-600 hover:bg-teal-700 text-white" 
+                          onClick={() => setShowScheduleDialog(true)}
+                        >
+                          <CalendarDays className="w-4 h-4 ml-2" />
+                          جدولة الزيارة الميدانية
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+                
+                {/* عرض معلومات الزيارة المجدولة */}
+                {(request as any).fieldVisitScheduledDate && (
+                  <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
+                    <p className="text-sm font-medium text-teal-800 mb-1 flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" />
+                      زيارة مجدولة
+                    </p>
+                    <p className="text-xs text-teal-700">
+                      التاريخ: {new Date((request as any).fieldVisitScheduledDate).toLocaleDateString('ar-SA')}
+                      {(request as any).fieldVisitScheduledTime && ` - الوقت: ${(request as any).fieldVisitScheduledTime}`}
+                    </p>
+                    {(request as any).fieldVisitNotes && (
+                      <p className="text-xs text-teal-600 mt-1">ملاحظات: {(request as any).fieldVisitNotes}</p>
+                    )}
+                  </div>
+                )}
+                
+                {/* أزرار النماذج الميدانية */}
                   {(user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
                   <>
                     {(request.currentStage === "field_visit" || request.currentStage === "initial_review") && (
@@ -1322,6 +1449,113 @@ export default function RequestDetails() {
             >
               {updateQuotationStatusMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
               اعتماد العرض
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog إسناد الزيارة الميدانية */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إسناد الزيارة الميدانية</DialogTitle>
+            <DialogDescription>
+              اختر الموظف المسؤول عن تنفيذ الزيارة الميدانية
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>الموظف المسؤول *</Label>
+              <select
+                className="w-full mt-1 p-2 border rounded-md"
+                value={selectedAssignee || ''}
+                onChange={(e) => setSelectedAssignee(parseInt(e.target.value) || null)}
+              >
+                <option value="">اختر الموظف...</option>
+                {fieldTeamMembers?.map((member: any) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} - {member.role === 'field_team' ? 'فريق ميداني' : member.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>ملاحظات (اختياري)</Label>
+              <Textarea
+                value={visitNotes}
+                onChange={(e) => setVisitNotes(e.target.value)}
+                placeholder="أي ملاحظات إضافية..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleAssignFieldVisit}
+              disabled={!selectedAssignee || assignFieldVisitMutation.isPending}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {assignFieldVisitMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+              إسناد المهمة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog جدولة الزيارة الميدانية */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>جدولة الزيارة الميدانية</DialogTitle>
+            <DialogDescription>
+              حدد تاريخ ووقت الزيارة الميدانية
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>تاريخ الزيارة *</Label>
+              <Input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>وقت الزيارة (اختياري)</Label>
+              <Input
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>ملاحظات (اختياري)</Label>
+              <Textarea
+                value={visitNotes}
+                onChange={(e) => setVisitNotes(e.target.value)}
+                placeholder="أي ملاحظات إضافية..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleScheduleFieldVisit}
+              disabled={!scheduledDate || scheduleFieldVisitMutation.isPending}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {scheduleFieldVisitMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+              جدولة الزيارة
             </Button>
           </DialogFooter>
         </DialogContent>

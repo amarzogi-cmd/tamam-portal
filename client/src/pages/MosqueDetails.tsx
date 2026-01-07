@@ -14,6 +14,8 @@ import {
   Edit,
   CheckCircle,
   Clock,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -214,11 +216,34 @@ export default function MosqueDetails() {
                     {(mosque.latitude && mosque.longitude) && (
                       <div className="p-3 bg-muted/50 rounded-lg">
                         <p className="text-sm text-muted-foreground mb-2">الموقع على الخريطة</p>
-                        <div className="h-48 bg-muted rounded-lg flex items-center justify-center">
+                        <div className="h-48 bg-muted rounded-lg flex items-center justify-center mb-3">
                           <MapPin className="w-8 h-8 text-muted-foreground" />
                           <span className="text-muted-foreground mr-2">
                             {mosque.latitude}, {mosque.longitude}
                           </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <a 
+                            href={`https://www.google.com/maps?q=${mosque.latitude},${mosque.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1"
+                          >
+                            <Button variant="outline" className="w-full">
+                              <ExternalLink className="w-4 h-4 ml-2" />
+                              فتح في خرائط Google
+                            </Button>
+                          </a>
+                          <Button 
+                            variant="outline"
+                            onClick={() => {
+                              const url = `https://www.google.com/maps?q=${mosque.latitude},${mosque.longitude}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success("تم نسخ رابط الموقع");
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     )}

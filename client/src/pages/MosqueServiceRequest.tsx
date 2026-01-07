@@ -256,10 +256,23 @@ export default function MosqueServiceRequest() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8" dir="rtl">
       <div className="container max-w-4xl mx-auto px-4">
-        {/* العنوان */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">طلبات خدمات المساجد</h1>
-          <p className="text-gray-600">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+        {/* زر العودة والعنوان */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate("/requester")}
+              className="hover:bg-muted"
+            >
+              <Home className="w-5 h-5" />
+            </Button>
+            <span className="text-muted-foreground">العودة للرئيسية</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">طلبات خدمات المساجد</h1>
+            <p className="text-gray-600">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+          </div>
         </div>
 
         {/* شريط التقدم */}

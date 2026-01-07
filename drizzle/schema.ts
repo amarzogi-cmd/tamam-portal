@@ -171,6 +171,12 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   priority: mysqlEnum("priority", ["urgent", "medium", "normal"]).default("normal"),
   assignedTo: int("assignedTo").references(() => users.id),
   
+  // بيانات الزيارة الميدانية
+  fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id), // الموظف المسند إليه الزيارة
+  fieldVisitScheduledDate: timestamp("fieldVisitScheduledDate"), // تاريخ الزيارة المجدولة
+  fieldVisitScheduledTime: varchar("fieldVisitScheduledTime", { length: 10 }), // وقت الزيارة المجدولة
+  fieldVisitNotes: text("fieldVisitNotes"), // ملاحظات الزيارة
+  
   // بيانات البرنامج (JSON مرن لكل برنامج)
   programData: json("programData"),
   
