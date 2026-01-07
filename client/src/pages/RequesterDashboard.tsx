@@ -12,8 +12,10 @@ import {
   LogOut,
   User,
   Bell,
+  Percent,
+  ArrowLeft,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 import {
@@ -24,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 // أيقونات البرامج
 const programIcons: Record<string, string> = {
@@ -46,22 +50,40 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-gray-100 text-gray-800",
 };
 
+// حساب نسبة التقدم بناءً على المرحلة
+const getProgressPercentage = (stage: string): number => {
+  const stageProgress: Record<string, number> = {
+    submitted: 10,
+    initial_review: 25,
+    field_visit: 40,
+    technical_eval: 55,
+    financial_eval: 70,
+    execution: 85,
+    closed: 100,
+  };
+  return stageProgress[stage] || 0;
+};
+
 export default function RequesterDashboard() {
   const { user, logout } = useAuth();
+  const [, setLocation] = useLocation();
   
   // جلب طلبات المستخدم
   const { data: myRequests, isLoading } = trpc.requests.getMyRequests.useQuery();
   // جلب مساجد المستخدم
   const { data: myMosques } = trpc.mosques.getMyMosques.useQuery();
+  // جلب الإشعارات
+  const { data: notifications } = trpc.notifications.getMyNotifications.useQuery({ limit: 10 });
 
   const pendingRequests = myRequests?.filter(r => r.status === "pending") || [];
   const inProgressRequests = myRequests?.filter(r => r.status === "in_progress") || [];
   const completedRequests = myRequests?.filter(r => r.status === "completed") || [];
+  const unreadNotifications = notifications?.notifications?.filter((n: any) => !n.isRead) || [];
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* شريط التنقل */}
-      <header className="sticky top-0 z-50 bg-white border-b border-border">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-3">
@@ -75,12 +97,16 @@ export default function RequesterDashboard() {
             </Link>
 
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-xs rounded-full flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <Link href="/notifications">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadNotifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadNotifications.length}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -112,98 +138,102 @@ export default function RequesterDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         {/* رسالة الترحيب */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             مرحباً، {user?.name}
           </h1>
-          <p className="text-muted-foreground">
-            يمكنك من هنا إدارة طلباتك ومساجدك المسجلة
+          <p className="text-muted-foreground text-lg">
+            نسعد بخدمتك في بوابة تمام للعناية بالمساجد
           </p>
         </div>
 
-        {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+        {/* أزرار الإجراءات الرئيسية */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
+          <Link href="/service-request">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-primary to-primary/80 text-white">
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus className="w-8 h-8" />
+                </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">إجمالي الطلبات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{myRequests?.length || 0}</p>
+                  <h3 className="font-bold text-lg">تقديم طلب جديد</h3>
+                  <p className="text-white/80 text-sm">اطلب خدمة لمسجدك</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                <ArrowLeft className="w-5 h-5 mr-auto opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+          <Link href="/mosques/new">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group">
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Building2 className="w-8 h-8 text-primary" />
+                </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">قيد الانتظار</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{pendingRequests.length}</p>
+                  <h3 className="font-bold text-lg text-foreground">تسجيل مسجد</h3>
+                  <p className="text-muted-foreground text-sm">أضف مسجداً جديداً</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">قيد التنفيذ</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{inProgressRequests.length}</p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">مكتملة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{completedRequests.length}</p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                <ArrowLeft className="w-5 h-5 mr-auto text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
-        {/* أزرار الإجراءات */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          <Link href="/service-request">
-            <Button className="gradient-primary text-white">
-              <Plus className="w-4 h-4 ml-2" />
-              تقديم طلب جديد
-            </Button>
-          </Link>
-          <Link href="/mosques/new">
-            <Button variant="outline">
-              <Building2 className="w-4 h-4 ml-2" />
-              تسجيل مسجد جديد
-            </Button>
-          </Link>
+        {/* بطاقات الإحصائيات */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{myRequests?.length || 0}</p>
+              <p className="text-xs text-muted-foreground">إجمالي الطلبات</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-5 h-5 text-yellow-600" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{pendingRequests.length}</p>
+              <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                <AlertCircle className="w-5 h-5 text-blue-600" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{inProgressRequests.length}</p>
+              <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{completedRequests.length}</p>
+              <p className="text-xs text-muted-foreground">مكتملة</p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* آخر الطلبات */}
+          {/* طلباتي مع نسبة التقدم */}
           <Card className="lg:col-span-2 border-0 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>آخر الطلبات</CardTitle>
-                  <CardDescription>آخر الطلبات المقدمة</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    طلباتي
+                  </CardTitle>
+                  <CardDescription>متابعة تقدم طلباتك</CardDescription>
                 </div>
                 <Link href="/my-requests">
                   <Button variant="ghost" size="sm">
@@ -215,40 +245,55 @@ export default function RequesterDashboard() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+                    <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
                   ))}
                 </div>
               ) : myRequests && myRequests.length > 0 ? (
-                <div className="space-y-3">
-                  {myRequests.slice(0, 5).map((request) => (
-                    <Link key={request.id} href={`/requests/${request.id}`}>
-                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{programIcons[request.programType] || "📋"}</span>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {PROGRAM_LABELS[request.programType]} - {request.requestNumber}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {STAGE_LABELS[request.currentStage]}
+                <div className="space-y-4">
+                  {myRequests.slice(0, 5).map((request) => {
+                    const progress = getProgressPercentage(request.currentStage);
+                    return (
+                      <Link key={request.id} href={`/requests/${request.id}`}>
+                        <div className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{programIcons[request.programType] || "📋"}</span>
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {PROGRAM_LABELS[request.programType]}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {request.requestNumber}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Percent className="w-4 h-4 text-primary" />
+                              <span className="text-lg font-bold text-primary">{progress}%</span>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Progress value={progress} className="h-2" />
+                            <p className="text-xs text-muted-foreground text-left">
+                              {progress === 100 ? "مكتمل" : "جاري المعالجة..."}
                             </p>
                           </div>
                         </div>
-                        <span className={`badge ${statusColors[request.status]}`}>
-                          {STATUS_LABELS[request.status]}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">لا توجد طلبات حتى الآن</p>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground mb-4">لا توجد طلبات حتى الآن</p>
                   <Link href="/service-request">
-                    <Button className="mt-4 gradient-primary text-white">
+                    <Button className="gradient-primary text-white">
+                      <Plus className="w-4 h-4 ml-2" />
                       تقديم طلب جديد
                     </Button>
                   </Link>
@@ -257,15 +302,18 @@ export default function RequesterDashboard() {
             </CardContent>
           </Card>
 
-          {/* المساجد المسجلة */}
+          {/* الإشعارات */}
           <Card className="border-0 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>مساجدي</CardTitle>
-                  <CardDescription>المساجد المسجلة باسمك</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-primary" />
+                    الإشعارات
+                  </CardTitle>
+                  <CardDescription>آخر التحديثات</CardDescription>
                 </div>
-                <Link href="/my-mosques">
+                <Link href="/notifications">
                   <Button variant="ghost" size="sm">
                     عرض الكل
                     <ChevronLeft className="w-4 h-4 mr-1" />
@@ -274,57 +322,108 @@ export default function RequesterDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              {myMosques && myMosques.length > 0 ? (
+              {notifications?.notifications && notifications.notifications.length > 0 ? (
                 <div className="space-y-3">
-                  {myMosques.slice(0, 4).map((mosque) => (
-                    <Link key={mosque.id} href={`/mosques/${mosque.id}`}>
-                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{mosque.name}</p>
-                          <p className="text-sm text-muted-foreground truncate">{mosque.city}</p>
-                        </div>
-                      </div>
-                    </Link>
+                  {notifications.notifications.slice(0, 5).map((notification: any) => (
+                    <div 
+                      key={notification.id} 
+                      className={`p-3 rounded-lg transition-colors ${
+                        notification.isRead ? 'bg-muted/30' : 'bg-primary/5 border border-primary/20'
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-foreground line-clamp-1">
+                        {notification.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {notification.message}
+                      </p>
+                      {!notification.isRead && (
+                        <Badge variant="secondary" className="mt-2 text-xs">
+                          جديد
+                        </Badge>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">لا توجد مساجد مسجلة</p>
-                  <Link href="/mosques/new">
-                    <Button variant="outline" className="mt-4">
-                      تسجيل مسجد
-                    </Button>
-                  </Link>
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                    <Bell className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">لا توجد إشعارات</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* البرامج المتاحة */}
+        {/* مساجدي */}
         <Card className="mt-6 border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>البرامج المتاحة</CardTitle>
-            <CardDescription>اختر البرنامج المناسب لتقديم طلبك</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary" />
+                  مساجدي
+                </CardTitle>
+                <CardDescription>المساجد المسجلة باسمك</CardDescription>
+              </div>
+              <Link href="/my-mosques">
+                <Button variant="ghost" size="sm">
+                  عرض الكل
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-4">
-              {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                <Link key={key} href={`/service-request?program=${key}`}>
-                  <div className="flex flex-col items-center gap-2 p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer text-center">
-                    <span className="text-3xl">{programIcons[key]}</span>
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                  </div>
+            {myMosques && myMosques.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {myMosques.slice(0, 4).map((mosque) => (
+                  <Link key={mosque.id} href={`/mosques/${mosque.id}`}>
+                    <div className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                        <Building2 className="w-6 h-6 text-primary" />
+                      </div>
+                      <p className="font-medium text-foreground truncate">{mosque.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{mosque.city}</p>
+                      <Badge 
+                        variant={mosque.approvalStatus === 'approved' ? 'default' : 'secondary'} 
+                        className="mt-2 text-xs"
+                      >
+                        {mosque.approvalStatus === 'approved' ? 'معتمد' : 
+                         mosque.approvalStatus === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                  <Building2 className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">لا توجد مساجد مسجلة</p>
+                <Link href="/mosques/new">
+                  <Button variant="outline">
+                    <Plus className="w-4 h-4 ml-2" />
+                    تسجيل مسجد
+                  </Button>
                 </Link>
-              ))}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
+
+      {/* Footer */}
+      <footer className="mt-12 py-6 border-t bg-white/50">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            جمعية عمارة المساجد بمنطقة عسير - بوابة تمام للعناية بالمساجد
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
