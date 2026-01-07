@@ -176,6 +176,9 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   fieldVisitScheduledDate: timestamp("fieldVisitScheduledDate"), // تاريخ الزيارة المجدولة
   fieldVisitScheduledTime: varchar("fieldVisitScheduledTime", { length: 10 }), // وقت الزيارة المجدولة
   fieldVisitNotes: text("fieldVisitNotes"), // ملاحظات الزيارة
+  fieldVisitContactName: varchar("fieldVisitContactName", { length: 255 }), // اسم الشخص المسؤول للزيارة
+  fieldVisitContactTitle: varchar("fieldVisitContactTitle", { length: 100 }), // صفة الشخص (إمام، مؤذن، جار، إلخ)
+  fieldVisitContactPhone: varchar("fieldVisitContactPhone", { length: 20 }), // رقم جوال الشخص
   
   // بيانات البرنامج (JSON مرن لكل برنامج)
   programData: json("programData"),

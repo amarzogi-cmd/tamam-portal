@@ -125,6 +125,9 @@ export default function RequestDetails() {
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [visitNotes, setVisitNotes] = useState("");
+  const [visitContactName, setVisitContactName] = useState("");
+  const [visitContactTitle, setVisitContactTitle] = useState("");
+  const [visitContactPhone, setVisitContactPhone] = useState("");
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
@@ -300,6 +303,9 @@ export default function RequestDetails() {
       scheduledDate,
       scheduledTime: scheduledTime || undefined,
       notes: visitNotes || undefined,
+      contactName: visitContactName || undefined,
+      contactTitle: visitContactTitle || undefined,
+      contactPhone: visitContactPhone || undefined,
     });
   };
 
@@ -1035,17 +1041,32 @@ export default function RequestDetails() {
                 {/* عرض معلومات الزيارة المجدولة */}
                 {(request as any).fieldVisitScheduledDate && (
                   <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
-                    <p className="text-sm font-medium text-teal-800 mb-1 flex items-center gap-2">
+                    <p className="text-sm font-medium text-teal-800 mb-2 flex items-center gap-2">
                       <CalendarDays className="w-4 h-4" />
                       زيارة مجدولة
                     </p>
-                    <p className="text-xs text-teal-700">
-                      التاريخ: {new Date((request as any).fieldVisitScheduledDate).toLocaleDateString('ar-SA')}
-                      {(request as any).fieldVisitScheduledTime && ` - الوقت: ${(request as any).fieldVisitScheduledTime}`}
-                    </p>
-                    {(request as any).fieldVisitNotes && (
-                      <p className="text-xs text-teal-600 mt-1">ملاحظات: {(request as any).fieldVisitNotes}</p>
-                    )}
+                    <div className="space-y-1">
+                      <p className="text-xs text-teal-700">
+                        <span className="font-medium">التاريخ:</span> {new Date((request as any).fieldVisitScheduledDate).toLocaleDateString('ar-SA')}
+                        {(request as any).fieldVisitScheduledTime && ` - الوقت: ${(request as any).fieldVisitScheduledTime}`}
+                      </p>
+                      {(request as any).fieldVisitContactName && (
+                        <p className="text-xs text-teal-700">
+                          <span className="font-medium">الشخص المسؤول:</span> {(request as any).fieldVisitContactName}
+                          {(request as any).fieldVisitContactTitle && ` (${(request as any).fieldVisitContactTitle})`}
+                        </p>
+                      )}
+                      {(request as any).fieldVisitContactPhone && (
+                        <p className="text-xs text-teal-700">
+                          <span className="font-medium">رقم الجوال:</span> <span dir="ltr">{(request as any).fieldVisitContactPhone}</span>
+                        </p>
+                      )}
+                      {(request as any).fieldVisitNotes && (
+                        <p className="text-xs text-teal-600">
+                          <span className="font-medium">ملاحظات:</span> {(request as any).fieldVisitNotes}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
                 
@@ -1508,31 +1529,72 @@ export default function RequestDetails() {
       
       {/* Dialog جدولة الزيارة الميدانية */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>جدولة الزيارة الميدانية</DialogTitle>
             <DialogDescription>
-              حدد تاريخ ووقت الزيارة الميدانية
+              حدد تاريخ ووقت الزيارة وبيانات الشخص المسؤول
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>تاريخ الزيارة *</Label>
-              <Input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="mt-1"
-              />
+            {/* بيانات الشخص المسؤول */}
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-800 mb-3">بيانات الشخص المسؤول للزيارة</p>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <Label>اسم الشخص المسؤول</Label>
+                  <Input
+                    type="text"
+                    value={visitContactName}
+                    onChange={(e) => setVisitContactName(e.target.value)}
+                    placeholder="مثال: محمد أحمد"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>صفة الشخص</Label>
+                  <Input
+                    type="text"
+                    value={visitContactTitle}
+                    onChange={(e) => setVisitContactTitle(e.target.value)}
+                    placeholder="مثال: إمام المسجد، مؤذن، جار المسجد"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>رقم الجوال</Label>
+                  <Input
+                    type="tel"
+                    value={visitContactPhone}
+                    onChange={(e) => setVisitContactPhone(e.target.value)}
+                    placeholder="05XXXXXXXX"
+                    className="mt-1"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>وقت الزيارة (اختياري)</Label>
-              <Input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="mt-1"
-              />
+            
+            {/* بيانات الزيارة */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>تاريخ الزيارة *</Label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>وقت الزيارة</Label>
+                <Input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
             </div>
             <div>
               <Label>ملاحظات (اختياري)</Label>
@@ -1541,7 +1603,7 @@ export default function RequestDetails() {
                 onChange={(e) => setVisitNotes(e.target.value)}
                 placeholder="أي ملاحظات إضافية..."
                 className="mt-1"
-                rows={3}
+                rows={2}
               />
             </div>
           </div>

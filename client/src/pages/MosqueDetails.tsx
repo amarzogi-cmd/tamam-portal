@@ -323,10 +323,6 @@ export default function MosqueDetails() {
                     تقديم طلب
                   </Button>
                 </Link>
-                <Button variant="outline" className="w-full" onClick={() => toast.info("قريباً")}>
-                  <Calendar className="w-4 h-4 ml-2" />
-                  جدولة زيارة
-                </Button>
               </CardContent>
             </Card>
           </div>

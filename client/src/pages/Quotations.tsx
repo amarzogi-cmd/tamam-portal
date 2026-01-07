@@ -706,27 +706,31 @@ export default function Quotations() {
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>إضافة عرض سعر</DialogTitle>
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <Receipt className="h-6 w-6 text-primary" />
+                إضافة عرض سعر جديد
+              </DialogTitle>
               <DialogDescription>أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
-              {/* معلومات المورد */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>المورد *</Label>
+              {/* معلومات المورد والصلاحية */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="md:col-span-2">
+                  <Label className="text-base font-medium">المورد *</Label>
                   <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1.5 h-11">
                       <SelectValue placeholder="اختر المورد..." />
                     </SelectTrigger>
                     <SelectContent>
                       {suppliers?.map((supplier: any) => (
                         <SelectItem key={supplier.id} value={supplier.id.toString()}>
                           <div className="flex items-center gap-2">
-                            {supplier.name}
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{supplier.name}</span>
                             {supplier.approvalStatus !== "approved" && (
-                              <Badge variant="outline" className="text-xs">غير معتمد</Badge>
+                              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">غير معتمد</Badge>
                             )}
                           </div>
                         </SelectItem>
@@ -745,69 +749,100 @@ export default function Quotations() {
                   </div>
                 </div>
                 <div>
-                  <Label>صالح حتى</Label>
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-500" />
+                    آخر موعد للعرض
+                  </Label>
                   <Input
                     type="date"
                     value={formData.validUntil}
                     onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                    className="mt-1.5 h-11 border-orange-200 focus:border-orange-400"
                   />
+                  {formData.validUntil && (
+                    <p className="text-xs text-orange-600 mt-1 font-medium">
+                      ينتهي في: {new Date(formData.validUntil).toLocaleDateString('ar-SA')}
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* جدول تسعير البنود */}
               {quotationItems.length > 0 ? (
                 <div>
-                  <Label className="mb-2 block">تسعير البنود *</Label>
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-base font-medium flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5 text-primary" />
+                      تسعير البنود ({quotationItems.length} بند)
+                    </Label>
+                    <Badge variant="outline" className="text-sm">
+                      المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
+                    </Badge>
+                  </div>
+                  <div className="border rounded-lg overflow-hidden shadow-sm">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="w-12">#</TableHead>
-                          <TableHead>البند</TableHead>
-                          <TableHead>الوحدة</TableHead>
-                          <TableHead className="text-center w-24">الكمية</TableHead>
-                          <TableHead className="text-center w-32">سعر الوحدة (ريال)</TableHead>
-                          <TableHead className="text-center w-32">الإجمالي</TableHead>
+                        <TableRow className="bg-gradient-to-r from-primary/10 to-primary/5">
+                          <TableHead className="w-14 text-center font-bold">#</TableHead>
+                          <TableHead className="min-w-[250px] font-bold">البند</TableHead>
+                          <TableHead className="w-24 text-center font-bold">الوحدة</TableHead>
+                          <TableHead className="w-28 text-center font-bold">الكمية</TableHead>
+                          <TableHead className="w-40 text-center font-bold">سعر الوحدة (ريال)</TableHead>
+                          <TableHead className="w-36 text-center font-bold">الإجمالي</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {quotationItems.map((item, index) => (
-                          <TableRow key={item.boqItemId}>
-                            <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                            <TableCell className="font-medium">{item.itemName}</TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                            <TableCell className="text-center">{item.quantity.toLocaleString("ar-SA")}</TableCell>
+                          <TableRow key={item.boqItemId} className="hover:bg-muted/30">
+                            <TableCell className="text-center text-muted-foreground font-medium">{index + 1}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="max-w-[300px]">
+                                {item.itemName}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="font-normal">{item.unit}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center font-medium">{item.quantity.toLocaleString("ar-SA")}</TableCell>
                             <TableCell>
                               <Input
                                 type="number"
                                 value={item.unitPrice}
                                 onChange={(e) => updateItemPrice(index, e.target.value)}
-                                placeholder="0"
-                                className="text-center"
+                                placeholder="0.00"
+                                className="text-center h-10 font-medium"
                                 min="0"
                                 step="0.01"
                               />
                             </TableCell>
-                            <TableCell className="text-center font-medium">
-                              {item.totalPrice > 0 ? `${item.totalPrice.toLocaleString("ar-SA")} ريال` : "-"}
+                            <TableCell className="text-center">
+                              <span className={`font-bold ${item.totalPrice > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+                                {item.totalPrice > 0 ? `${item.totalPrice.toLocaleString("ar-SA")}` : "-"}
+                              </span>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
+                  {/* الإجمالي الكلي */}
                   <div className="flex justify-end mt-4">
-                    <div className="bg-primary text-primary-foreground px-6 py-3 rounded-lg">
-                      <span className="text-sm">الإجمالي الكلي:</span>
-                      <span className="text-xl font-bold mr-2">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                    <div className="bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-8 py-4 rounded-xl shadow-lg">
+                      <div className="flex items-center gap-4">
+                        <Receipt className="h-6 w-6" />
+                        <div>
+                          <span className="text-sm opacity-90">الإجمالي الكلي</span>
+                          <p className="text-2xl font-bold">{totalAmount.toLocaleString("ar-SA")} <span className="text-base font-normal">ريال</span></p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد بنود في جدول الكميات</p>
-                  <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً</p>
+                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
+                  <AlertCircle className="h-16 w-16 mx-auto mb-4 opacity-40" />
+                  <p className="text-lg font-medium">لا توجد بنود في جدول الكميات</p>
+                  <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً قبل إضافة عروض الأسعار</p>
                 </div>
               )}
 

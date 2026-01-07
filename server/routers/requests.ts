@@ -1020,6 +1020,9 @@ export const requestsRouter = router({
       scheduledDate: z.string(),
       scheduledTime: z.string().optional(),
       notes: z.string().optional(),
+      contactName: z.string().optional(), // اسم الشخص المسؤول
+      contactTitle: z.string().optional(), // صفة الشخص
+      contactPhone: z.string().optional(), // رقم جوال الشخص
     }))
     .mutation(async ({ input, ctx }) => {
       if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -1039,6 +1042,9 @@ export const requestsRouter = router({
         fieldVisitScheduledDate: new Date(input.scheduledDate),
         fieldVisitScheduledTime: input.scheduledTime || null,
         fieldVisitNotes: input.notes || request[0].fieldVisitNotes,
+        fieldVisitContactName: input.contactName || null,
+        fieldVisitContactTitle: input.contactTitle || null,
+        fieldVisitContactPhone: input.contactPhone || null,
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إرسال إشعار لمقدم الطلب

@@ -16,7 +16,7 @@ import {
   Clock,
   Building2,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 import {
@@ -56,6 +56,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Requests() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -213,7 +214,11 @@ export default function Requests() {
                   </TableHeader>
                   <TableBody>
                     {requests.map((request: any) => (
-                      <TableRow key={request.id}>
+                      <TableRow 
+                        key={request.id} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/requests/${request.id}`)}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <span className="text-xl">{programIcons[request.programType] || "📋"}</span>
@@ -236,7 +241,7 @@ export default function Requests() {
                         <TableCell>
                           {new Date(request.createdAt).toLocaleDateString("ar-SA")}
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
