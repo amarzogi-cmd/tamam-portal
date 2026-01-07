@@ -216,27 +216,37 @@ export const requestsRouter = router({
         comments = comments.filter(c => !c.isInternal);
       }
 
-      // الحصول على سجل الطلب
-      const history = await db.select({
-        id: requestHistory.id,
-        fromStage: requestHistory.fromStage,
-        toStage: requestHistory.toStage,
-        fromStatus: requestHistory.fromStatus,
-        toStatus: requestHistory.toStatus,
-        action: requestHistory.action,
-        notes: requestHistory.notes,
-        createdAt: requestHistory.createdAt,
-        userName: users.name,
-      }).from(requestHistory)
-        .leftJoin(users, eq(requestHistory.userId, users.id))
-        .where(eq(requestHistory.requestId, input.id))
-        .orderBy(desc(requestHistory.createdAt));
+      // الحصول على سجل الطلب (فقط للموظفين الداخليين)
+      let history: any[] = [];
+      if (isInternal || isAssigned) {
+        history = await db.select({
+          id: requestHistory.id,
+          fromStage: requestHistory.fromStage,
+          toStage: requestHistory.toStage,
+          fromStatus: requestHistory.fromStatus,
+          toStatus: requestHistory.toStatus,
+          action: requestHistory.action,
+          notes: requestHistory.notes,
+          createdAt: requestHistory.createdAt,
+          userName: users.name,
+        }).from(requestHistory)
+          .leftJoin(users, eq(requestHistory.userId, users.id))
+          .where(eq(requestHistory.requestId, input.id))
+          .orderBy(desc(requestHistory.createdAt));
+      }
 
-      // الحصول على تقارير الزيارات الميدانية
-      const fieldReports = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.id));
+      // الحصول على تقارير الزيارات الميدانية (فقط للموظفين)
+      let fieldReports: any[] = [];
+      let quickReports: any[] = [];
+      if (isInternal || isAssigned) {
+        fieldReports = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.id));
+        quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
+      }
 
-      // الحصول على تقارير الاستجابة السريعة
-      const quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
+      // حساب نسبة التقدم
+      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+      const currentStageIndex = stages.indexOf(request.currentStage);
+      const progressPercentage = Math.round(((currentStageIndex + 1) / stages.length) * 100);
 
       // الحصول على المشروع المرتبط بالطلب (إن وجد)
       const projectResult = await db.select({
@@ -257,6 +267,8 @@ export const requestsRouter = router({
         fieldReports,
         quickReports,
         project,
+        progressPercentage,
+        isOwner,
       };
     }),
 

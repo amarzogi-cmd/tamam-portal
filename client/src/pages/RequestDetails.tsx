@@ -322,44 +322,75 @@ export default function RequestDetails() {
           </span>
         </div>
 
-        {/* شريط المراحل */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between overflow-x-auto pb-2">
-              {stageSteps.map((stage, index) => {
-                const isCompleted = index < currentStageIndex;
-                const isCurrent = index === currentStageIndex;
-                return (
-                  <div key={stage.key} className="flex items-center">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        isCompleted ? "bg-green-500 text-white" :
-                        isCurrent ? "bg-primary text-white" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-5 h-5" />
-                        ) : (
-                          <span>{index + 1}</span>
-                        )}
+        {/* شريط المراحل - للموظفين الداخليين فقط */}
+        {user?.role !== "service_requester" ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between overflow-x-auto pb-2">
+                {stageSteps.map((stage, index) => {
+                  const isCompleted = index < currentStageIndex;
+                  const isCurrent = index === currentStageIndex;
+                  return (
+                    <div key={stage.key} className="flex items-center">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isCompleted ? "bg-green-500 text-white" :
+                          isCurrent ? "bg-primary text-white" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : (
+                            <span>{index + 1}</span>
+                          )}
+                        </div>
+                        <span className={`text-xs mt-2 whitespace-nowrap ${
+                          isCurrent ? "text-primary font-medium" : "text-muted-foreground"
+                        }`}>
+                          {stage.label}
+                        </span>
                       </div>
-                      <span className={`text-xs mt-2 whitespace-nowrap ${
-                        isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                      }`}>
-                        {stage.label}
-                      </span>
+                      {index < stageSteps.length - 1 && (
+                        <div className={`w-12 h-1 mx-2 ${
+                          isCompleted ? "bg-green-500" : "bg-muted"
+                        }`} />
+                      )}
                     </div>
-                    {index < stageSteps.length - 1 && (
-                      <div className={`w-12 h-1 mx-2 ${
-                        isCompleted ? "bg-green-500" : "bg-muted"
-                      }`} />
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* شريط التقدم بالنسبة المئوية - لطالب الخدمة */
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-foreground mb-2">نسبة التقدم في الطلب</h3>
+                <p className="text-muted-foreground text-sm">يتم معالجة طلبك حالياً</p>
+              </div>
+              <div className="relative">
+                <div className="w-full bg-muted rounded-full h-6 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary to-green-500 rounded-full transition-all duration-500 flex items-center justify-center"
+                    style={{ width: `${request.progressPercentage || 0}%` }}
+                  >
+                    {(request.progressPercentage || 0) >= 20 && (
+                      <span className="text-white text-xs font-bold">{request.progressPercentage}%</span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+                {(request.progressPercentage || 0) < 20 && (
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-foreground">{request.progressPercentage || 0}%</span>
+                )}
+              </div>
+              <div className="flex justify-between mt-3 text-sm">
+                <span className="text-muted-foreground">تم التقديم</span>
+                <span className="text-muted-foreground">مكتمل</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* شريط الحالة الذكي */}
         <SmartStatusBar
@@ -413,45 +444,52 @@ export default function RequestDetails() {
             </Card>
 
             {/* التبويبات */}
-            <Tabs defaultValue="history" className="space-y-4">
+            <Tabs defaultValue={user?.role === "service_requester" ? "comments" : "history"} className="space-y-4">
               <TabsList className="flex-wrap h-auto gap-1">
-                <TabsTrigger value="history">سجل الطلب</TabsTrigger>
+                {/* سجل الطلب - للموظفين فقط */}
+                {user?.role !== "service_requester" && (
+                  <TabsTrigger value="history">سجل الطلب</TabsTrigger>
+                )}
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
-                {(request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                {/* التقييم المالي - للموظفين فقط */}
+                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
 
-              <TabsContent value="history">
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-4">
-                    {request.history && request.history.length > 0 ? (
-                      <div className="space-y-4">
-                        {request.history.map((item: any) => (
-                          <div key={item.id} className="flex gap-4">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <Clock className="w-5 h-5 text-primary" />
+              {/* سجل الطلب - للموظفين فقط */}
+              {user?.role !== "service_requester" && (
+                <TabsContent value="history">
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      {request.history && request.history.length > 0 ? (
+                        <div className="space-y-4">
+                          {request.history.map((item: any) => (
+                            <div key={item.id} className="flex gap-4">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <Clock className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{ACTION_LABELS[item.action] || item.action}</p>
+                                <p className="text-sm text-muted-foreground">{item.notes}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(item.createdAt).toLocaleString("ar-SA")}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{ACTION_LABELS[item.action] || item.action}</p>
-                              <p className="text-sm text-muted-foreground">{item.notes}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(item.createdAt).toLocaleString("ar-SA")}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">لا يوجد سجل للطلب</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">لا يوجد سجل للطلب</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
 
               <TabsContent value="comments">
                 <Card className="border-0 shadow-sm">
@@ -563,8 +601,8 @@ export default function RequestDetails() {
                 </Card>
               </TabsContent>
 
-              {/* تبويب التقييم المالي */}
-              {(request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+              {/* تبويب التقييم المالي - للموظفين فقط */}
+              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                 <TabsContent value="financial">
                   <div className="space-y-6">
                     {/* جدول الكميات */}
@@ -877,14 +915,15 @@ export default function RequestDetails() {
               </CardContent>
             </Card>
 
-            {/* الإجراءات */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>الإجراءات</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* أزرار النماذج الميدانية */}
-                {(user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
+            {/* الإجراءات - للموظفين فقط */}
+            {user?.role !== "service_requester" && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle>الإجراءات</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* أزرار النماذج الميدانية */}
+                  {(user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
                   <>
                     {(request.currentStage === "field_visit" || request.currentStage === "initial_review") && (
                       <Button 
@@ -1129,8 +1168,9 @@ export default function RequestDetails() {
                     </>
                   );
                 })()}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
