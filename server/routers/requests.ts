@@ -276,11 +276,19 @@ export const requestsRouter = router({
   search: protectedProcedure
     .input(searchRequestsSchema)
     .query(async ({ input, ctx }) => {
+      console.log('[search] User:', ctx.user.id, 'Role:', ctx.user.role);
+      try {
       const db = await getDb();
-      if (!db) return { requests: [], total: 0 };
+      if (!db) {
+        console.log('[search] No database connection');
+        return { requests: [], total: 0 };
+      }
 
       const conditions = [];
 
+      // المدير العام ومكتب المشاريع يرون جميع الطلبات
+      const adminRoles = ["super_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
+      
       // طالب الخدمة يرى فقط طلباته
       if (ctx.user.role === "service_requester") {
         conditions.push(eq(mosqueRequests.userId, ctx.user.id));
@@ -299,6 +307,8 @@ export const requestsRouter = router({
           sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.priority} = 'urgent')`
         );
       }
+      
+      // الأدوار الإدارية ترى جميع الطلبات (لا تضيف شروط)
 
       if (input.search) {
         conditions.push(
@@ -340,6 +350,7 @@ export const requestsRouter = router({
       }
 
       const results = await query.orderBy(desc(mosqueRequests.createdAt)).limit(input.limit).offset(offset);
+      console.log('[search] Results count:', results.length);
 
       // الحصول على العدد الإجمالي
       let countQuery = db.select({ count: sql<number>`count(*)` }).from(mosqueRequests);
@@ -348,6 +359,7 @@ export const requestsRouter = router({
       }
       const countResult = await countQuery;
       const total = countResult[0]?.count || 0;
+      console.log('[search] Total count:', total, 'Conditions:', conditions.length);
 
       return {
         requests: results.map(r => ({
@@ -358,6 +370,10 @@ export const requestsRouter = router({
         })),
         total,
       };
+      } catch (error) {
+        console.error('[search] Error:', error);
+        throw error;
+      }
     }),
 
   // الحصول على طلبات المستخدم الحالي
