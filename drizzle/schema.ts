@@ -31,13 +31,16 @@ export const programTypes = [
 
 // المراحل السبع للطلبات
 export const requestStages = [
-  "submitted",         // تقديم الطلب
-  "initial_review",    // المراجعة الأولية
-  "field_visit",       // الزيارة الميدانية
-  "technical_eval",    // التقييم الفني
-  "financial_eval",    // التقييم المالي
-  "execution",         // التنفيذ
-  "closed"             // الإغلاق
+  "submitted",           // تقديم الطلب
+  "initial_review",      // المراجعة الأولية
+  "field_visit",         // الزيارة الميدانية
+  "technical_eval",      // إعداد جدول الكميات
+  "financial_eval",      // التقييم المالي
+  "quotation_approval",  // اعتماد العرض
+  "contracting",         // التعاقد
+  "execution",           // التنفيذ
+  "handover",            // الاستلام
+  "closed"               // الإغلاق
 ] as const;
 
 // حالات الطلب

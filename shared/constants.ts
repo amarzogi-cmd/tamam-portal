@@ -123,7 +123,7 @@ export const PROGRAM_LABELS: Record<string, string> = {
   suqya: 'سقيا',
 };
 
-// ==================== المراحل السبع للطلبات ====================
+// ==================== المراحل العشر للطلبات ====================
 export const REQUEST_STAGES = {
   submitted: {
     key: 'submitted',
@@ -133,6 +133,7 @@ export const REQUEST_STAGES = {
     description: 'تم تقديم الطلب وبانتظار المراجعة',
     color: '#6B7280', // رمادي
     icon: 'FileText',
+    durationDays: 1,
   },
   initial_review: {
     key: 'initial_review',
@@ -142,6 +143,7 @@ export const REQUEST_STAGES = {
     description: 'مراجعة البيانات والمستندات',
     color: '#3B82F6', // أزرق
     icon: 'FileSearch',
+    durationDays: 3,
   },
   field_visit: {
     key: 'field_visit',
@@ -151,42 +153,77 @@ export const REQUEST_STAGES = {
     description: 'زيارة الموقع والمعاينة',
     color: '#8B5CF6', // بنفسجي
     icon: 'MapPin',
+    durationDays: 7,
   },
   technical_eval: {
     key: 'technical_eval',
-    name: 'التقييم الفني',
-    nameEn: 'Technical Evaluation',
+    name: 'إعداد جدول الكميات',
+    nameEn: 'BOQ Preparation',
     order: 4,
-    description: 'تقييم الاحتياجات الفنية',
+    description: 'إعداد جدول الكميات والمواصفات',
     color: '#F59E0B', // برتقالي
     icon: 'ClipboardCheck',
+    durationDays: 5,
   },
   financial_eval: {
     key: 'financial_eval',
     name: 'التقييم المالي',
     nameEn: 'Financial Evaluation',
     order: 5,
-    description: 'تقدير التكاليف والميزانية',
+    description: 'جمع عروض الأسعار والمقارنة',
     color: '#10B981', // أخضر
     icon: 'Calculator',
+    durationDays: 10,
+  },
+  quotation_approval: {
+    key: 'quotation_approval',
+    name: 'اعتماد العرض',
+    nameEn: 'Quotation Approval',
+    order: 6,
+    description: 'اعتماد العرض الفائز',
+    color: '#14B8A6', // أخضر فيروزي
+    icon: 'BadgeCheck',
+    durationDays: 3,
+  },
+  contracting: {
+    key: 'contracting',
+    name: 'التعاقد',
+    nameEn: 'Contracting',
+    order: 7,
+    description: 'إنشاء العقد وتوقيعه',
+    color: '#6366F1', // بنفسجي فاتح
+    icon: 'FileSignature',
+    durationDays: 5,
   },
   execution: {
     key: 'execution',
     name: 'التنفيذ',
     nameEn: 'Execution',
-    order: 6,
-    description: 'تنفيذ الأعمال المطلوبة',
+    order: 8,
+    description: 'تنفيذ الأعمال حسب مراحل المشروع',
     color: '#06B6D4', // سماوي
     icon: 'Cog',
+    durationDays: 0, // حسب المشروع
+  },
+  handover: {
+    key: 'handover',
+    name: 'الاستلام',
+    nameEn: 'Handover',
+    order: 9,
+    description: 'التقرير الختامي ومحضر الاستلام',
+    color: '#22C55E', // أخضر فاتح
+    icon: 'ClipboardList',
+    durationDays: 7,
   },
   closed: {
     key: 'closed',
     name: 'الإغلاق',
     nameEn: 'Closed',
-    order: 7,
-    description: 'تم إنجاز الطلب',
-    color: '#22C55E', // أخضر فاتح
+    order: 10,
+    description: 'قياس الرضا والتغذية الراجعة',
+    color: '#059669', // أخضر داكن
     icon: 'CheckCircle2',
+    durationDays: 14,
   },
 } as const;
 
@@ -194,9 +231,12 @@ export const STAGE_LABELS: Record<string, string> = {
   submitted: 'تقديم الطلب',
   initial_review: 'المراجعة الأولية',
   field_visit: 'الزيارة الميدانية',
-  technical_eval: 'التقييم الفني',
+  technical_eval: 'إعداد جدول الكميات',
   financial_eval: 'التقييم المالي',
+  quotation_approval: 'اعتماد العرض',
+  contracting: 'التعاقد',
   execution: 'التنفيذ',
+  handover: 'الاستلام',
   closed: 'الإغلاق',
 };
 
