@@ -228,22 +228,40 @@ export default function BOQ() {
             <CardDescription>اختر الطلب لعرض أو إنشاء جدول الكميات</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* قائمة الطلبات كبطاقات */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {requests?.requests?.map((request: any) => (
+                <div
+                  key={request.id}
+                  onClick={() => setSelectedRequestId(request.id.toString())}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
+                    selectedRequestId === request.id.toString()
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm text-primary">{request.requestNumber}</div>
+                      <div className="text-base font-medium mt-1">{request.mosqueName || "طلب جديد"}</div>
+                      {request.mosqueCity && (
+                        <div className="text-sm text-muted-foreground mt-1">{request.mosqueCity}</div>
+                      )}
+                    </div>
+                    {selectedRequestId === request.id.toString() && (
+                      <div className="p-1 bg-primary rounded-full">
+                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* أزرار الإجراءات */}
             <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <Label>الطلب</Label>
-                <Select value={selectedRequestId} onValueChange={setSelectedRequestId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الطلب..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {requests?.requests?.map((request: any) => (
-                      <SelectItem key={request.id} value={request.id.toString()}>
-                        {request.requestNumber} - {request.mosqueName || "طلب جديد"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               {selectedRequestId && (
                 <div className="flex gap-2">
                   <Button onClick={() => setShowAddDialog(true)}>

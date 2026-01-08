@@ -709,7 +709,7 @@ export default function Quotations() {
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="max-w-[95vw] w-[1400px] max-h-[95vh] overflow-y-auto">
+          <DialogContent className="!max-w-[98vw] !w-[98vw] max-h-[95vh] overflow-y-auto">
             <DialogHeader className="pb-4 border-b">
               <DialogTitle className="text-2xl flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
