@@ -44,6 +44,7 @@ import {
   CheckSquare,
   Banknote,
   TrendingUp,
+  Clock,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -144,6 +145,7 @@ const getMenuItems = (role: string) => {
       { icon: Palette, label: "الهوية البصرية", path: "/branding" },
       { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },
       { icon: Settings, label: "الإعدادات", path: "/settings" },
+      { icon: Clock, label: "إعدادات المراحل", path: "/stage-settings" },
     );
   }
 

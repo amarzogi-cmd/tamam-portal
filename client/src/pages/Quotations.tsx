@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +54,7 @@ import {
   Upload,
   Download,
   FileSpreadsheet,
+  FileDown,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -359,6 +362,141 @@ export default function Quotations() {
   const boqTotal = boqData?.items?.reduce((sum: number, item: any) => {
     return sum + (parseFloat(item.totalPrice) || 0);
   }, 0) || 0;
+
+  // دالة تصدير عرض السعر كـ PDF
+  const handleExportPDF = (quotation: any) => {
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // إعداد الخط العربي
+      doc.setFont("helvetica");
+      doc.setR2L(true);
+
+      // العنوان الرئيسي
+      doc.setFontSize(20);
+      doc.setTextColor(0, 100, 80);
+      doc.text("عرض سعر", 105, 20, { align: "center" });
+      
+      // خط فاصل
+      doc.setDrawColor(0, 100, 80);
+      doc.setLineWidth(0.5);
+      doc.line(20, 25, 190, 25);
+
+      // معلومات العرض
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      
+      let yPos = 35;
+      const lineHeight = 8;
+
+      // رقم العرض
+      doc.text(`Quotation Number: ${quotation.quotationNumber}`, 190, yPos, { align: "right" });
+      yPos += lineHeight;
+
+      // اسم المورد
+      doc.text(`Supplier: ${quotation.supplierName || "N/A"}`, 190, yPos, { align: "right" });
+      yPos += lineHeight;
+
+      // تاريخ التقديم
+      const submitDate = quotation.submittedAt ? new Date(quotation.submittedAt).toLocaleDateString("ar-SA") : "N/A";
+      doc.text(`Submission Date: ${submitDate}`, 190, yPos, { align: "right" });
+      yPos += lineHeight;
+
+      // تاريخ الصلاحية
+      const validUntil = quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString("ar-SA") : "N/A";
+      doc.text(`Valid Until: ${validUntil}`, 190, yPos, { align: "right" });
+      yPos += lineHeight;
+
+      // الحالة
+      const statusLabels: Record<string, string> = {
+        pending: "Pending Review",
+        negotiating: "Under Negotiation",
+        accepted: "Approved",
+        rejected: "Rejected",
+      };
+      doc.text(`Status: ${statusLabels[quotation.status] || quotation.status}`, 190, yPos, { align: "right" });
+      yPos += lineHeight * 2;
+
+      // جدول البنود
+      doc.setFontSize(14);
+      doc.setTextColor(0, 100, 80);
+      doc.text("Pricing Details", 105, yPos, { align: "center" });
+      yPos += 10;
+
+      // إعداد بيانات الجدول
+      const items = quotation.items || [];
+      const tableData = items.map((item: any, index: number) => [
+        (index + 1).toString(),
+        item.itemName || "N/A",
+        item.unit || "N/A",
+        parseFloat(item.quantity || 0).toLocaleString("en"),
+        parseFloat(item.unitPrice || 0).toLocaleString("en") + " SAR",
+        parseFloat(item.totalPrice || 0).toLocaleString("en") + " SAR",
+      ]);
+
+      // إضافة الجدول
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [["#", "Item", "Unit", "Quantity", "Unit Price", "Total"]],
+        body: tableData,
+        theme: "grid",
+        headStyles: {
+          fillColor: [0, 100, 80],
+          textColor: 255,
+          fontSize: 10,
+          halign: "center",
+        },
+        bodyStyles: {
+          fontSize: 9,
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 15 },
+          1: { cellWidth: 50, halign: "right" },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 35 },
+        },
+        margin: { left: 20, right: 20 },
+      });
+
+      // الإجمالي
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(14);
+      doc.setTextColor(0, 100, 80);
+      doc.text(`Total: ${parseFloat(quotation.totalAmount || 0).toLocaleString("en")} SAR`, 190, finalY, { align: "right" });
+
+      // إذا كان هناك مبلغ بعد التفاوض
+      if (quotation.negotiatedAmount) {
+        doc.text(`After Negotiation: ${parseFloat(quotation.negotiatedAmount).toLocaleString("en")} SAR`, 190, finalY + 8, { align: "right" });
+      }
+
+      // الملاحظات
+      if (quotation.notes) {
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Notes: ${quotation.notes}`, 190, finalY + 20, { align: "right", maxWidth: 170 });
+      }
+
+      // التذييل
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Tamam Portal - Mosque Care", 105, 285, { align: "center" });
+      doc.text(`Generated: ${new Date().toLocaleDateString("en")}`, 105, 290, { align: "center" });
+
+      // حفظ الملف
+      doc.save(`quotation_${quotation.quotationNumber}.pdf`);
+      toast.success("تم تصدير عرض السعر بنجاح");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("حدث خطأ أثناء تصدير PDF");
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -682,6 +820,16 @@ export default function Quotations() {
                                   إعادة للمراجعة
                                 </Button>
                               )}
+                              {/* زر تصدير PDF */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-purple-600"
+                                onClick={() => handleExportPDF(quotation)}
+                              >
+                                <FileDown className="h-4 w-4 ml-1" />
+                                PDF
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

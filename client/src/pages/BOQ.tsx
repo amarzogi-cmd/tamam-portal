@@ -78,6 +78,8 @@ export default function BOQ() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [filterProgram, setFilterProgram] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
   
@@ -228,9 +230,69 @@ export default function BOQ() {
             <CardDescription>اختر الطلب لعرض أو إنشاء جدول الكميات</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* فلاتر البحث */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-1 min-w-[200px]">
+                <Label className="mb-2 block">البحث</Label>
+                <Input
+                  placeholder="ابحث برقم الطلب أو اسم المسجد..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="w-[180px]">
+                <Label className="mb-2 block">البرنامج</Label>
+                <Select value={filterProgram} onValueChange={setFilterProgram}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="جميع البرامج" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع البرامج</SelectItem>
+                    <SelectItem value="bunyaan">بنيان</SelectItem>
+                    <SelectItem value="suqya">سقيا</SelectItem>
+                    <SelectItem value="daaem">دعائم</SelectItem>
+                    <SelectItem value="takyeef">تكييف</SelectItem>
+                    <SelectItem value="tawasul">تواصل</SelectItem>
+                    <SelectItem value="tatweer">تطوير</SelectItem>
+                    <SelectItem value="noor">نور</SelectItem>
+                    <SelectItem value="itar">إطار</SelectItem>
+                    <SelectItem value="amn">أمن</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[180px]">
+                <Label className="mb-2 block">الحالة</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="جميع الحالات" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">قيد الانتظار</SelectItem>
+                    <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                    <SelectItem value="completed">مكتمل</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* قائمة الطلبات كبطاقات */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {requests?.requests?.map((request: any) => (
+              {requests?.requests?.filter((request: any) => {
+                // فلتر البحث
+                const matchesSearch = !searchQuery || 
+                  request.requestNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  request.mosqueName?.toLowerCase().includes(searchQuery.toLowerCase());
+                
+                // فلتر البرنامج
+                const matchesProgram = filterProgram === "all" || request.programType === filterProgram;
+                
+                // فلتر الحالة
+                const matchesStatus = filterStatus === "all" || request.status === filterStatus;
+                
+                return matchesSearch && matchesProgram && matchesStatus;
+              }).map((request: any) => (
                 <div
                   key={request.id}
                   onClick={() => setSelectedRequestId(request.id.toString())}

@@ -70,6 +70,7 @@ import ProgressReports from "./pages/ProgressReports";
 import DisbursementOrders from "./pages/DisbursementOrders";
 import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import FinancialReport from "./pages/FinancialReport";
+import StageSettings from "./pages/StageSettings";
 import AdminGuard from "./components/AdminGuard";
 
 // مكون لحماية المسارات الإدارية
@@ -170,6 +171,9 @@ function Router() {
       
       {/* التقرير المالي - إدارية */}
       <Route path="/financial-report">{() => <AdminRoute component={FinancialReport} />}</Route>
+      
+      {/* إعدادات المراحل - إدارية */}
+      <Route path="/stage-settings">{() => <AdminRoute component={StageSettings} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

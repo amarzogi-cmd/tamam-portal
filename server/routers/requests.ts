@@ -17,6 +17,8 @@ import {
   quantitySchedules,
   quotations,
   projects,
+  stageSettings,
+  requestStageTracking,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -520,6 +522,25 @@ export const requestsRouter = router({
         relatedType: "request",
         relatedId: input.requestId,
       });
+
+      // تسجيل بداية المرحلة الجديدة للتتبع
+      const [stageSetting] = await db.select().from(stageSettings)
+        .where(eq(stageSettings.stageCode, input.newStage)).limit(1);
+      
+      if (stageSetting) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + stageSetting.durationDays);
+        
+        await db.insert(requestStageTracking).values({
+          requestId: input.requestId,
+          stageCode: input.newStage,
+          startedAt: new Date(),
+          dueAt: dueDate,
+          assignedTo: ctx.user.id,
+          isDelayed: false,
+          delayDays: 0,
+        });
+      }
 
       return { success: true, message: `تم تحويل الطلب إلى مرحلة ${newStageName} بنجاح` };
     }),

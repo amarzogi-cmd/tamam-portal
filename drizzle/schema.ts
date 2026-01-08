@@ -1016,6 +1016,60 @@ export const progressReports = mysqlTable("progress_reports", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// ==================== إعدادات المراحل والمدد الزمنية ====================
+
+// جدول إعدادات المراحل (المدد الزمنية قابلة للتخصيص)
+export const stageSettings = mysqlTable("stage_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  stageCode: varchar("stageCode", { length: 50 }).notNull().unique(), // كود المرحلة
+  stageName: varchar("stageName", { length: 100 }).notNull(), // اسم المرحلة بالعربية
+  stageOrder: int("stageOrder").notNull().default(0), // ترتيب المرحلة
+  durationDays: int("durationDays").notNull().default(3), // المدة المحددة بالأيام
+  warningDays: int("warningDays").default(1), // عدد أيام التنبيه قبل التأخير
+  escalationLevel1Days: int("escalationLevel1Days").default(1), // أيام إضافية للتصعيد للمدير المباشر
+  escalationLevel2Days: int("escalationLevel2Days").default(3), // أيام إضافية للتصعيد للمدير التنفيذي
+  isActive: boolean("isActive").default(true),
+  description: text("description"), // وصف المرحلة
+  requiredConditions: text("requiredConditions"), // الشروط المطلوبة للانتقال لهذه المرحلة (JSON)
+  availableActions: text("availableActions"), // الإجراءات المتاحة في هذه المرحلة (JSON)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول تتبع المراحل لكل طلب
+export const requestStageTracking = mysqlTable("request_stage_tracking", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  stageCode: varchar("stageCode", { length: 50 }).notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(), // تاريخ بداية المرحلة
+  dueAt: timestamp("dueAt").notNull(), // تاريخ الاستحقاق
+  completedAt: timestamp("completedAt"), // تاريخ الاكتمال
+  isDelayed: boolean("isDelayed").default(false), // هل متأخر
+  delayDays: int("delayDays").default(0), // عدد أيام التأخير
+  escalationLevel: int("escalationLevel").default(0), // مستوى التصعيد (0=لا, 1=مدير مباشر, 2=مدير تنفيذي)
+  assignedTo: int("assignedTo").references(() => users.id), // الموظف المسؤول
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول سجل التصعيدات
+export const escalationLogs = mysqlTable("escalation_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  stageCode: varchar("stageCode", { length: 50 }).notNull(),
+  escalationLevel: int("escalationLevel").notNull(), // 1=مدير مباشر, 2=مدير تنفيذي
+  escalatedTo: int("escalatedTo").notNull().references(() => users.id), // المسؤول الذي تم التصعيد إليه
+  escalatedFrom: int("escalatedFrom").references(() => users.id), // الموظف المتأخر
+  reason: text("reason"), // سبب التصعيد
+  delayDays: int("delayDays").notNull(), // عدد أيام التأخير
+  isResolved: boolean("isResolved").default(false), // هل تم حل المشكلة
+  resolvedAt: timestamp("resolvedAt"),
+  resolvedBy: int("resolvedBy").references(() => users.id),
+  resolution: text("resolution"), // كيف تم الحل
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // سجل ترقيم العقود
 export const contractNumberSequence = mysqlTable("contract_number_sequence", {
   id: int("id").autoincrement().primaryKey(),
@@ -1284,6 +1338,9 @@ export type InsertContractClause = typeof contractClauses.$inferInsert;
 export type ContractClauseValue = typeof contractClauseValues.$inferSelect;
 export type AuthorizedSignatory = typeof authorizedSignatories.$inferSelect;
 export type ClauseCategory = typeof clauseCategories[number];
+export type StageSetting = typeof stageSettings.$inferSelect;
+export type RequestStageTracking = typeof requestStageTracking.$inferSelect;
+export type EscalationLog = typeof escalationLogs.$inferSelect;
 
 // تصدير الثوابت
 export type UserRole = typeof userRoles[number];
