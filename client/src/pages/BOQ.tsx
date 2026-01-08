@@ -43,6 +43,9 @@ import {
   FileText,
   Loader2,
   Building2,
+  Upload,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 
 // تصنيفات البنود
@@ -242,10 +245,109 @@ export default function BOQ() {
                 </Select>
               </div>
               {selectedRequestId && (
-                <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة بند
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة بند
+                  </Button>
+                  {/* زر تحميل قالب Excel */}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const headers = ["التصنيف", "اسم البند", "الوصف", "الوحدة", "الكمية", "سعر الوحدة"];
+                      const example = [
+                        "electrical", "استبدال الإنارة", "استبدال كامل للإنارة الداخلية", "unit", "100", "50"
+                      ];
+                      const csvContent = [headers, example]
+                        .map(row => row.join("\t"))
+                        .join("\n");
+                      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "قالب_جدول_الكميات.csv";
+                      link.click();
+                      URL.revokeObjectURL(url);
+                      toast.success("تم تحميل القالب - التصنيفات: construction, electrical, plumbing, hvac, finishing, carpentry, painting, flooring, other | الوحدات: m2, m3, m, unit, kg, ton, lump_sum");
+                    }}
+                  >
+                    <Download className="h-4 w-4 ml-2" />
+                    تحميل قالب
+                  </Button>
+                  {/* زر استيراد من Excel */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        const reader = new FileReader();
+                        reader.onload = async (event) => {
+                          try {
+                            const text = event.target?.result as string;
+                            const lines = text.split("\n").filter(line => line.trim());
+                            if (lines.length < 2) {
+                              toast.error("الملف فارغ أو لا يحتوي على بيانات");
+                              return;
+                            }
+                            
+                            const dataLines = lines.slice(1);
+                            let addedCount = 0;
+                            let errorCount = 0;
+                            
+                            for (const line of dataLines) {
+                              const cols = line.split(/[\t,]/);
+                              if (cols.length >= 5) {
+                                const category = cols[0]?.trim() || "other";
+                                const itemName = cols[1]?.trim();
+                                const description = cols[2]?.trim() || "";
+                                const unit = cols[3]?.trim() || "unit";
+                                const quantity = parseFloat(cols[4]?.trim().replace(/[^\d.]/g, "")) || 0;
+                                const unitPrice = parseFloat(cols[5]?.trim().replace(/[^\d.]/g, "")) || 0;
+                                
+                                if (itemName && quantity > 0) {
+                                  try {
+                                    await addItemMutation.mutateAsync({
+                                      requestId: parseInt(selectedRequestId),
+                                      itemName,
+                                      itemDescription: description,
+                                      unit,
+                                      quantity,
+                                      unitPrice,
+                                      category,
+                                    });
+                                    addedCount++;
+                                  } catch {
+                                    errorCount++;
+                                  }
+                                }
+                              }
+                            }
+                            
+                            if (addedCount > 0) {
+                              toast.success(`تم استيراد ${addedCount} بند بنجاح`);
+                              refetch();
+                            }
+                            if (errorCount > 0) {
+                              toast.error(`فشل استيراد ${errorCount} بند`);
+                            }
+                          } catch (err) {
+                            toast.error("حدث خطأ أثناء قراءة الملف");
+                          }
+                        };
+                        reader.readAsText(file);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button variant="default">
+                      <Upload className="h-4 w-4 ml-2" />
+                      استيراد من Excel
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           </CardContent>

@@ -49,6 +49,9 @@ import {
   Calendar,
   ClipboardList,
   AlertCircle,
+  Upload,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -706,78 +709,182 @@ export default function Quotations() {
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl flex items-center gap-2">
-                <Receipt className="h-6 w-6 text-primary" />
+          <DialogContent className="max-w-[95vw] w-[1400px] max-h-[95vh] overflow-y-auto">
+            <DialogHeader className="pb-4 border-b">
+              <DialogTitle className="text-2xl flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Receipt className="h-7 w-7 text-primary" />
+                </div>
                 إضافة عرض سعر جديد
               </DialogTitle>
-              <DialogDescription>أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
+              <DialogDescription className="text-base">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6">
-              {/* معلومات المورد والصلاحية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg border">
-                <div className="md:col-span-2">
-                  <Label className="text-base font-medium">المورد *</Label>
-                  <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                    <SelectTrigger className="mt-1.5 h-11">
-                      <SelectValue placeholder="اختر المورد..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers?.map((supplier: any) => (
-                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{supplier.name}</span>
-                            {supplier.approvalStatus !== "approved" && (
-                              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">غير معتمد</Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Checkbox
-                      id="includeUnapproved"
-                      checked={includeUnapproved}
-                      onCheckedChange={(checked) => setIncludeUnapproved(checked as boolean)}
-                    />
-                    <label htmlFor="includeUnapproved" className="text-sm text-muted-foreground">
-                      إظهار الموردين غير المعتمدين
-                    </label>
-                  </div>
+            <div className="space-y-6 py-4">
+              {/* معلومات المورد - في الأعلى */}
+              <div className="p-5 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <Building2 className="h-6 w-6 text-primary" />
+                  <h3 className="text-lg font-bold text-primary">بيانات المورد</h3>
                 </div>
-                <div>
-                  <Label className="text-base font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-500" />
-                    آخر موعد للعرض
-                  </Label>
-                  <Input
-                    type="date"
-                    value={formData.validUntil}
-                    onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                    className="mt-1.5 h-11 border-orange-200 focus:border-orange-400"
-                  />
-                  {formData.validUntil && (
-                    <p className="text-xs text-orange-600 mt-1 font-medium">
-                      ينتهي في: {new Date(formData.validUntil).toLocaleDateString('ar-SA')}
-                    </p>
-                  )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">اسم المورد *</Label>
+                    <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                      <SelectTrigger className="h-12 text-base bg-white">
+                        <SelectValue placeholder="اختر المورد..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliers?.map((supplier: any) => (
+                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{supplier.name}</span>
+                              {supplier.approvalStatus !== "approved" && (
+                                <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">غير معتمد</Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Checkbox
+                        id="includeUnapproved"
+                        checked={includeUnapproved}
+                        onCheckedChange={(checked) => setIncludeUnapproved(checked as boolean)}
+                      />
+                      <label htmlFor="includeUnapproved" className="text-sm text-muted-foreground">
+                        إظهار الموردين غير المعتمدين
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold mb-2 flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-orange-500" />
+                      تاريخ انتهاء صلاحية العرض
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.validUntil}
+                      onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                      className="h-12 text-base bg-white border-orange-200 focus:border-orange-400"
+                    />
+                    {formData.validUntil && (
+                      <div className="mt-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                        <p className="text-sm text-orange-700 font-medium flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          ينتهي في: {new Date(formData.validUntil).toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* جدول تسعير البنود */}
               {quotationItems.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-base font-medium flex items-center gap-2">
-                      <ClipboardList className="h-5 w-5 text-primary" />
-                      تسعير البنود ({quotationItems.length} بند)
-                    </Label>
-                    <Badge variant="outline" className="text-sm">
-                      المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
-                    </Badge>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Label className="text-lg font-semibold flex items-center gap-2">
+                        <ClipboardList className="h-5 w-5 text-primary" />
+                        تسعير البنود ({quotationItems.length} بند)
+                      </Label>
+                      <Badge variant="outline" className="text-sm">
+                        المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* زر تحميل قالب Excel */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // إنشاء قالب Excel للتحميل
+                          const headers = ["رقم البند", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"];
+                          const rows = quotationItems.map((item, idx) => [
+                            idx + 1,
+                            item.itemName,
+                            item.unit,
+                            item.quantity,
+                            ""
+                          ]);
+                          const csvContent = [headers, ...rows]
+                            .map(row => row.join("\t"))
+                            .join("\n");
+                          const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = "قالب_تسعير_البنود.csv";
+                          link.click();
+                          URL.revokeObjectURL(url);
+                          toast.success("تم تحميل القالب - أدخل الأسعار في عمود 'سعر الوحدة' ثم ارفع الملف");
+                        }}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        تحميل قالب
+                      </Button>
+                      {/* زر استيراد من Excel */}
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              try {
+                                const text = event.target?.result as string;
+                                const lines = text.split("\n").filter(line => line.trim());
+                                if (lines.length < 2) {
+                                  toast.error("الملف فارغ أو لا يحتوي على بيانات");
+                                  return;
+                                }
+                                
+                                // تخطي السطر الأول (العناوين)
+                                const dataLines = lines.slice(1);
+                                let updatedCount = 0;
+                                
+                                setQuotationItems(prev => {
+                                  const updated = [...prev];
+                                  dataLines.forEach((line, idx) => {
+                                    const cols = line.split(/[\t,]/);
+                                    const priceCol = cols[4]?.trim(); // عمود سعر الوحدة
+                                    if (priceCol && idx < updated.length) {
+                                      const price = parseFloat(priceCol.replace(/[^\d.]/g, ""));
+                                      if (!isNaN(price) && price > 0) {
+                                        updated[idx] = {
+                                          ...updated[idx],
+                                          unitPrice: price.toString(),
+                                          totalPrice: price * updated[idx].quantity
+                                        };
+                                        updatedCount++;
+                                      }
+                                    }
+                                  });
+                                  return updated;
+                                });
+                                
+                                toast.success(`تم استيراد ${updatedCount} سعر بنجاح`);
+                              } catch (err) {
+                                toast.error("حدث خطأ أثناء قراءة الملف");
+                              }
+                            };
+                            reader.readAsText(file);
+                            e.target.value = ""; // إعادة تعيين الحقل
+                          }}
+                        />
+                        <Button variant="default" size="sm" className="gap-2">
+                          <Upload className="h-4 w-4" />
+                          استيراد من Excel
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <div className="border rounded-lg overflow-hidden shadow-sm">
                     <Table>
