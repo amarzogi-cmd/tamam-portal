@@ -562,26 +562,33 @@ export default function SmartStatusBar({
 
   // الحصول على العنوان والوصف الحالي
   const getCurrentInfo = () => {
+    // عرض اسم المرحلة الرئيسية مع الخطوة الفرعية
+    const mainStageLabel = STAGE_LABELS[currentStage] || stageInfo.title;
+    
     if (currentStage === 'boq_preparation' && boqStep) {
       return {
-        title: `الخطوة ${boqStep.step}: ${boqStep.label}`,
+        title: mainStageLabel,
+        subtitle: `${boqStep.label}`,
         description: boqStep.description,
       };
     }
     if (currentStage === 'financial_eval' && financialStep) {
       return {
-        title: `الخطوة ${financialStep.step}: ${financialStep.label}`,
+        title: mainStageLabel,
+        subtitle: `${financialStep.label}`,
         description: financialStep.description,
       };
     }
     if (currentStage === 'contracting' && contractingStep) {
       return {
-        title: `الخطوة ${contractingStep.step}: ${contractingStep.label}`,
+        title: mainStageLabel,
+        subtitle: `${contractingStep.label}`,
         description: contractingStep.description,
       };
     }
     return {
-      title: stageInfo.title,
+      title: mainStageLabel,
+      subtitle: null,
       description: stageInfo.description,
     };
   };
@@ -601,10 +608,15 @@ export default function SmartStatusBar({
               <Icon className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className={`font-bold ${textColorClasses[stageInfo.color]}`}>
                   {currentInfo.title}
                 </h3>
+                {currentInfo.subtitle && (
+                  <span className={`text-sm ${textColorClasses[stageInfo.color]} opacity-80`}>
+                    • {currentInfo.subtitle}
+                  </span>
+                )}
                 <span className="text-xs bg-white/50 px-2 py-0.5 rounded-full">
                   {progress}% مكتمل
                 </span>
