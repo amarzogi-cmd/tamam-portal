@@ -584,6 +584,7 @@ export const quotationStatuses = [
   "pending",      // قيد المراجعة
   "negotiating",  // قيد التفاوض
   "accepted",     // معتمد
+  "approved",     // معتمد نهائياً
   "rejected",     // مرفوض
   "expired"       // منتهي الصلاحية
 ] as const;
@@ -596,8 +597,21 @@ export const quotations = mysqlTable("quotations", {
   projectId: int("projectId").references(() => projects.id),
   supplierId: int("supplierId").notNull().references(() => suppliers.id),
   
-  // المبلغ الأصلي من المورد
+  // المبلغ الأصلي من المورد (قبل الضريبة والخصم)
   totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
+  
+  // بيانات الضريبة
+  includesTax: boolean("includesTax").default(false), // هل السعر شامل الضريبة
+  taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("15.00"), // نسبة الضريبة (افتراضي 15%)
+  taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }), // مبلغ الضريبة
+  
+  // بيانات الخصم
+  discountType: mysqlEnum("discountType", ["percentage", "fixed"]), // نوع الخصم: نسبة مئوية أو مبلغ ثابت
+  discountValue: decimal("discountValue", { precision: 15, scale: 2 }), // قيمة الخصم (نسبة أو مبلغ)
+  discountAmount: decimal("discountAmount", { precision: 15, scale: 2 }), // مبلغ الخصم المحسوب
+  
+  // المبلغ النهائي (بعد الضريبة والخصم)
+  finalAmount: decimal("finalAmount", { precision: 15, scale: 2 }),
   
   // بيانات التفاوض
   negotiatedAmount: decimal("negotiatedAmount", { precision: 15, scale: 2 }), // المبلغ بعد التفاوض

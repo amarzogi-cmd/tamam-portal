@@ -407,7 +407,7 @@ export default function SmartStatusBar({
 
       return (
         <Button 
-          onClick={() => onNavigate(`/requests/${request.id}${financialStep.actionPath}`)}
+          onClick={() => onNavigate(financialStep.actionPath === '/quotations' ? `/quotations?requestId=${request.id}` : `/requests/${request.id}${financialStep.actionPath}`)}
           className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
         >
           <DollarSign className="w-4 h-4 ml-2" />

@@ -47,10 +47,12 @@ const programTypes = [
   "sedana", "taqa", "miyah", "suqya"
 ] as const;
 
-// المراحل السبع
+// المراحل الـ 11
 const requestStages = [
   "submitted", "initial_review", "field_visit", 
-  "technical_eval", "financial_eval", "execution", "closed"
+  "technical_eval", "boq_preparation", "financial_eval", 
+  "quotation_approval", "contracting", "execution", 
+  "handover", "closed"
 ] as const;
 
 // حالات الطلب
@@ -491,7 +493,7 @@ export const requestsRouter = router({
             const acceptedQuotes = await db.select().from(quotations)
               .where(and(
                 eq(quotations.requestId, input.requestId),
-                eq(quotations.status, 'accepted')
+                inArray(quotations.status, ['accepted', 'approved'])
               )).limit(1);
             isMet = acceptedQuotes.length > 0;
           }

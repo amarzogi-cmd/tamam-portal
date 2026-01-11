@@ -198,7 +198,7 @@ export default function ContractForm() {
     if (approvedQuotation) {
       const quotations = (approvedQuotation as any).quotations || approvedQuotation;
       if (Array.isArray(quotations)) {
-        const accepted = quotations.find((q: any) => q.status === "accepted");
+        const accepted = quotations.find((q: any) => q.status === "accepted" || q.status === "approved");
         if (accepted) {
           // المبلغ الأصلي من المورد
           const originalAmount = parseFloat(accepted.totalAmount) || 0;

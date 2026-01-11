@@ -83,13 +83,17 @@ export default function Quotations() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
+  // قراءة requestId من query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestIdFromUrl = urlParams.get('requestId');
+
   // حماية الصفحة - منع طالب الخدمة من الوصول
   if (user?.role === "service_requester") {
     navigate("/requester");
     return null;
   }
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [selectedRequestId, setSelectedRequestId] = useState<string>("");
+  const [selectedRequestId, setSelectedRequestId] = useState<string>(requestIdFromUrl || "");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [includeUnapproved, setIncludeUnapproved] = useState(true);
   
@@ -110,6 +114,12 @@ export default function Quotations() {
     quotationNumber: "",
     validUntil: "",
     notes: "",
+    // حقول الضريبة
+    includesTax: false, // هل السعر شامل الضريبة
+    taxRate: "15.00", // نسبة الضريبة (افتراضي 15%)
+    // حقول الخصم
+    discountType: "" as "" | "none" | "percentage" | "fixed", // نوع الخصم
+    discountValue: "", // قيمة الخصم
   });
 
   // حالة تسعير البنود
@@ -222,6 +232,10 @@ export default function Quotations() {
       quotationNumber: "",
       validUntil: "",
       notes: "",
+      includesTax: false,
+      taxRate: "15.00",
+      discountType: "" as "" | "none" | "percentage" | "fixed",
+      discountValue: "",
     });
     setSelectedSupplierId("");
     setQuotationItems([]);
@@ -268,12 +282,40 @@ export default function Quotations() {
       return;
     }
 
+    // حساب المبلغ النهائي بعد الخصم والضريبة
+    let finalAmount = totalAmount;
+    let discountAmount = 0;
+    let taxAmount = 0;
+    
+    // حساب الخصم
+    if (formData.discountType && formData.discountType !== "none" && formData.discountValue) {
+      discountAmount = formData.discountType === "percentage" 
+        ? (totalAmount * parseFloat(formData.discountValue) / 100)
+        : parseFloat(formData.discountValue);
+      finalAmount -= discountAmount;
+    }
+    
+    // حساب الضريبة
+    if (formData.includesTax) {
+      taxAmount = finalAmount * parseFloat(formData.taxRate || "15") / 100;
+      finalAmount += taxAmount;
+    }
+
     addQuotationMutation.mutate({
       requestId: parseInt(selectedRequestId),
       supplierId: parseInt(selectedSupplierId),
       totalAmount: totalAmount,
+      finalAmount: finalAmount,
       validUntil: formData.validUntil ? new Date(formData.validUntil) : undefined,
       notes: formData.notes,
+      // حقول الضريبة
+      includesTax: formData.includesTax,
+      taxRate: formData.includesTax ? parseFloat(formData.taxRate || "15") : null,
+      taxAmount: formData.includesTax ? taxAmount : null,
+      // حقول الخصم
+      discountType: formData.discountType && formData.discountType !== "none" ? formData.discountType : null,
+      discountValue: formData.discountType && formData.discountType !== "none" && formData.discountValue ? parseFloat(formData.discountValue) : null,
+      discountAmount: discountAmount > 0 ? discountAmount : null,
       items: quotationItems.map((item) => ({
         boqItemId: item.boqItemId,
         itemName: item.itemName,
@@ -1100,6 +1142,140 @@ export default function Quotations() {
                   <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً قبل إضافة عروض الأسعار</p>
                 </div>
               )}
+
+              {/* قسم الضريبة والخصم */}
+              <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <Receipt className="h-6 w-6 text-amber-600" />
+                  <h3 className="text-lg font-bold text-amber-700">الضريبة والخصم</h3>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* قسم الضريبة */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="includesTax"
+                        checked={formData.includesTax}
+                        onCheckedChange={(checked) => setFormData({ ...formData, includesTax: checked as boolean })}
+                      />
+                      <label htmlFor="includesTax" className="text-base font-medium cursor-pointer">
+                        السعر شامل ضريبة القيمة المضافة
+                      </label>
+                    </div>
+                    {formData.includesTax && (
+                      <div>
+                        <Label className="text-sm font-semibold mb-2 block">نسبة الضريبة (%)</Label>
+                        <Input
+                          type="number"
+                          value={formData.taxRate}
+                          onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
+                          placeholder="15.00"
+                          className="h-10 w-32 bg-white"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">النسبة الافتراضية 15%</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* قسم الخصم */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-semibold mb-2 block">نوع الخصم</Label>
+                      <Select 
+                        value={formData.discountType} 
+                        onValueChange={(value) => setFormData({ ...formData, discountType: value as "" | "none" | "percentage" | "fixed" })}
+                      >
+                        <SelectTrigger className="h-10 bg-white">
+                          <SelectValue placeholder="بدون خصم" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">بدون خصم</SelectItem>
+                          <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
+                          <SelectItem value="fixed">مبلغ ثابت (ريال)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.discountType && formData.discountType !== "none" && (
+                      <div>
+                        <Label className="text-sm font-semibold mb-2 block">
+                          {formData.discountType === "percentage" ? "نسبة الخصم (%)" : "مبلغ الخصم (ريال)"}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={formData.discountValue}
+                          onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                          placeholder={formData.discountType === "percentage" ? "0.00" : "0"}
+                          className="h-10 w-40 bg-white"
+                          min="0"
+                          step={formData.discountType === "percentage" ? "0.01" : "1"}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* ملخص الحسابات */}
+                {(formData.includesTax || (formData.discountType && formData.discountType !== "none" && formData.discountValue)) && (
+                  <div className="mt-4 p-4 bg-white rounded-lg border border-amber-200">
+                    <h4 className="font-semibold text-amber-700 mb-3">ملخص الحسابات</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>المبلغ الأساسي:</span>
+                        <span className="font-medium">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                      </div>
+                      {formData.discountType && formData.discountType !== "none" && formData.discountValue && (
+                        <div className="flex justify-between text-red-600">
+                          <span>الخصم ({formData.discountType === "percentage" ? `${formData.discountValue}%` : `${parseFloat(formData.discountValue).toLocaleString("ar-SA")} ريال`}):</span>
+                          <span className="font-medium">-{(() => {
+                            const discount = formData.discountType === "percentage" 
+                              ? (totalAmount * parseFloat(formData.discountValue || "0") / 100)
+                              : parseFloat(formData.discountValue || "0");
+                            return discount.toLocaleString("ar-SA");
+                          })()} ريال</span>
+                        </div>
+                      )}
+                      {formData.includesTax && (
+                        <div className="flex justify-between text-green-600">
+                          <span>ضريبة القيمة المضافة ({formData.taxRate}%):</span>
+                          <span className="font-medium">+{(() => {
+                            let baseAmount = totalAmount;
+                            if (formData.discountType && formData.discountType !== "none" && formData.discountValue) {
+                              const discount = formData.discountType === "percentage" 
+                                ? (totalAmount * parseFloat(formData.discountValue || "0") / 100)
+                                : parseFloat(formData.discountValue || "0");
+                              baseAmount -= discount;
+                            }
+                            const tax = baseAmount * parseFloat(formData.taxRate || "15") / 100;
+                            return tax.toLocaleString("ar-SA");
+                          })()} ريال</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t border-amber-200 font-bold text-lg">
+                        <span>المبلغ النهائي:</span>
+                        <span className="text-primary">{(() => {
+                          let finalAmount = totalAmount;
+                          // حساب الخصم
+                          if (formData.discountType && formData.discountType !== "none" && formData.discountValue) {
+                            const discount = formData.discountType === "percentage" 
+                              ? (totalAmount * parseFloat(formData.discountValue || "0") / 100)
+                              : parseFloat(formData.discountValue || "0");
+                            finalAmount -= discount;
+                          }
+                          // حساب الضريبة
+                          if (formData.includesTax) {
+                            const tax = finalAmount * parseFloat(formData.taxRate || "15") / 100;
+                            finalAmount += tax;
+                          }
+                          return finalAmount.toLocaleString("ar-SA");
+                        })()} ريال</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* ملاحظات */}
               <div>

@@ -244,6 +244,54 @@ export default function RequestDetails() {
   const handleReactivateQuotation = (id: number) => {
     updateQuotationStatusMutation.mutate({ id, status: "pending" });
   };
+
+  // تصدير عرض السعر ك PDF
+  const handleExportQuotationPDF = async (quotation: any) => {
+    try {
+      // استيراد jsPDF ديناميكياً
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // إعداد الخط العربي
+      doc.setFont('helvetica');
+      doc.setR2L(true);
+
+      // العنوان
+      doc.setFontSize(20);
+      doc.text('عرض سعر', 105, 20, { align: 'center' });
+
+      // معلومات العرض
+      doc.setFontSize(12);
+      let y = 40;
+      doc.text(`رقم العرض: ${quotation.quotationNumber || '-'}`, 190, y, { align: 'right' });
+      y += 8;
+      doc.text(`المورد: ${quotation.supplier?.companyName || '-'}`, 190, y, { align: 'right' });
+      y += 8;
+      doc.text(`المبلغ الإجمالي: ${quotation.totalAmount?.toLocaleString() || 0} ريال`, 190, y, { align: 'right' });
+      y += 8;
+      if (quotation.approvedAmount) {
+        doc.text(`المبلغ المعتمد: ${quotation.approvedAmount.toLocaleString()} ريال`, 190, y, { align: 'right' });
+        y += 8;
+      }
+      doc.text(`صالح حتى: ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('ar-SA') : '-'}`, 190, y, { align: 'right' });
+      y += 8;
+      const statusText = quotation.status === 'approved' || quotation.status === 'accepted' ? 'معتمد' : quotation.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
+      doc.text(`الحالة: ${statusText}`, 190, y, { align: 'right' });
+
+      // حفظ الملف
+      doc.save(`quotation-${quotation.quotationNumber || quotation.id}.pdf`);
+      toast.success('تم تصدير عرض السعر بنجاح');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('حدث خطأ أثناء تصدير PDF');
+    }
+  };
   
   // mutation لإسناد الزيارة الميدانية
   const assignFieldVisitMutation = trpc.requests.assignFieldVisit.useMutation({
@@ -753,7 +801,7 @@ export default function RequestDetails() {
                             </div>
                             <div className="mt-4 p-3 bg-primary/10 rounded-lg">
                               <p className="text-lg font-bold text-primary">
-                                إجمالي جدول الكميات: {boqItems.items.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0).toLocaleString()} ريال
+                                إجمالي جدول الكميات: {boqItems.items.reduce((sum: number, item: any) => sum + (parseFloat(item.totalPrice) || 0), 0).toLocaleString('ar-SA')} ريال
                               </p>
                             </div>
                           </>
@@ -863,6 +911,16 @@ export default function RequestDetails() {
                                             إعادة للمراجعة
                                           </Button>
                                         )}
+                                        {/* زر تصدير PDF */}
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 h-7 px-2"
+                                          onClick={() => handleExportQuotationPDF(q)}
+                                        >
+                                          <FileText className="h-4 w-4 ml-1" />
+                                          PDF
+                                        </Button>
                                       </div>
                                     </td>
                                   </tr>

@@ -594,6 +594,7 @@ export const projectsRouter = router({
       requestId: z.number().optional(),
       supplierId: z.number(),
       totalAmount: z.number().positive(),
+      finalAmount: z.number().positive().optional(),
       validUntil: z.date().optional(),
       items: z.array(z.object({
         boqItemId: z.number().optional(),
@@ -604,6 +605,14 @@ export const projectsRouter = router({
         totalPrice: z.number(),
       })).optional(),
       notes: z.string().optional(),
+      // حقول الضريبة
+      includesTax: z.boolean().optional(),
+      taxRate: z.number().min(0).max(100).nullable().optional(),
+      taxAmount: z.number().nullable().optional(),
+      // حقول الخصم
+      discountType: z.enum(["percentage", "fixed"]).nullable().optional(),
+      discountValue: z.number().nullable().optional(),
+      discountAmount: z.number().nullable().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -617,10 +626,19 @@ export const projectsRouter = router({
         requestId: input.requestId,
         supplierId: input.supplierId,
         totalAmount: input.totalAmount.toString(),
+        finalAmount: input.finalAmount?.toString() || input.totalAmount.toString(),
         validUntil: input.validUntil,
         items: input.items,
         notes: input.notes,
         status: "pending",
+        // حقول الضريبة
+        includesTax: input.includesTax || false,
+        taxRate: input.taxRate?.toString() || null,
+        taxAmount: input.taxAmount?.toString() || null,
+        // حقول الخصم
+        discountType: input.discountType || null,
+        discountValue: input.discountValue?.toString() || null,
+        discountAmount: input.discountAmount?.toString() || null,
       });
 
       return { id: quotation.insertId, quotationNumber };
