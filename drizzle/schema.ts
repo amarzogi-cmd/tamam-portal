@@ -29,18 +29,68 @@ export const programTypes = [
   "suqya"      // سقيا - توفير ماء الشرب
 ] as const;
 
-// المراحل السبع للطلبات
+// المراحل الرئيسية للطلبات (11 مرحلة)
 export const requestStages = [
   "submitted",           // تقديم الطلب
   "initial_review",      // المراجعة الأولية
   "field_visit",         // الزيارة الميدانية
-  "technical_eval",      // إعداد جدول الكميات
+  "technical_eval",      // التقييم الفني
+  "boq_preparation",     // إعداد جدول الكميات
   "financial_eval",      // التقييم المالي
   "quotation_approval",  // اعتماد العرض
   "contracting",         // التعاقد
   "execution",           // التنفيذ
   "handover",            // الاستلام
   "closed"               // الإغلاق
+] as const;
+
+// المراحل الفرعية (الإجراءات)
+export const subStages = [
+  // الزيارة الميدانية
+  "field_visit_assign",
+  "field_visit_schedule",
+  "field_visit_execute",
+  "field_visit_report",
+  // التقييم الفني
+  "technical_eval_review",
+  "technical_eval_decision",
+  // إعداد جدول الكميات
+  "boq_items_add",
+  "boq_review",
+  "boq_approve",
+  // التقييم المالي
+  "financial_request_quotes",
+  "financial_receive_quotes",
+  "financial_compare",
+  // التعاقد
+  "contract_prepare",
+  "contract_review",
+  "contract_sign",
+  "contract_to_project",
+  // التنفيذ
+  "execution_progress_report",
+  "execution_payment_request",
+  "execution_payment_order",
+  // الاستلام
+  "handover_preliminary",
+  "handover_warranty",
+  "handover_final",
+  "handover_final_report",
+  "handover_final_payment",
+  // الإغلاق
+  "closure_stakeholder_satisfaction",
+  "closure_beneficiary_satisfaction",
+  "closure_publish",
+  "closure_feedback",
+  "closure_archive",
+] as const;
+
+// قرارات التقييم الفني
+export const technicalDecisions = [
+  "apology",           // الاعتذار عن الطلب
+  "suspension",        // تعليق الطلب
+  "quick_response",    // التحويل للاستجابة السريعة
+  "convert_to_project" // التحويل إلى مشروع
 ] as const;
 
 // حالات الطلب
@@ -1044,6 +1094,7 @@ export const requestStageTracking = mysqlTable("request_stage_tracking", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   stageCode: varchar("stageCode", { length: 50 }).notNull(),
+  subStageCode: varchar("subStageCode", { length: 50 }), // المرحلة الفرعية الحالية
   startedAt: timestamp("startedAt").defaultNow().notNull(), // تاريخ بداية المرحلة
   dueAt: timestamp("dueAt").notNull(), // تاريخ الاستحقاق
   completedAt: timestamp("completedAt"), // تاريخ الاكتمال
@@ -1052,6 +1103,25 @@ export const requestStageTracking = mysqlTable("request_stage_tracking", {
   escalationLevel: int("escalationLevel").default(0), // مستوى التصعيد (0=لا, 1=مدير مباشر, 2=مدير تنفيذي)
   assignedTo: int("assignedTo").references(() => users.id), // الموظف المسؤول
   notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول تتبع المراحل الفرعية
+export const requestSubStageTracking = mysqlTable("request_sub_stage_tracking", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  parentStageCode: varchar("parentStageCode", { length: 50 }).notNull(), // المرحلة الرئيسية
+  subStageCode: varchar("subStageCode", { length: 50 }).notNull(), // المرحلة الفرعية
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  dueAt: timestamp("dueAt").notNull(),
+  completedAt: timestamp("completedAt"),
+  isDelayed: boolean("isDelayed").default(false),
+  delayDays: int("delayDays").default(0),
+  assignedTo: int("assignedTo").references(() => users.id),
+  completedBy: int("completedBy").references(() => users.id),
+  notes: text("notes"),
+  actionData: text("actionData"), // بيانات الإجراء (JSON)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

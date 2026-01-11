@@ -52,8 +52,8 @@ describe("نظام طلبات الصرف وأوامر الصرف", () => {
 
   describe("طلبات الصرف", () => {
     it("يجب أن يتم إنشاء طلب صرف جديد بنجاح", async () => {
-      if (!testProjectId || !testUserId) {
-        console.log("تخطي الاختبار: لا توجد بيانات اختبار");
+      if (!testProjectId || !testUserId || !testContractId) {
+        console.log("تخطي الاختبار: لا توجد بيانات اختبار (مشروع/مستخدم/عقد)");
         return;
       }
 

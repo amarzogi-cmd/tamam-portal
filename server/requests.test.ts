@@ -115,8 +115,8 @@ describe("Mosques Router", () => {
       expect(result).toEqual({
         total: 0,
         byCity: {},
-        byStatus: {},
-        byOwnership: {},
+        byGovernorate: {},
+        byApprovalStatus: {},
       });
     });
   });
@@ -206,19 +206,21 @@ describe("Constants", () => {
     expect(Object.keys(PROGRAM_LABELS)).toHaveLength(9);
   });
 
-  it("should have all 7 stages defined", async () => {
+  it("should have all 11 stages defined", async () => {
     const { STAGE_LABELS } = await import("../shared/constants");
     
     const expectedStages = [
       "submitted", "initial_review", "field_visit", 
-      "technical_eval", "financial_eval", "execution", "closed"
+      "technical_eval", "boq_preparation", "financial_eval",
+      "quotation_approval", "contracting", "execution", 
+      "handover", "closed"
     ];
     
     expectedStages.forEach(stage => {
       expect(STAGE_LABELS).toHaveProperty(stage);
     });
     
-    expect(Object.keys(STAGE_LABELS)).toHaveLength(7);
+    expect(Object.keys(STAGE_LABELS)).toHaveLength(11);
   });
 
   it("should have all 9 roles defined", async () => {

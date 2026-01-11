@@ -123,7 +123,7 @@ export const PROGRAM_LABELS: Record<string, string> = {
   suqya: 'سقيا',
 };
 
-// ==================== المراحل العشر للطلبات ====================
+// ==================== المراحل الرئيسية للطلبات (11 مرحلة) ====================
 export const REQUEST_STAGES = {
   submitted: {
     key: 'submitted',
@@ -131,7 +131,7 @@ export const REQUEST_STAGES = {
     nameEn: 'Submitted',
     order: 1,
     description: 'تم تقديم الطلب وبانتظار المراجعة',
-    color: '#6B7280', // رمادي
+    color: '#6B7280',
     icon: 'FileText',
     durationDays: 1,
   },
@@ -141,7 +141,7 @@ export const REQUEST_STAGES = {
     nameEn: 'Initial Review',
     order: 2,
     description: 'مراجعة البيانات والمستندات',
-    color: '#3B82F6', // أزرق
+    color: '#3B82F6',
     icon: 'FileSearch',
     durationDays: 3,
   },
@@ -150,28 +150,38 @@ export const REQUEST_STAGES = {
     name: 'الزيارة الميدانية',
     nameEn: 'Field Visit',
     order: 3,
-    description: 'زيارة الموقع والمعاينة',
-    color: '#8B5CF6', // بنفسجي
+    description: 'إسناد وجدولة وتنفيذ الزيارة ورفع التقرير',
+    color: '#8B5CF6',
     icon: 'MapPin',
     durationDays: 7,
   },
   technical_eval: {
     key: 'technical_eval',
+    name: 'التقييم الفني',
+    nameEn: 'Technical Evaluation',
+    order: 4,
+    description: 'اتخاذ القرار: اعتذار/تعليق/استجابة سريعة/تحويل لمشروع',
+    color: '#F59E0B',
+    icon: 'ClipboardCheck',
+    durationDays: 5,
+  },
+  boq_preparation: {
+    key: 'boq_preparation',
     name: 'إعداد جدول الكميات',
     nameEn: 'BOQ Preparation',
-    order: 4,
+    order: 5,
     description: 'إعداد جدول الكميات والمواصفات',
-    color: '#F59E0B', // برتقالي
-    icon: 'ClipboardCheck',
+    color: '#EC4899',
+    icon: 'Table',
     durationDays: 5,
   },
   financial_eval: {
     key: 'financial_eval',
     name: 'التقييم المالي',
     nameEn: 'Financial Evaluation',
-    order: 5,
+    order: 6,
     description: 'جمع عروض الأسعار والمقارنة',
-    color: '#10B981', // أخضر
+    color: '#10B981',
     icon: 'Calculator',
     durationDays: 10,
   },
@@ -179,9 +189,9 @@ export const REQUEST_STAGES = {
     key: 'quotation_approval',
     name: 'اعتماد العرض',
     nameEn: 'Quotation Approval',
-    order: 6,
+    order: 7,
     description: 'اعتماد العرض الفائز',
-    color: '#14B8A6', // أخضر فيروزي
+    color: '#14B8A6',
     icon: 'BadgeCheck',
     durationDays: 3,
   },
@@ -189,9 +199,9 @@ export const REQUEST_STAGES = {
     key: 'contracting',
     name: 'التعاقد',
     nameEn: 'Contracting',
-    order: 7,
-    description: 'إنشاء العقد وتوقيعه',
-    color: '#6366F1', // بنفسجي فاتح
+    order: 8,
+    description: 'إنشاء العقد وتوقيعه وتحويله لمشروع',
+    color: '#6366F1',
     icon: 'FileSignature',
     durationDays: 5,
   },
@@ -199,29 +209,29 @@ export const REQUEST_STAGES = {
     key: 'execution',
     name: 'التنفيذ',
     nameEn: 'Execution',
-    order: 8,
-    description: 'تنفيذ الأعمال حسب مراحل المشروع',
-    color: '#06B6D4', // سماوي
+    order: 9,
+    description: 'تنفيذ الأعمال: تقرير إنجاز → طلب صرف → أمر صرف',
+    color: '#06B6D4',
     icon: 'Cog',
-    durationDays: 0, // حسب المشروع
+    durationDays: 0,
   },
   handover: {
     key: 'handover',
     name: 'الاستلام',
     nameEn: 'Handover',
-    order: 9,
-    description: 'التقرير الختامي ومحضر الاستلام',
-    color: '#22C55E', // أخضر فاتح
+    order: 10,
+    description: 'الاستلام الابتدائي → فترة الضمان → الاستلام النهائي → التقرير الختامي → الدفعة الختامية',
+    color: '#22C55E',
     icon: 'ClipboardList',
-    durationDays: 7,
+    durationDays: 14,
   },
   closed: {
     key: 'closed',
     name: 'الإغلاق',
     nameEn: 'Closed',
-    order: 10,
-    description: 'قياس الرضا والتغذية الراجعة',
-    color: '#059669', // أخضر داكن
+    order: 11,
+    description: 'قياس رضا أصحاب المصلحة والمستفيدين والنشر والتغذية الراجعة',
+    color: '#059669',
     icon: 'CheckCircle2',
     durationDays: 14,
   },
@@ -231,7 +241,8 @@ export const STAGE_LABELS: Record<string, string> = {
   submitted: 'تقديم الطلب',
   initial_review: 'المراجعة الأولية',
   field_visit: 'الزيارة الميدانية',
-  technical_eval: 'إعداد جدول الكميات',
+  technical_eval: 'التقييم الفني',
+  boq_preparation: 'إعداد جدول الكميات',
   financial_eval: 'التقييم المالي',
   quotation_approval: 'اعتماد العرض',
   contracting: 'التعاقد',
@@ -239,6 +250,58 @@ export const STAGE_LABELS: Record<string, string> = {
   handover: 'الاستلام',
   closed: 'الإغلاق',
 };
+
+// ==================== المراحل الفرعية (الإجراءات) ====================
+export const SUB_STAGES = {
+  // الزيارة الميدانية
+  field_visit_assign: { key: 'field_visit_assign', name: 'إسناد الزيارة', parentStage: 'field_visit', order: 1, durationDays: 1 },
+  field_visit_schedule: { key: 'field_visit_schedule', name: 'جدولة الزيارة', parentStage: 'field_visit', order: 2, durationDays: 2 },
+  field_visit_execute: { key: 'field_visit_execute', name: 'تنفيذ الزيارة', parentStage: 'field_visit', order: 3, durationDays: 3 },
+  field_visit_report: { key: 'field_visit_report', name: 'رفع التقرير', parentStage: 'field_visit', order: 4, durationDays: 1 },
+  
+  // التقييم الفني
+  technical_eval_review: { key: 'technical_eval_review', name: 'مراجعة التقرير', parentStage: 'technical_eval', order: 1, durationDays: 2 },
+  technical_eval_decision: { key: 'technical_eval_decision', name: 'اتخاذ القرار', parentStage: 'technical_eval', order: 2, durationDays: 3 },
+  
+  // إعداد جدول الكميات
+  boq_items_add: { key: 'boq_items_add', name: 'إضافة البنود', parentStage: 'boq_preparation', order: 1, durationDays: 3 },
+  boq_review: { key: 'boq_review', name: 'مراجعة الكميات', parentStage: 'boq_preparation', order: 2, durationDays: 1 },
+  boq_approve: { key: 'boq_approve', name: 'اعتماد الجدول', parentStage: 'boq_preparation', order: 3, durationDays: 1 },
+  
+  // التقييم المالي
+  financial_request_quotes: { key: 'financial_request_quotes', name: 'طلب عروض الأسعار', parentStage: 'financial_eval', order: 1, durationDays: 3 },
+  financial_receive_quotes: { key: 'financial_receive_quotes', name: 'استلام العروض', parentStage: 'financial_eval', order: 2, durationDays: 5 },
+  financial_compare: { key: 'financial_compare', name: 'مقارنة العروض', parentStage: 'financial_eval', order: 3, durationDays: 2 },
+  
+  // التعاقد
+  contract_prepare: { key: 'contract_prepare', name: 'إعداد العقد', parentStage: 'contracting', order: 1, durationDays: 2 },
+  contract_review: { key: 'contract_review', name: 'مراجعة العقد', parentStage: 'contracting', order: 2, durationDays: 1 },
+  contract_sign: { key: 'contract_sign', name: 'توقيع العقد', parentStage: 'contracting', order: 3, durationDays: 1 },
+  contract_to_project: { key: 'contract_to_project', name: 'تحويل إلى مشروع', parentStage: 'contracting', order: 4, durationDays: 1 },
+  
+  // التنفيذ (لكل مرحلة)
+  execution_progress_report: { key: 'execution_progress_report', name: 'تقرير إنجاز', parentStage: 'execution', order: 1, durationDays: 0 },
+  execution_payment_request: { key: 'execution_payment_request', name: 'طلب صرف', parentStage: 'execution', order: 2, durationDays: 3 },
+  execution_payment_order: { key: 'execution_payment_order', name: 'أمر صرف', parentStage: 'execution', order: 3, durationDays: 2 },
+  
+  // الاستلام
+  handover_preliminary: { key: 'handover_preliminary', name: 'الاستلام الابتدائي', parentStage: 'handover', order: 1, durationDays: 3 },
+  handover_warranty: { key: 'handover_warranty', name: 'فترة الضمان', parentStage: 'handover', order: 2, durationDays: 0 },
+  handover_final: { key: 'handover_final', name: 'الاستلام النهائي', parentStage: 'handover', order: 3, durationDays: 3 },
+  handover_final_report: { key: 'handover_final_report', name: 'التقرير الختامي', parentStage: 'handover', order: 4, durationDays: 3 },
+  handover_final_payment: { key: 'handover_final_payment', name: 'الدفعة الختامية', parentStage: 'handover', order: 5, durationDays: 5 },
+  
+  // الإغلاق
+  closure_stakeholder_satisfaction: { key: 'closure_stakeholder_satisfaction', name: 'قياس رضا أصحاب المصلحة', parentStage: 'closed', order: 1, durationDays: 3 },
+  closure_beneficiary_satisfaction: { key: 'closure_beneficiary_satisfaction', name: 'قياس رضا المستفيدين', parentStage: 'closed', order: 2, durationDays: 3 },
+  closure_publish: { key: 'closure_publish', name: 'النشر', parentStage: 'closed', order: 3, durationDays: 3 },
+  closure_feedback: { key: 'closure_feedback', name: 'التغذية الراجعة', parentStage: 'closed', order: 4, durationDays: 3 },
+  closure_archive: { key: 'closure_archive', name: 'أرشفة الملف', parentStage: 'closed', order: 5, durationDays: 2 },
+} as const;
+
+export const SUB_STAGE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.values(SUB_STAGES).map(s => [s.key, s.name])
+);
 
 // ==================== حالات الطلب ====================
 export const REQUEST_STATUSES = {
@@ -471,23 +534,35 @@ export const ROLE_PERMISSIONS = {
 // ==================== صلاحيات تحويل المراحل ====================
 // تحديد الأدوار المسموح لها بتحويل الطلب من كل مرحلة إلى المرحلة التالية
 export const STAGE_TRANSITION_PERMISSIONS: Record<string, string[]> = {
-  // من تقديم الطلب إلى الفرز الأولي
+  // من تقديم الطلب إلى المراجعة الأولية
   submitted: ['super_admin', 'system_admin', 'projects_office'],
   
-  // من الفرز الأولي إلى الزيارة الميدانية
+  // من المراجعة الأولية إلى الزيارة الميدانية
   initial_review: ['super_admin', 'system_admin', 'projects_office'],
   
-  // من الزيارة الميدانية إلى الدراسة الفنية (الفريق الميداني يمكنه التحويل بعد تقديم تقرير المعاينة)
+  // من الزيارة الميدانية إلى التقييم الفني
   field_visit: ['super_admin', 'system_admin', 'projects_office', 'field_team'],
   
-  // من الدراسة الفنية إلى الاعتماد المالي
+  // من التقييم الفني إلى إعداد جدول الكميات (للمشاريع) أو التنفيذ (للاستجابة السريعة)
   technical_eval: ['super_admin', 'system_admin', 'projects_office'],
   
-  // من الاعتماد المالي إلى التنفيذ (الإدارة المالية يمكنها الاعتماد)
-  financial_eval: ['super_admin', 'system_admin', 'financial'],
+  // من إعداد جدول الكميات إلى التقييم المالي
+  boq_preparation: ['super_admin', 'system_admin', 'projects_office'],
   
-  // من التنفيذ إلى الإغلاق
-  execution: ['super_admin', 'system_admin', 'projects_office', 'quick_response'],
+  // من التقييم المالي إلى اعتماد العرض
+  financial_eval: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  
+  // من اعتماد العرض إلى التعاقد
+  quotation_approval: ['super_admin', 'system_admin', 'financial'],
+  
+  // من التعاقد إلى التنفيذ
+  contracting: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  
+  // من التنفيذ إلى الاستلام
+  execution: ['super_admin', 'system_admin', 'projects_office', 'project_manager', 'quick_response'],
+  
+  // من الاستلام إلى الإغلاق
+  handover: ['super_admin', 'system_admin', 'projects_office', 'project_manager'],
   
   // مرحلة الإغلاق - لا يمكن التحويل منها
   closed: [],
@@ -517,14 +592,23 @@ export function canChangeStatus(userRole: string, action: string): boolean {
   return allowedRoles.includes(userRole);
 }
 
-// الحصول على اسم المرحلة التالية
-export function getNextStage(currentStage: string): string | null {
-  const stages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'financial_eval', 'execution', 'closed'];
+// الحصول على اسم المرحلة التالية (للمسار العادي)
+export function getNextStage(currentStage: string, track: 'standard' | 'quick_response' = 'standard'): string | null {
+  const standardStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
+  const quickResponseStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'execution', 'closed'];
+  
+  const stages = track === 'quick_response' ? quickResponseStages : standardStages;
   const currentIndex = stages.indexOf(currentStage);
   if (currentIndex >= 0 && currentIndex < stages.length - 1) {
     return stages[currentIndex + 1];
   }
   return null;
+}
+
+// الحصول على رقم المرحلة الحالية
+export function getStageOrder(stage: string): number {
+  const stages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
+  return stages.indexOf(stage) + 1;
 }
 
 // ==================== خيارات التقييم الفني (الخيارات الأربعة) ====================
@@ -570,9 +654,9 @@ export const TECHNICAL_EVAL_OPTIONS = {
     key: 'convert_to_project',
     name: 'التحويل إلى مشروع',
     nameEn: 'Convert to Project',
-    description: 'تحويل الطلب إلى مشروع والانتقال للتقييم المالي',
+    description: 'تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات',
     requiresJustification: false,
-    nextStage: 'financial_eval',
+    nextStage: 'boq_preparation',
     resultStatus: 'approved',
     allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
     createsProject: true,
@@ -601,34 +685,53 @@ export const STAGE_SUBSTEPS = {
     { key: 'assign_technical', name: 'إسناد الطلب للدراسة الفنية', responsible: 'projects_office' },
   ],
   field_visit: [
-    { key: 'schedule_visit', name: 'جدولة زيارة ميدانية', responsible: 'field_team', durationDays: 1 },
-    { key: 'field_visit_form', name: 'نموذج الزيارة الميدانية', responsible: 'field_team', durationDays: 5 },
-    { key: 'technical_report', name: 'التقرير الفني', responsible: 'field_team', durationDays: 1 },
+    { key: 'assign_visit', name: 'إسناد الزيارة', responsible: 'projects_office', durationDays: 1 },
+    { key: 'schedule_visit', name: 'جدولة الزيارة', responsible: 'field_team', durationDays: 2 },
+    { key: 'execute_visit', name: 'تنفيذ الزيارة', responsible: 'field_team', durationDays: 3 },
+    { key: 'submit_report', name: 'رفع التقرير', responsible: 'field_team', durationDays: 1 },
   ],
   technical_eval: [
-    { key: 'review_report', name: 'مراجعة التقرير الفني', responsible: 'projects_office', durationDays: 1 },
-    { key: 'make_decision', name: 'اتخاذ القرار (الخيارات الأربعة)', responsible: 'projects_office', durationDays: 1 },
+    { key: 'review_report', name: 'مراجعة التقرير الفني', responsible: 'projects_office', durationDays: 2 },
+    { key: 'make_decision', name: 'اتخاذ القرار (الخيارات الأربعة)', responsible: 'projects_office', durationDays: 3 },
+  ],
+  boq_preparation: [
+    { key: 'add_items', name: 'إضافة بنود جدول الكميات', responsible: 'projects_office', durationDays: 3 },
+    { key: 'review_boq', name: 'مراجعة الكميات', responsible: 'projects_office', durationDays: 1 },
+    { key: 'approve_boq', name: 'اعتماد الجدول', responsible: 'projects_office', durationDays: 1 },
   ],
   financial_eval: [
-    { key: 'prepare_boq', name: 'إعداد جدول الكميات', responsible: 'projects_office', durationDays: 10 },
-    { key: 'request_quotes', name: 'طلب عروض الأسعار', responsible: 'projects_office', durationDays: 5 },
-    { key: 'receive_quotes', name: 'استقبال العروض وترشيح الموردين', responsible: 'projects_office', durationDays: 5 },
-    { key: 'calculate_cost', name: 'تحديد التكلفة + نسبة الإشراف', responsible: 'system' },
-    { key: 'create_opportunity', name: 'رفع فرصة على موقع التبرعات', responsible: 'projects_office', durationDays: 1 },
+    { key: 'request_quotes', name: 'طلب عروض الأسعار', responsible: 'projects_office', durationDays: 3 },
+    { key: 'receive_quotes', name: 'استلام العروض', responsible: 'projects_office', durationDays: 5 },
+    { key: 'compare_quotes', name: 'مقارنة العروض', responsible: 'projects_office', durationDays: 2 },
+  ],
+  quotation_approval: [
+    { key: 'select_supplier', name: 'اختيار المورد', responsible: 'projects_office', durationDays: 1 },
+    { key: 'approve_quotation', name: 'اعتماد العرض', responsible: 'financial', durationDays: 2 },
+  ],
+  contracting: [
+    { key: 'prepare_contract', name: 'إعداد العقد', responsible: 'projects_office', durationDays: 2 },
+    { key: 'review_contract', name: 'مراجعة العقد', responsible: 'financial', durationDays: 1 },
+    { key: 'sign_contract', name: 'توقيع العقد', responsible: 'super_admin', durationDays: 1 },
+    { key: 'convert_to_project', name: 'تحويل إلى مشروع', responsible: 'projects_office', durationDays: 1 },
   ],
   execution: [
-    { key: 'prepare_contract', name: 'إعداد عقد المشروع', responsible: 'projects_office', durationDays: 1 },
-    { key: 'sign_contract', name: 'إبرام العقد مع المورد', responsible: 'financial', durationDays: 1 },
-    { key: 'request_payment', name: 'طلب صرف دفعة مالية', responsible: 'project_manager', durationDays: 1 },
-    { key: 'prepare_payment_order', name: 'إعداد أمر صرف', responsible: 'financial', durationDays: 1 },
-    { key: 'follow_execution', name: 'متابعة التنفيذ حسب المراحل', responsible: 'project_manager' },
+    { key: 'progress_report', name: 'تقرير إنجاز', responsible: 'project_manager' },
+    { key: 'payment_request', name: 'طلب صرف', responsible: 'project_manager', durationDays: 3 },
+    { key: 'payment_order', name: 'أمر صرف', responsible: 'financial', durationDays: 2 },
+  ],
+  handover: [
+    { key: 'preliminary_handover', name: 'الاستلام الابتدائي', responsible: 'project_manager', durationDays: 3 },
+    { key: 'warranty_period', name: 'فترة الضمان', responsible: 'project_manager' },
+    { key: 'final_handover', name: 'الاستلام النهائي', responsible: 'project_manager', durationDays: 3 },
+    { key: 'final_report', name: 'التقرير الختامي', responsible: 'project_manager', durationDays: 3 },
+    { key: 'final_payment', name: 'الدفعة الختامية', responsible: 'financial', durationDays: 5 },
   ],
   closed: [
-    { key: 'final_report', name: 'التقرير الختامي', responsible: 'project_manager', durationDays: 5 },
-    { key: 'stakeholder_satisfaction', name: 'قياس رضا أصحاب المصلحة', responsible: 'corporate_comm', durationDays: 1 },
-    { key: 'beneficiary_satisfaction', name: 'قياس رضا المستفيد', responsible: 'corporate_comm', durationDays: 1 },
-    { key: 'publish_results', name: 'النشر على الموقع والشبكات الاجتماعية', responsible: 'corporate_comm', durationDays: 1 },
-    { key: 'close_project', name: 'إغلاق عمليات المشروع وصرف الدفعة الختامية', responsible: 'project_manager', durationDays: 1 },
+    { key: 'stakeholder_satisfaction', name: 'قياس رضا أصحاب المصلحة', responsible: 'corporate_comm', durationDays: 3 },
+    { key: 'beneficiary_satisfaction', name: 'قياس رضا المستفيدين', responsible: 'corporate_comm', durationDays: 3 },
+    { key: 'publish_results', name: 'النشر', responsible: 'corporate_comm', durationDays: 3 },
+    { key: 'feedback', name: 'التغذية الراجعة', responsible: 'corporate_comm', durationDays: 3 },
+    { key: 'archive', name: 'أرشفة الملف', responsible: 'projects_office', durationDays: 2 },
   ],
 } as const;
 
@@ -638,7 +741,7 @@ export const REQUEST_TRACKS = {
     key: 'standard',
     name: 'المسار العادي (مشروع)',
     description: 'المسار الكامل من التقديم إلى الإغلاق',
-    stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'financial_eval', 'execution', 'closed'],
+    stages: ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'],
   },
   quick_response: {
     key: 'quick_response',
@@ -695,12 +798,12 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
     },
   ],
   
-  // من التقييم الفني إلى التقييم المالي (مسار المشروع)
-  technical_eval_to_financial_eval: [
+  // من التقييم الفني إلى إعداد جدول الكميات (مسار المشروع)
+  technical_eval_to_boq_preparation: [
     {
       type: 'technical_eval_decision',
       name: 'قرار التقييم الفني',
-      description: 'يجب اختيار "التحويل إلى مشروع" للانتقال للتقييم المالي',
+      description: 'يجب اختيار "التحويل إلى مشروع" للانتقال لإعداد جدول الكميات',
       required: true,
       checkField: 'technicalEvalDecision',
       checkTable: 'mosque_requests',
@@ -719,23 +822,75 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
     },
   ],
   
-  // من التقييم المالي إلى التنفيذ (مسار المشروع)
-  financial_eval_to_execution: [
+  // من إعداد جدول الكميات إلى التقييم المالي
+  boq_preparation_to_financial_eval: [
     {
       type: 'boq_created',
       name: 'جدول الكميات',
-      description: 'يجب إعداد جدول الكميات قبل الانتقال للتنفيذ',
+      description: 'يجب إعداد جدول الكميات قبل الانتقال للتقييم المالي',
       required: true,
-      checkTable: 'boq_items',
-      checkField: 'projectId',
+      checkTable: 'quantity_schedules',
+      checkField: 'requestId',
     },
+  ],
+  
+  // من التقييم المالي إلى اعتماد العرض
+  financial_eval_to_quotation_approval: [
+    {
+      type: 'quotes_received',
+      name: 'عروض الأسعار',
+      description: 'يجب استلام عروض الأسعار قبل الانتقال لاعتماد العرض',
+      required: true,
+      checkTable: 'quotations',
+      checkField: 'requestId',
+    },
+  ],
+  
+  // من اعتماد العرض إلى التعاقد
+  quotation_approval_to_contracting: [
     {
       type: 'supplier_selected',
       name: 'اختيار المورد',
-      description: 'يجب ترشيح واختيار المورد المناسب',
+      description: 'يجب اختيار المورد الفائز قبل الانتقال للتعاقد',
       required: true,
-      checkTable: 'quotes',
+      checkTable: 'quotations',
       checkField: 'status',
+    },
+  ],
+  
+  // من التعاقد إلى التنفيذ
+  contracting_to_execution: [
+    {
+      type: 'contract_signed',
+      name: 'العقد الموقع',
+      description: 'يجب توقيع العقد قبل الانتقال للتنفيذ',
+      required: true,
+      checkTable: 'contracts_enhanced',
+      checkField: 'requestId',
+    },
+  ],
+  
+  // من التنفيذ إلى الاستلام
+  execution_to_handover: [
+    {
+      type: 'final_report',
+      name: 'تقرير الإنجاز',
+      description: 'يجب رفع تقرير إنجاز 100% قبل الانتقال للاستلام',
+      required: true,
+      checkTable: 'progress_reports',
+      checkField: 'projectId',
+    },
+  ],
+  
+  // من الاستلام إلى الإغلاق
+  handover_to_closed: [
+    {
+      type: 'final_report',
+      name: 'التقرير الختامي',
+      description: 'يجب رفع التقرير الختامي قبل الإغلاق',
+      required: true,
+      checkTable: 'final_reports',
+      checkField: 'projectId',
     },
   ],
   
@@ -751,7 +906,7 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
     },
   ],
   
-  // من التنفيذ إلى الإغلاق (مسار المشروع)
+  // من التنفيذ إلى الإغلاق (مسار المشروع - قديم)
   execution_to_closed_project: [
     {
       type: 'contract_signed',

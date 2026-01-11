@@ -41,10 +41,10 @@ describe("نموذج طلبات المساجد الموحد", () => {
     expect(programKeys).toContain("suqya");
   });
 
-  // التحقق من المراحل السبع
-  it("يجب أن يحتوي على 7 مراحل للطلبات", () => {
+  // التحقق من المراحل الـ 11
+  it("يجب أن يحتوي على 11 مرحلة للطلبات", () => {
     const stageKeys = Object.keys(REQUEST_STAGES);
-    expect(stageKeys).toHaveLength(7);
+    expect(stageKeys).toHaveLength(11);
   });
 
   // التحقق من أسماء المراحل
@@ -54,8 +54,12 @@ describe("نموذج طلبات المساجد الموحد", () => {
     expect(stageNames).toContain("المراجعة الأولية");
     expect(stageNames).toContain("الزيارة الميدانية");
     expect(stageNames).toContain("التقييم الفني");
+    expect(stageNames).toContain("إعداد جدول الكميات");
     expect(stageNames).toContain("التقييم المالي");
+    expect(stageNames).toContain("اعتماد العرض");
+    expect(stageNames).toContain("التعاقد");
     expect(stageNames).toContain("التنفيذ");
+    expect(stageNames).toContain("الاستلام");
     expect(stageNames).toContain("الإغلاق");
   });
 });
@@ -103,7 +107,7 @@ describe("التحقق من صحة بيانات الطلب", () => {
     });
   });
 
-  // التحقق من ترتيب المراحل
+  // التحقق من ترتيب المراحل (11 مرحلة)
   it("يجب أن تكون المراحل مرتبة بشكل صحيح", () => {
     const stages = Object.values(REQUEST_STAGES);
     const sortedStages = [...stages].sort((a, b) => a.order - b.order);
@@ -112,8 +116,37 @@ describe("التحقق من صحة بيانات الطلب", () => {
     expect(sortedStages[1].key).toBe("initial_review");
     expect(sortedStages[2].key).toBe("field_visit");
     expect(sortedStages[3].key).toBe("technical_eval");
-    expect(sortedStages[4].key).toBe("financial_eval");
-    expect(sortedStages[5].key).toBe("execution");
-    expect(sortedStages[6].key).toBe("closed");
+    expect(sortedStages[4].key).toBe("boq_preparation");
+    expect(sortedStages[5].key).toBe("financial_eval");
+    expect(sortedStages[6].key).toBe("quotation_approval");
+    expect(sortedStages[7].key).toBe("contracting");
+    expect(sortedStages[8].key).toBe("execution");
+    expect(sortedStages[9].key).toBe("handover");
+    expect(sortedStages[10].key).toBe("closed");
+  });
+});
+
+describe("مسارات الطلب", () => {
+  // المسار العادي (11 مرحلة)
+  it("المسار العادي يحتوي على 11 مرحلة", () => {
+    const standardStages = [
+      "submitted", "initial_review", "field_visit", "technical_eval",
+      "boq_preparation", "financial_eval", "quotation_approval",
+      "contracting", "execution", "handover", "closed"
+    ];
+    standardStages.forEach(stage => {
+      expect(REQUEST_STAGES[stage]).toBeDefined();
+    });
+  });
+
+  // مسار الاستجابة السريعة (6 مراحل)
+  it("مسار الاستجابة السريعة يحتوي على 6 مراحل", () => {
+    const quickResponseStages = [
+      "submitted", "initial_review", "field_visit", "technical_eval",
+      "execution", "closed"
+    ];
+    quickResponseStages.forEach(stage => {
+      expect(REQUEST_STAGES[stage]).toBeDefined();
+    });
   });
 });

@@ -93,13 +93,17 @@ const programIcons: Record<string, string> = {
 };
 
 const stageSteps = [
-  { key: "submitted", label: "تقديم الطلب" },
-  { key: "initial_review", label: "الفرز الأولي" },
-  { key: "field_visit", label: "الزيارة الميدانية" },
-  { key: "technical_eval", label: "الدراسة الفنية" },
-  { key: "financial_eval", label: "الاعتماد المالي" },
-  { key: "execution", label: "التنفيذ" },
-  { key: "closed", label: "الإغلاق" },
+  { key: "submitted", label: "تقديم الطلب", order: 1 },
+  { key: "initial_review", label: "المراجعة الأولية", order: 2 },
+  { key: "field_visit", label: "الزيارة الميدانية", order: 3 },
+  { key: "technical_eval", label: "التقييم الفني", order: 4 },
+  { key: "boq_preparation", label: "إعداد جدول الكميات", order: 5 },
+  { key: "financial_eval", label: "التقييم المالي", order: 6 },
+  { key: "quotation_approval", label: "اعتماد العرض", order: 7 },
+  { key: "contracting", label: "التعاقد", order: 8 },
+  { key: "execution", label: "التنفيذ", order: 9 },
+  { key: "handover", label: "الاستلام", order: 10 },
+  { key: "closed", label: "الإغلاق", order: 11 },
 ];
 
 export default function RequestDetails() {
@@ -312,15 +316,21 @@ export default function RequestDetails() {
   // دالة لتحويل الطلب للمرحلة التالية
   const handleAdvanceStage = () => {
     if (!request) return;
-    // المراحل السبع كما هي في الـ backend
-    const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+    // المراحل الـ 11 الجديدة
+    const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval", "quotation_approval", "contracting", "execution", "handover", "closed"];
+    const quickResponseStages = ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"];
+    
+    // تحديد المسار بناءً على نوع الطلب
+    const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
+    const stages = isQuickResponse ? quickResponseStages : standardStages;
+    
     const currentIndex = stages.indexOf(request.currentStage);
     if (currentIndex < stages.length - 1) {
       const nextStage = stages[currentIndex + 1] as any;
       updateStageMutation.mutate({
         requestId,
         newStage: nextStage,
-        notes: `تم تحويل الطلب إلى مرحلة ${nextStage}`,
+        notes: `تم تحويل الطلب إلى مرحلة ${STAGE_LABELS[nextStage] || nextStage}`,
       });
     }
   };
@@ -367,7 +377,19 @@ export default function RequestDetails() {
     );
   }
 
-  const currentStageIndex = stageSteps.findIndex(s => s.key === request.currentStage);
+  // تحديد المراحل بناءً على مسار الطلب
+  const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
+  const quickResponseSteps = [
+    { key: "submitted", label: "تقديم الطلب", order: 1 },
+    { key: "initial_review", label: "المراجعة الأولية", order: 2 },
+    { key: "field_visit", label: "الزيارة الميدانية", order: 3 },
+    { key: "technical_eval", label: "التقييم الفني", order: 4 },
+    { key: "execution", label: "التنفيذ", order: 5 },
+    { key: "closed", label: "الإغلاق", order: 6 },
+  ];
+  
+  const activeSteps = isQuickResponse ? quickResponseSteps : stageSteps;
+  const currentStageIndex = activeSteps.findIndex(s => s.key === request.currentStage);
 
   return (
     <DashboardLayout>
@@ -386,6 +408,7 @@ export default function RequestDetails() {
                 <h1 className="text-2xl font-bold text-foreground">{request.requestNumber}</h1>
                 <p className="text-muted-foreground">
                   {PROGRAM_LABELS[request.programType]} - {request.mosque?.name || "مسجد غير محدد"}
+                  {isQuickResponse && <span className="mr-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">استجابة سريعة</span>}
                 </p>
               </div>
             </div>
@@ -405,7 +428,7 @@ export default function RequestDetails() {
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between overflow-x-auto pb-2">
-                {stageSteps.map((stage, index) => {
+                {activeSteps.map((stage, index) => {
                   const isCompleted = index < currentStageIndex;
                   const isCurrent = index === currentStageIndex;
                   return (
@@ -428,7 +451,7 @@ export default function RequestDetails() {
                           {stage.label}
                         </span>
                       </div>
-                      {index < stageSteps.length - 1 && (
+                      {index < activeSteps.length - 1 && (
                         <div className={`w-12 h-1 mx-2 ${
                           isCompleted ? "bg-green-500" : "bg-muted"
                         }`} />

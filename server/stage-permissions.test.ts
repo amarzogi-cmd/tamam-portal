@@ -3,22 +3,34 @@ import { STAGE_TRANSITION_PERMISSIONS, STATUS_CHANGE_PERMISSIONS, canTransitionS
 
 describe("Stage Permissions", () => {
   describe("STAGE_TRANSITION_PERMISSIONS", () => {
-    it("يجب أن تحتوي على جميع المراحل السبع", () => {
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+    it("يجب أن تحتوي على جميع المراحل الـ 11", () => {
+      const stages = [
+        "submitted", "initial_review", "field_visit", "technical_eval",
+        "boq_preparation", "financial_eval", "quotation_approval",
+        "contracting", "execution", "handover", "closed"
+      ];
       stages.forEach(stage => {
         expect(STAGE_TRANSITION_PERMISSIONS).toHaveProperty(stage);
       });
     });
 
     it("يجب أن يسمح للمدير العام بتحويل جميع المراحل ما عدا closed", () => {
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution"];
+      const stages = [
+        "submitted", "initial_review", "field_visit", "technical_eval",
+        "boq_preparation", "financial_eval", "quotation_approval",
+        "contracting", "execution", "handover"
+      ];
       stages.forEach(stage => {
         expect(STAGE_TRANSITION_PERMISSIONS[stage]).toContain("super_admin");
       });
     });
 
     it("يجب أن يسمح لمدير النظام بتحويل جميع المراحل ما عدا closed", () => {
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution"];
+      const stages = [
+        "submitted", "initial_review", "field_visit", "technical_eval",
+        "boq_preparation", "financial_eval", "quotation_approval",
+        "contracting", "execution", "handover"
+      ];
       stages.forEach(stage => {
         expect(STAGE_TRANSITION_PERMISSIONS[stage]).toContain("system_admin");
       });
@@ -31,8 +43,9 @@ describe("Stage Permissions", () => {
       expect(STAGE_TRANSITION_PERMISSIONS.technical_eval).not.toContain("field_team");
     });
 
-    it("يجب أن يسمح للإدارة المالية بتحويل مرحلة الاعتماد المالي فقط", () => {
+    it("يجب أن يسمح للإدارة المالية بتحويل مراحل التقييم المالي واعتماد العرض", () => {
       expect(STAGE_TRANSITION_PERMISSIONS.financial_eval).toContain("financial");
+      expect(STAGE_TRANSITION_PERMISSIONS.quotation_approval).toContain("financial");
       expect(STAGE_TRANSITION_PERMISSIONS.submitted).not.toContain("financial");
       expect(STAGE_TRANSITION_PERMISSIONS.field_visit).not.toContain("financial");
     });
@@ -67,8 +80,12 @@ describe("Stage Permissions", () => {
       expect(canTransitionStage("super_admin", "initial_review")).toBe(true);
       expect(canTransitionStage("super_admin", "field_visit")).toBe(true);
       expect(canTransitionStage("super_admin", "technical_eval")).toBe(true);
+      expect(canTransitionStage("super_admin", "boq_preparation")).toBe(true);
       expect(canTransitionStage("super_admin", "financial_eval")).toBe(true);
+      expect(canTransitionStage("super_admin", "quotation_approval")).toBe(true);
+      expect(canTransitionStage("super_admin", "contracting")).toBe(true);
       expect(canTransitionStage("super_admin", "execution")).toBe(true);
+      expect(canTransitionStage("super_admin", "handover")).toBe(true);
       expect(canTransitionStage("super_admin", "closed")).toBe(false);
     });
 
@@ -78,14 +95,19 @@ describe("Stage Permissions", () => {
       expect(canTransitionStage("field_team", "initial_review")).toBe(false);
     });
 
-    it("يجب أن يرجع true للإدارة المالية فقط في مرحلة الاعتماد المالي", () => {
+    it("يجب أن يرجع true للإدارة المالية في مراحل التقييم المالي واعتماد العرض", () => {
       expect(canTransitionStage("financial", "financial_eval")).toBe(true);
+      expect(canTransitionStage("financial", "quotation_approval")).toBe(true);
       expect(canTransitionStage("financial", "submitted")).toBe(false);
       expect(canTransitionStage("financial", "execution")).toBe(false);
     });
 
     it("يجب أن يرجع false لطالب الخدمة في جميع المراحل", () => {
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+      const stages = [
+        "submitted", "initial_review", "field_visit", "technical_eval",
+        "boq_preparation", "financial_eval", "quotation_approval",
+        "contracting", "execution", "handover", "closed"
+      ];
       stages.forEach(stage => {
         expect(canTransitionStage("service_requester", stage)).toBe(false);
       });
@@ -107,13 +129,17 @@ describe("Stage Permissions", () => {
   });
 
   describe("getNextStage", () => {
-    it("يجب أن يرجع المرحلة التالية الصحيحة", () => {
+    it("يجب أن يرجع المرحلة التالية الصحيحة للمسار العادي", () => {
       expect(getNextStage("submitted")).toBe("initial_review");
       expect(getNextStage("initial_review")).toBe("field_visit");
       expect(getNextStage("field_visit")).toBe("technical_eval");
-      expect(getNextStage("technical_eval")).toBe("financial_eval");
-      expect(getNextStage("financial_eval")).toBe("execution");
-      expect(getNextStage("execution")).toBe("closed");
+      expect(getNextStage("technical_eval")).toBe("boq_preparation");
+      expect(getNextStage("boq_preparation")).toBe("financial_eval");
+      expect(getNextStage("financial_eval")).toBe("quotation_approval");
+      expect(getNextStage("quotation_approval")).toBe("contracting");
+      expect(getNextStage("contracting")).toBe("execution");
+      expect(getNextStage("execution")).toBe("handover");
+      expect(getNextStage("handover")).toBe("closed");
     });
 
     it("يجب أن يرجع null لمرحلة الإغلاق", () => {

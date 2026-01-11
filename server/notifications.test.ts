@@ -3,9 +3,9 @@ import { REQUEST_STAGES, PROGRAMS, STAGE_LABELS, PROGRAM_LABELS } from "../share
 
 describe("Notifications System", () => {
   describe("Request Stages", () => {
-    it("should have all 7 request stages defined", () => {
+    it("should have all 11 request stages defined", () => {
       expect(REQUEST_STAGES).toBeDefined();
-      expect(Object.keys(REQUEST_STAGES).length).toBe(7);
+      expect(Object.keys(REQUEST_STAGES).length).toBe(11);
     });
 
     it("should have the correct stage keys", () => {
@@ -14,8 +14,12 @@ describe("Notifications System", () => {
         "initial_review",
         "field_visit",
         "technical_eval",
+        "boq_preparation",
         "financial_eval",
+        "quotation_approval",
+        "contracting",
         "execution",
+        "handover",
         "closed",
       ];
       
@@ -26,7 +30,7 @@ describe("Notifications System", () => {
 
     it("should have Arabic labels for all stages", () => {
       expect(STAGE_LABELS).toBeDefined();
-      expect(Object.keys(STAGE_LABELS).length).toBe(7);
+      expect(Object.keys(STAGE_LABELS).length).toBe(11);
       
       Object.values(STAGE_LABELS).forEach((label) => {
         expect(typeof label).toBe("string");
@@ -39,9 +43,13 @@ describe("Notifications System", () => {
       expect(REQUEST_STAGES.initial_review.order).toBe(2);
       expect(REQUEST_STAGES.field_visit.order).toBe(3);
       expect(REQUEST_STAGES.technical_eval.order).toBe(4);
-      expect(REQUEST_STAGES.financial_eval.order).toBe(5);
-      expect(REQUEST_STAGES.execution.order).toBe(6);
-      expect(REQUEST_STAGES.closed.order).toBe(7);
+      expect(REQUEST_STAGES.boq_preparation.order).toBe(5);
+      expect(REQUEST_STAGES.financial_eval.order).toBe(6);
+      expect(REQUEST_STAGES.quotation_approval.order).toBe(7);
+      expect(REQUEST_STAGES.contracting.order).toBe(8);
+      expect(REQUEST_STAGES.execution.order).toBe(9);
+      expect(REQUEST_STAGES.handover.order).toBe(10);
+      expect(REQUEST_STAGES.closed.order).toBe(11);
     });
   });
 
