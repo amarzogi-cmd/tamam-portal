@@ -2,6 +2,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { ProgramIcon } from "@/components/ProgramIcon";
 import { 
   Building2, 
   FileText, 
@@ -13,24 +16,17 @@ import {
   Calendar,
   ArrowUpRight,
   Plus,
+  Activity,
+  Target,
+  Layers,
+  BarChart3,
+  Settings,
+  FolderKanban,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
-
-// أيقونات البرامج
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -56,29 +52,41 @@ export default function Dashboard() {
       title: "إجمالي الطلبات",
       value: requestStats?.total || 0,
       icon: FileText,
-      color: "bg-primary",
+      gradient: "from-blue-500 to-blue-600",
+      bgLight: "bg-blue-50",
+      textColor: "text-blue-600",
       change: "+12%",
+      trend: "up",
     },
     {
       title: "المساجد المسجلة",
       value: mosqueStats?.total || 0,
       icon: Building2,
-      color: "bg-[#059669]",
+      gradient: "from-emerald-500 to-emerald-600",
+      bgLight: "bg-emerald-50",
+      textColor: "text-emerald-600",
       change: "+8%",
+      trend: "up",
     },
     {
       title: "قيد التنفيذ",
       value: requestStats?.byStatus?.in_progress || 0,
       icon: Clock,
-      color: "bg-[#F59E0B]",
+      gradient: "from-amber-500 to-amber-600",
+      bgLight: "bg-amber-50",
+      textColor: "text-amber-600",
       change: "+5%",
+      trend: "up",
     },
     {
       title: "مكتملة",
       value: requestStats?.byStatus?.completed || 0,
       icon: CheckCircle2,
-      color: "bg-[#22C55E]",
+      gradient: "from-green-500 to-green-600",
+      bgLight: "bg-green-50",
+      textColor: "text-green-600",
       change: "+15%",
+      trend: "up",
     },
   ];
 
@@ -88,83 +96,105 @@ export default function Dashboard() {
     
     if (["super_admin", "system_admin"].includes(user?.role || "")) {
       links.push(
-        { title: "إدارة المستخدمين", href: "/users", icon: Users },
-        { title: "إعدادات النظام", href: "/settings", icon: Building2 },
+        { title: "إدارة المستخدمين", href: "/users", icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
+        { title: "إعدادات النظام", href: "/settings", icon: Settings, color: "text-gray-600", bg: "bg-gray-50" },
       );
     }
     
     if (["super_admin", "system_admin", "projects_office"].includes(user?.role || "")) {
       links.push(
-        { title: "جميع الطلبات", href: "/requests", icon: FileText },
-        { title: "المساجد", href: "/mosques", icon: Building2 },
+        { title: "جميع الطلبات", href: "/requests", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
+        { title: "المساجد", href: "/mosques", icon: Building2, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { title: "المشاريع", href: "/projects", icon: FolderKanban, color: "text-indigo-600", bg: "bg-indigo-50" },
       );
     }
     
     if (user?.role === "field_team") {
       links.push(
-        { title: "الزيارات الميدانية", href: "/field-visits", icon: Calendar },
-        { title: "طلباتي", href: "/my-requests", icon: FileText },
+        { title: "الزيارات الميدانية", href: "/field-visits", icon: Calendar, color: "text-orange-600", bg: "bg-orange-50" },
+        { title: "طلباتي", href: "/my-requests", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
       );
     }
     
     if (user?.role === "quick_response") {
       links.push(
-        { title: "الطلبات العاجلة", href: "/urgent-requests", icon: AlertTriangle },
-        { title: "تقاريري", href: "/my-reports", icon: FileText },
+        { title: "الطلبات العاجلة", href: "/urgent-requests", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
+        { title: "تقاريري", href: "/my-reports", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
       );
     }
     
     if (user?.role === "financial") {
       links.push(
-        { title: "التقارير المالية", href: "/financial-reports", icon: TrendingUp },
-        { title: "الدفعات", href: "/payments", icon: FileText },
+        { title: "التقارير المالية", href: "/financial-reports", icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+        { title: "الدفعات", href: "/payments", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
       );
     }
 
     return links;
   };
 
+  // حساب نسبة الإنجاز الإجمالية
+  const completionRate = requestStats?.total 
+    ? Math.round(((requestStats?.byStatus?.completed || 0) / requestStats.total) * 100) 
+    : 0;
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* رسالة الترحيب */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              مرحباً، {user?.name || "المستخدم"}
-            </h1>
-            <p className="text-muted-foreground">
-              {ROLE_LABELS[user?.role || ""] || user?.role} - لوحة التحكم
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/service-request">
-              <Button className="gradient-primary text-white">
-                <Plus className="w-4 h-4 ml-2" />
-                طلب جديد
-              </Button>
-            </Link>
+      <div className="space-y-8">
+        {/* Hero Section - رسالة الترحيب */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 text-white">
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-white/80 text-sm">
+                <Activity className="w-4 h-4" />
+                <span>لوحة التحكم</span>
+              </div>
+              <h1 className="text-3xl font-bold">
+                مرحباً، {user?.name || "المستخدم"}
+              </h1>
+              <p className="text-white/80 text-lg">
+                {ROLE_LABELS[user?.role || ""] || user?.role}
+              </p>
+              <div className="flex items-center gap-4 pt-2">
+                <div className="flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5">
+                  <Target className="w-4 h-4" />
+                  <span className="text-sm font-medium">نسبة الإنجاز: {completionRate}%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/service-request">
+                <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg">
+                  <Plus className="w-5 h-5 ml-2" />
+                  طلب جديد
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {mainStats.map((stat, index) => (
-            <Card key={index} className="border-0 shadow-sm">
+            <Card key={index} className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
-                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      {stat.change} هذا الشهر
-                    </p>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className={`w-4 h-4 ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
+                      <span className="text-sm font-medium text-green-600">{stat.change}</span>
+                      <span className="text-xs text-muted-foreground">هذا الشهر</span>
+                    </div>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="w-6 h-6 text-white" />
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
+                    <stat.icon className="w-7 h-7 text-white" />
                   </div>
                 </div>
+                {/* Decorative element */}
+                <div className={`absolute -bottom-4 -left-4 w-24 h-24 rounded-full ${stat.bgLight} opacity-50`} />
               </CardContent>
             </Card>
           ))}
@@ -172,43 +202,74 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* الطلبات حسب البرنامج */}
-          <Card className="lg:col-span-2 border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>الطلبات حسب البرنامج</CardTitle>
-              <CardDescription>توزيع الطلبات على البرامج التسعة</CardDescription>
+          <Card className="lg:col-span-2 border-0 shadow-md">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-primary" />
+                    الطلبات حسب البرنامج
+                  </CardTitle>
+                  <CardDescription>توزيع الطلبات على البرامج التسعة</CardDescription>
+                </div>
+                <Link href="/requests">
+                  <Button variant="outline" size="sm">
+                    عرض الكل
+                    <ArrowUpRight className="w-4 h-4 mr-1" />
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                {Object.entries(requestStats?.byProgram || {}).map(([program, count]) => (
-                  <div key={program} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <span className="text-2xl">{programIcons[program] || "📋"}</span>
-                    <div>
-                      <p className="font-medium text-foreground">{PROGRAM_LABELS[program] || program}</p>
-                      <p className="text-sm text-muted-foreground">{count as number} طلب</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(requestStats?.byProgram || {}).map(([program, count]) => {
+                  const color = PROGRAM_COLORS[program] || '#6B7280';
+                  return (
+                    <Link key={program} href={`/requests?program=${program}`}>
+                      <div 
+                        className="group flex items-center gap-4 p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer"
+                        style={{ backgroundColor: `${color}08` }}
+                      >
+                        <ProgramIcon program={program} size="lg" showBackground />
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {PROGRAM_LABELS[program] || program}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {count as number} طلب
+                          </p>
+                        </div>
+                        <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
           {/* روابط سريعة */}
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-md">
             <CardHeader>
-              <CardTitle>روابط سريعة</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                روابط سريعة
+              </CardTitle>
               <CardDescription>الوصول السريع للصفحات الرئيسية</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {getQuickLinks().map((link, index) => (
                   <Link key={index} href={link.href}>
-                    <Button variant="ghost" className="w-full justify-between">
-                      <span className="flex items-center gap-2">
-                        <link.icon className="w-4 h-4" />
+                    <div className="group flex items-center gap-3 p-3 rounded-xl hover:bg-muted/80 transition-colors cursor-pointer">
+                      <div className={`w-10 h-10 rounded-lg ${link.bg} flex items-center justify-center`}>
+                        <link.icon className={`w-5 h-5 ${link.color}`} />
+                      </div>
+                      <span className="flex-1 font-medium text-foreground group-hover:text-primary transition-colors">
                         {link.title}
                       </span>
-                      <ArrowUpRight className="w-4 h-4" />
-                    </Button>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -219,53 +280,82 @@ export default function Dashboard() {
         {/* الطلبات حسب المرحلة والحالة */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* حسب المرحلة */}
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-md">
             <CardHeader>
-              <CardTitle>الطلبات حسب المرحلة</CardTitle>
-              <CardDescription>توزيع الطلبات على المراحل السبع</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                الطلبات حسب المرحلة
+              </CardTitle>
+              <CardDescription>توزيع الطلبات على المراحل الـ 11</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {Object.entries(requestStats?.byStage || {}).map(([stage, count]) => (
-                  <div key={stage} className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">{STAGE_LABELS[stage] || stage}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100)}%` }}
-                        />
+              <div className="space-y-4">
+                {Object.entries(requestStats?.byStage || {}).slice(0, 6).map(([stage, count]) => {
+                  const percentage = Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100);
+                  return (
+                    <div key={stage} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">{STAGE_LABELS[stage] || stage}</span>
+                        <Badge variant="secondary" className="font-bold">
+                          {count as number}
+                        </Badge>
                       </div>
-                      <span className="text-sm font-medium text-muted-foreground w-8">{count as number}</span>
+                      <Progress value={percentage} className="h-2" />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {Object.keys(requestStats?.byStage || {}).length > 6 && (
+                  <Link href="/requests">
+                    <Button variant="ghost" className="w-full text-primary">
+                      عرض جميع المراحل
+                      <ArrowUpRight className="w-4 h-4 mr-1" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* حسب الحالة */}
-          <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-md">
             <CardHeader>
-              <CardTitle>الطلبات حسب الحالة</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                الطلبات حسب الحالة
+              </CardTitle>
               <CardDescription>توزيع الطلبات حسب حالتها الحالية</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {Object.entries(requestStats?.byStatus || {}).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">{STATUS_LABELS[status] || status}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+              <div className="space-y-4">
+                {Object.entries(requestStats?.byStatus || {}).map(([status, count]) => {
+                  const percentage = Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100);
+                  const statusColors: Record<string, string> = {
+                    pending: 'bg-yellow-500',
+                    approved: 'bg-green-500',
+                    in_progress: 'bg-blue-500',
+                    completed: 'bg-emerald-500',
+                    rejected: 'bg-red-500',
+                  };
+                  return (
+                    <div key={status} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${statusColors[status] || 'bg-gray-400'}`} />
+                          <span className="text-sm font-medium text-foreground">{STATUS_LABELS[status] || status}</span>
+                        </div>
+                        <Badge variant="outline" className="font-bold">
+                          {count as number}
+                        </Badge>
+                      </div>
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-secondary rounded-full"
-                          style={{ width: `${Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100)}%` }}
+                          className={`h-full rounded-full transition-all ${statusColors[status] || 'bg-gray-400'}`}
+                          style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-muted-foreground w-8">{count as number}</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -273,35 +363,38 @@ export default function Dashboard() {
 
         {/* المستخدمون قيد الانتظار (للمدراء فقط) */}
         {pendingUsers && pendingUsers.length > 0 && (
-          <Card className="border-0 shadow-sm border-r-4 border-r-yellow-500">
+          <Card className="border-0 shadow-md border-r-4 border-r-amber-500">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                    مستخدمون بانتظار الاعتماد
-                  </CardTitle>
-                  <CardDescription>{pendingUsers.length} مستخدم بانتظار المراجعة</CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <CardTitle>مستخدمون بانتظار الاعتماد</CardTitle>
+                    <CardDescription>{pendingUsers.length} مستخدم بانتظار المراجعة</CardDescription>
+                  </div>
                 </div>
                 <Link href="/users?status=pending">
-                  <Button variant="outline">عرض الكل</Button>
+                  <Button variant="outline">
+                    عرض الكل
+                    <ArrowUpRight className="w-4 h-4 mr-1" />
+                  </Button>
                 </Link>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {pendingUsers.slice(0, 5).map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingUsers.slice(0, 6).map((pendingUser) => (
+                  <div key={pendingUser.id} className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-lg">
+                      {pendingUser.name?.charAt(0) || 'م'}
                     </div>
-                    <Link href={`/users/${user.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground truncate">{pendingUser.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{pendingUser.email}</p>
+                    </div>
+                    <Link href={`/users/${pendingUser.id}`}>
                       <Button size="sm" variant="outline">مراجعة</Button>
                     </Link>
                   </div>

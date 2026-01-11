@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Eye, Save, X, Loader2 } from "lucide-react";
+import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -362,21 +362,21 @@ export default function Branding() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="w-8 h-8 rounded-lg mb-3" style={{ backgroundColor: primaryColor + "20" }}>
-                      <div className="w-full h-full flex items-center justify-center" style={{ color: primaryColor }}>📋</div>
+                      <FileText className="w-5 h-5" style={{ color: primaryColor }} />
                     </div>
                     <p className="font-medium">بطاقة نموذجية</p>
                     <p className="text-sm text-muted-foreground">وصف قصير</p>
                   </div>
                   <div className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="w-8 h-8 rounded-lg mb-3" style={{ backgroundColor: secondaryColor + "20" }}>
-                      <div className="w-full h-full flex items-center justify-center" style={{ color: secondaryColor }}>🏗️</div>
+                      <Building2 className="w-5 h-5" style={{ color: secondaryColor }} />
                     </div>
                     <p className="font-medium">بطاقة نموذجية</p>
                     <p className="text-sm text-muted-foreground">وصف قصير</p>
                   </div>
                   <div className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="w-8 h-8 rounded-lg mb-3" style={{ backgroundColor: accentColor + "20" }}>
-                      <div className="w-full h-full flex items-center justify-center" style={{ color: accentColor }}>⭐</div>
+                      <Star className="w-5 h-5" style={{ color: accentColor }} />
                     </div>
                     <p className="font-medium">بطاقة نموذجية</p>
                     <p className="text-sm text-muted-foreground">وصف قصير</p>

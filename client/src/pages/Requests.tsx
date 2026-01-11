@@ -19,6 +19,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { ProgramIcon } from "@/components/ProgramIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,17 +36,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+// تم استبدال programIcons بمكون ProgramIcon
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -221,7 +212,7 @@ export default function Requests() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <span className="text-xl">{programIcons[request.programType] || "📋"}</span>
+                            <ProgramIcon program={request.programType} size="md" />
                             <span className="font-medium">{request.requestNumber}</span>
                           </div>
                         </TableCell>

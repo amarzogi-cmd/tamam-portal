@@ -123,6 +123,32 @@ export const PROGRAM_LABELS: Record<string, string> = {
   suqya: 'سقيا',
 };
 
+// أسماء أيقونات Lucide للبرامج
+export const PROGRAM_ICON_NAMES: Record<string, string> = {
+  bunyan: 'Building2',
+  daaem: 'Hammer',
+  enaya: 'Wrench',
+  emdad: 'Package',
+  ethraa: 'Receipt',
+  sedana: 'Sparkles',
+  taqa: 'Sun',
+  miyah: 'Droplets',
+  suqya: 'GlassWater',
+};
+
+// ألوان البرامج
+export const PROGRAM_COLORS: Record<string, string> = {
+  bunyan: '#1E40AF',
+  daaem: '#7C3AED',
+  enaya: '#059669',
+  emdad: '#D97706',
+  ethraa: '#DC2626',
+  sedana: '#0891B2',
+  taqa: '#F59E0B',
+  miyah: '#0284C7',
+  suqya: '#06B6D4',
+};
+
 // ==================== المراحل الرئيسية للطلبات (11 مرحلة) ====================
 export const REQUEST_STAGES = {
   submitted: {

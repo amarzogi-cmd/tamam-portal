@@ -22,6 +22,7 @@ import {
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { ProgramIcon } from "@/components/ProgramIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,18 +42,8 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-// أيقونات البرامج
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+// ألوان البرامج
+import { PROGRAM_COLORS } from "@shared/constants";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -308,9 +299,7 @@ export default function MyRequests() {
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                         {/* معلومات الطلب */}
                         <div className="flex items-start gap-4 flex-1">
-                          <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-3xl">{programIcons[request.programType] || "📋"}</span>
-                          </div>
+                          <ProgramIcon program={request.programType} size="xl" showBackground />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="font-bold text-foreground">{request.requestNumber}</h3>

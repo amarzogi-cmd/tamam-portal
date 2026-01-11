@@ -13,18 +13,9 @@ import {
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { ProgramIcon } from "@/components/ProgramIcon";
 
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+// تم استبدال programIcons بمكون ProgramIcon
 
 const stageSteps = [
   { key: "submitted", label: "تقديم الطلب" },
@@ -136,7 +127,7 @@ export default function TrackRequest() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{programIcons[request.programType] || "📋"}</span>
+                      <ProgramIcon program={request.programType} size="xl" showBackground />
                       <div>
                         <CardTitle>{request.requestNumber}</CardTitle>
                         <CardDescription>{PROGRAM_LABELS[request.programType]}</CardDescription>

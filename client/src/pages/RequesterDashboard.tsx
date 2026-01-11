@@ -18,6 +18,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { ProgramIcon } from "@/components/ProgramIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,18 +30,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-// أيقونات البرامج
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+// تم استبدال programIcons بمكون ProgramIcon
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -259,7 +249,7 @@ export default function RequesterDashboard() {
                         <div className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">{programIcons[request.programType] || "📋"}</span>
+                              <ProgramIcon program={request.programType} size="lg" showBackground />
                               <div>
                                 <p className="font-medium text-foreground">
                                   {PROGRAM_LABELS[request.programType]}

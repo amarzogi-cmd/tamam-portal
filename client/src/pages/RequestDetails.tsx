@@ -48,6 +48,7 @@ import {
   TECHNICAL_EVAL_OPTIONS,
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
+import { ProgramIcon } from "@/components/ProgramIcon";
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -80,17 +81,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
+// تم استبدال programIcons بمكون ProgramIcon
 
 const stageSteps = [
   { key: "submitted", label: "تقديم الطلب", order: 1 },
@@ -403,7 +394,7 @@ export default function RequestDetails() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">{programIcons[request.programType] || "📋"}</span>
+              <ProgramIcon program={request.programType} size="xl" showBackground />
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{request.requestNumber}</h1>
                 <p className="text-muted-foreground">
