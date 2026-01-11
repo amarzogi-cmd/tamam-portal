@@ -430,7 +430,13 @@ export const requestsRouter = router({
       }
 
       // التحقق من أن المرحلة الجديدة هي المرحلة التالية المنطقية
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+      // المراحل الـ 11 الجديدة
+      const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval", "quotation_approval", "contracting", "execution", "handover", "closed"];
+      const quickResponseStages = ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"];
+      
+      // تحديد المسار بناءً على نوع الطلب
+      const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
+      const stages = isQuickResponse ? quickResponseStages : standardStages;
       const currentIndex = stages.indexOf(oldStage);
       const newIndex = stages.indexOf(input.newStage);
       
@@ -473,6 +479,12 @@ export const requestsRouter = router({
             const boqItems = await db.select().from(quantitySchedules)
               .where(eq(quantitySchedules.requestId, input.requestId)).limit(1);
             isMet = boqItems.length > 0;
+          }
+          // التحقق من وجود عروض أسعار مستلمة
+          else if (prereq.type === 'quotes_received') {
+            const quotes = await db.select().from(quotations)
+              .where(eq(quotations.requestId, input.requestId)).limit(1);
+            isMet = quotes.length > 0;
           }
           // التحقق من وجود عرض سعر معتمد
           else if (prereq.type === 'supplier_selected') {
