@@ -1,4 +1,4 @@
-// ==================== الأدوار التسعة ====================
+// ==================== الأدوار ====================
 export const USER_ROLES = {
   super_admin: { key: 'super_admin', label: 'المدير العام', labelEn: 'Super Admin' },
   system_admin: { key: 'system_admin', label: 'مدير النظام', labelEn: 'System Admin' },
@@ -35,7 +35,7 @@ export const INTERNAL_ROLES = [
   'corporate_comm',
 ];
 
-// ==================== البرامج التسعة ====================
+// ==================== البرامج ====================
 export const PROGRAMS = {
   bunyan: {
     key: 'bunyan',

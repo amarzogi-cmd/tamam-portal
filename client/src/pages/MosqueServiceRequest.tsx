@@ -38,7 +38,7 @@ import {
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
 import { PROGRAMS } from "@shared/constants";
 
-// تعريف الخدمات التسعة
+// تعريف خدمات المساجد
 const SERVICES = [
   { id: "bunyan", name: "بنيان", description: "بناء مسجد جديد", icon: Building2, color: "bg-emerald-500", requiresMosque: false },
   { id: "daaem", name: "دعائم", description: "استكمال المساجد المتعثرة", icon: Hammer, color: "bg-blue-500", requiresMosque: true },

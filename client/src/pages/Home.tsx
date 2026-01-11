@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
-// خدمات المساجد التسعة
+// خدمات المساجد
 const services = [
   { key: "bunyan", name: "بنيان", description: "بناء مسجد جديد", icon: Building2, color: "bg-emerald-500" },
   { key: "daaem", name: "دعائم", description: "استكمال المساجد المتعثرة", icon: Hammer, color: "bg-blue-500" },
@@ -98,7 +98,7 @@ export default function Home() {
               بوابة تمام للعناية بالمساجد
             </h1>
             <p className="text-lg lg:text-xl mb-8 leading-relaxed text-white/95 drop-shadow">
-              منصة متكاملة لإدارة خدمات المساجد من خلال تسعة برامج متخصصة تغطي جميع احتياجات بيوت الله
+              منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href={isAuthenticated ? "/service-request" : "/login"}>
@@ -148,7 +148,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">خدمات المساجد</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              تسعة خدمات متخصصة تغطي جميع احتياجات المساجد من البناء والصيانة إلى التشغيل والخدمات
+              خدمات متخصصة تغطي جميع احتياجات المساجد من البناء والصيانة إلى التشغيل والخدمات
             </p>
           </div>
 
