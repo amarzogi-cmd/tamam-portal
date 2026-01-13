@@ -599,8 +599,17 @@ export const contractsRouter = router({
           })
           .where(eq(projects.id, contract.projectId));
         
-        // إضافة سجل في تاريخ الطلب إذا كان العقد مرتبط بطلب
+        // تحديث مرحلة الطلب إلى "execution" عند اعتماد العقد
         if (contract.requestId) {
+          await db
+            .update(mosqueRequests)
+            .set({
+              currentStage: "execution",
+              updatedAt: new Date(),
+            })
+            .where(eq(mosqueRequests.id, contract.requestId));
+          
+          // إضافة سجل في تاريخ الطلب
           await db.insert(requestHistory).values({
             requestId: contract.requestId,
             userId: ctx.user.id,

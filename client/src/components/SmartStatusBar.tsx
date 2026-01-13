@@ -114,8 +114,8 @@ const STAGE_ACTIONS: Record<string, {
     title: "مرحلة التنفيذ",
     description: "يتم تنفيذ الأعمال حسب العقد",
     icon: Zap,
-    actionLabel: "متابعة التنفيذ",
-    actionType: 'info',
+    actionLabel: "عرض المشروع",
+    actionType: 'custom',
     color: "orange",
   },
   handover: {
@@ -469,6 +469,19 @@ export default function SmartStatusBar({
           <AlertCircle className="w-4 h-4" />
           اختر قرار التقييم من الشريط الجانبي
         </div>
+      );
+    }
+
+    // لمرحلة التنفيذ - عرض زر للانتقال لصفحة المشروع
+    if (currentStage === 'execution') {
+      return (
+        <Button 
+          onClick={() => onNavigate(`/projects/${request.id}`)}
+          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
+        >
+          <FolderKanban className="w-4 h-4 ml-2" />
+          عرض المشروع
+        </Button>
       );
     }
 
