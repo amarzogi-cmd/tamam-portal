@@ -358,6 +358,12 @@ export const contractsRouter = router({
       const signatoryIdValue = (input.signatoryId && typeof input.signatoryId === 'number' && input.signatoryId > 0) ? input.signatoryId : undefined;
       console.log('signatoryId value:', signatoryIdValue);
       
+      // تحذير عند إنشاء عقد بدون requestId
+      if (input.projectId && !input.requestId) {
+        console.warn('[Contract Create] ⚠️ Project provided without requestId - stage update will not work automatically');
+        console.warn('[Contract Create] projectId:', input.projectId, 'requestId:', input.requestId);
+      }
+      
       const contractData: any = {
         contractNumber,
         contractYear: year,
@@ -590,6 +596,7 @@ export const contractsRouter = router({
         .where(eq(contractsEnhanced.id, input.id));
       
       // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد
+      console.log('[Contract Approve] Starting stage update - projectId:', contract.projectId, 'requestId:', contract.requestId);
       if (contract.projectId) {
         await db
           .update(projects)
@@ -598,9 +605,11 @@ export const contractsRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(projects.id, contract.projectId));
+        console.log('[Contract Approve] Project status updated to in_progress');
         
         // تحديث مرحلة الطلب إلى "execution" عند اعتماد العقد
         if (contract.requestId) {
+          console.log('[Contract Approve] Updating request stage to execution for requestId:', contract.requestId);
           await db
             .update(mosqueRequests)
             .set({
@@ -609,6 +618,8 @@ export const contractsRouter = router({
             })
             .where(eq(mosqueRequests.id, contract.requestId));
           
+          console.log('[Contract Approve] Request stage updated successfully');
+          
           // إضافة سجل في تاريخ الطلب
           await db.insert(requestHistory).values({
             requestId: contract.requestId,
@@ -616,7 +627,12 @@ export const contractsRouter = router({
             action: "اعتماد العقد",
             notes: `تم اعتماد العقد رقم ${contract.contractNumber} وتحويل المشروع إلى مرحلة التنفيذ`,
           });
+          console.log('[Contract Approve] Request history entry added');
+        } else {
+          console.log('[Contract Approve] No requestId found, skipping request stage update');
         }
+      } else {
+        console.log('[Contract Approve] No projectId found, skipping updates');
       }
       
       return { success: true, message: "تم اعتماد العقد وتحويل المشروع إلى مرحلة التنفيذ" };

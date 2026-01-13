@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -31,6 +32,7 @@ import {
   Edit,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from "lucide-react";
 
 // وحدات المدة
@@ -441,6 +443,19 @@ export default function ContractForm() {
             إنشاء عقد باستخدام قالب مع إمكانية التخصيص
           </p>
         </div>
+
+        {/* تحذير عندما لا يتم تمرير requestId */}
+        {!requestId && (
+          <Alert variant="destructive" className="border-orange-500 bg-orange-50 text-orange-900">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>تحذير هام</AlertTitle>
+            <AlertDescription>
+              لم يتم ربط هذا العقد بطلب. لن يتم تحديث مرحلة الطلب تلقائياً عند اعتماد العقد.
+              <br />
+              يفضل إنشاء العقد من صفحة تفاصيل الطلب لضمان الربط الصحيح.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* شريط الخطوات */}
         <div className="flex items-center justify-between overflow-x-auto pb-2">

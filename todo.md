@@ -2090,3 +2090,14 @@
 - [ ] إضافة نموذج قياس رضا أصحاب المصلحة (Stakeholder Satisfaction)
 - [ ] إضافة نموذج قياس رضا المستفيدين (Beneficiary Satisfaction)
 - [ ] عرض نتائج قياس الرضا في لوحة التحكم
+
+
+## إصلاح مشكلة تحديث currentStage عند اعتماد العقد
+- [x] تحليل السبب الجذري للمشكلة
+- [x] التحقق من الكود في contracts.ts (approve procedure)
+- [x] التحقق من الكود في ContractForm.tsx
+- [x] إضافة console.log للتتبع في contracts.ts
+- [x] إضافة console.warn عند إنشاء عقد بدون requestId
+- [x] إضافة تحذير في واجهة إنشاء العقد عندما لا يتم تمرير requestId
+- [x] تحديث الطلب 120001 يدوياً إلى مرحلة execution
+- [x] إنشاء تقرير شامل عن المشكلة والحل
