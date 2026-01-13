@@ -232,6 +232,13 @@
       "when": 1768154466745,
       "tag": "0032_icy_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1768328542490,
+      "tag": "0033_demonic_alex_power",
+      "breakpoints": true
     }
   ]
 }

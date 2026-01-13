@@ -1401,6 +1401,125 @@ export const contractModificationRequests = mysqlTable("contract_modification_re
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// جدول الاستلامات (Handovers)
+export const handoverTypes = [
+  "preliminary",  // استلام أولي
+  "warranty",     // فترة ضمان
+  "final"         // استلام نهائي
+] as const;
+
+export const handoverStatuses = [
+  "pending",    // قيد المراجعة
+  "approved",   // معتمد
+  "rejected",   // مرفوض
+  "completed"   // مكتمل
+] as const;
+
+export const handovers = mysqlTable("handovers", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  
+  // نوع الاستلام
+  type: mysqlEnum("type", handoverTypes).notNull(),
+  
+  // تفاصيل الاستلام
+  handoverDate: date("handoverDate"),
+  completionPercentage: decimal("completionPercentage", { precision: 5, scale: 2 }).default("0"),
+  notes: text("notes"),
+  
+  // الملفات
+  documentUrl: text("documentUrl"),
+  photosUrls: json("photosUrls").$type<string[]>(),
+  
+  // الحالة
+  status: mysqlEnum("status", handoverStatuses).default("pending").notNull(),
+  
+  // معلومات المعتمد
+  approvedBy: int("approvedBy").references(() => users.id),
+  approvedAt: timestamp("approvedAt"),
+  approvalNotes: text("approvalNotes"),
+  
+  // معلومات الضمان (لنوع warranty)
+  warrantyStartDate: date("warrantyStartDate"),
+  warrantyEndDate: date("warrantyEndDate"),
+  warrantyDurationMonths: int("warrantyDurationMonths"),
+  
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول قياس الرضا (Satisfaction Surveys)
+export const surveyTypes = [
+  "stakeholder",   // أصحاب المصلحة
+  "beneficiary"    // المستفيدين
+] as const;
+
+export const surveyStatuses = [
+  "draft",       // مسودة
+  "published",   // منشور
+  "closed"       // مغلق
+] as const;
+
+export const satisfactionSurveys = mysqlTable("satisfaction_surveys", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  
+  // نوع الاستبيان
+  type: mysqlEnum("type", surveyTypes).notNull(),
+  
+  // عنوان ووصف
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // الأسئلة (قابلة للتخصيص)
+  questions: json("questions").$type<{
+    id: string;
+    question: string;
+    type: "rating" | "text" | "multiple_choice";
+    options?: string[];
+    required: boolean;
+  }[]>().notNull(),
+  
+  // الحالة
+  status: mysqlEnum("status", surveyStatuses).default("draft").notNull(),
+  
+  // تواريخ
+  publishedAt: timestamp("publishedAt"),
+  closedAt: timestamp("closedAt"),
+  
+  // رابط الاستبيان (للمستفيدين)
+  surveyUrl: varchar("surveyUrl", { length: 500 }),
+  
+  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول ردود قياس الرضا (Survey Responses)
+export const surveyResponses = mysqlTable("survey_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  surveyId: int("surveyId").notNull().references(() => satisfactionSurveys.id),
+  
+  // معلومات المستجيب
+  respondentName: varchar("respondentName", { length: 255 }),
+  respondentEmail: varchar("respondentEmail", { length: 255 }),
+  respondentPhone: varchar("respondentPhone", { length: 20 }),
+  
+  // الإجابات
+  responses: json("responses").$type<{
+    questionId: string;
+    answer: string | number | string[];
+  }[]>().notNull(),
+  
+  // التقييم العام
+  overallRating: decimal("overallRating", { precision: 3, scale: 2 }),
+  
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+});
+
 // سجل تعديلات العقود
 export const contractModificationLogs = mysqlTable("contract_modification_logs", {
   id: int("id").autoincrement().primaryKey(),
@@ -1418,6 +1537,18 @@ export const contractModificationLogs = mysqlTable("contract_modification_logs",
 });
 
 // تصدير الأنواع
+export type Handover = typeof handovers.$inferSelect;
+export type InsertHandover = typeof handovers.$inferInsert;
+export type HandoverType = typeof handoverTypes[number];
+export type HandoverStatus = typeof handoverStatuses[number];
+
+export type SatisfactionSurvey = typeof satisfactionSurveys.$inferSelect;
+export type InsertSatisfactionSurvey = typeof satisfactionSurveys.$inferInsert;
+export type SurveyResponse = typeof surveyResponses.$inferSelect;
+export type InsertSurveyResponse = typeof surveyResponses.$inferInsert;
+export type SurveyType = typeof surveyTypes[number];
+export type SurveyStatus = typeof surveyStatuses[number];
+
 export type ContractTemplate = typeof contractTemplates.$inferSelect;
 export type InsertContractTemplate = typeof contractTemplates.$inferInsert;
 export type ContractClause = typeof contractClauses.$inferSelect;

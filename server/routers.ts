@@ -14,6 +14,7 @@ import { categoriesRouter } from "./routers/categories";
 import { organizationRouter } from "./routers/organization";
 import { disbursementsRouter } from "./routers/disbursements";
 import { progressReportsRouter } from "./routers/progressReports";
+import { handoversRouter } from "./routers/handovers";
 import { stageSettingsRouter } from "./routers/stageSettings";
 
 export const appRouter = router({
@@ -52,6 +53,9 @@ export const appRouter = router({
   // طلبات الصرف وأوامر الصرف
   disbursements: disbursementsRouter,
   progressReports: progressReportsRouter,
+  
+  // نظام الاستلامات
+  handovers: handoversRouter,
   
   // إعدادات المراحل والتسلسل الصارم
   stageSettings: stageSettingsRouter,
