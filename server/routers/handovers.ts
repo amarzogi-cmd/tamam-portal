@@ -67,9 +67,9 @@ export const handoversRouter = router({
   list: protectedProcedure
     .input(
       z.object({
-        projectId: z.number(),
+        projectId: z.number().optional(),
         type: z.enum(handoverTypes).optional(),
-      })
+      }).optional().default({})
     )
     .query(async ({ input }) => {
       const db = await getDb();
@@ -77,7 +77,10 @@ export const handoversRouter = router({
 
       const { projectId, type } = input;
 
-      const conditions = [eq(handovers.projectId, projectId)];
+      const conditions = [];
+      if (projectId) {
+        conditions.push(eq(handovers.projectId, projectId));
+      }
       if (type) {
         conditions.push(eq(handovers.type, type));
       }
@@ -85,6 +88,8 @@ export const handoversRouter = router({
       const results = await db
         .select({
           id: handovers.id,
+          projectId: handovers.projectId,
+          requestId: handovers.requestId,
           type: handovers.type,
           handoverDate: handovers.handoverDate,
           completionPercentage: handovers.completionPercentage,
@@ -101,10 +106,12 @@ export const handoversRouter = router({
           createdBy: handovers.createdBy,
           createdAt: handovers.createdAt,
           createdByName: users.name,
+          projectNumber: projects.projectNumber,
         })
         .from(handovers)
         .leftJoin(users, eq(handovers.createdBy, users.id))
-        .where(and(...conditions))
+        .leftJoin(projects, eq(handovers.projectId, projects.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(handovers.createdAt));
 
       return results;

@@ -62,6 +62,7 @@ import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractsList from "./pages/ContractsList";
 import DisbursementRequests from "./pages/DisbursementRequests";
+import Handovers from "./pages/Handovers";
 import NewDisbursementRequest from "./pages/NewDisbursementRequest";
 import NewDisbursementOrder from "./pages/NewDisbursementOrder";
 import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
@@ -171,6 +172,9 @@ function Router() {
       
       {/* تقارير الإنجاز - إدارية */}
       <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
+      
+      {/* الاستلامات - إدارية */}
+      <Route path="/handovers">{() => <AdminRoute component={Handovers} />}</Route>
       
       {/* التقرير المالي - إدارية */}
       <Route path="/financial-report">{() => <AdminRoute component={FinancialReport} />}</Route>
