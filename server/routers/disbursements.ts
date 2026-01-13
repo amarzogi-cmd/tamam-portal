@@ -1013,4 +1013,95 @@ export const disbursementsRouter = router({
       totalPaid: totalPaid?.total || 0,
     };
   }),
+
+  // الحصول على ملخص الحركة المالية
+  getFinancialSummary: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.number().optional(),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { projectId } = input || {};
+
+      // إجمالي المبلغ المعتمد (من العقود)
+      const contractConditions = projectId ? eq(contractsEnhanced.projectId, projectId) : undefined;
+      const [totalApprovedResult] = await db
+        .select({ total: sql<number>`COALESCE(SUM(${contractsEnhanced.contractAmount}), 0)` })
+        .from(contractsEnhanced)
+        .where(and(
+          eq(contractsEnhanced.status, "active"),
+          contractConditions
+        ));
+
+      const totalApproved = Number(totalApprovedResult?.total || 0);
+
+      // إجمالي المبلغ المصروف
+      const paidConditions = [
+        eq(disbursementRequests.status, "paid"),
+        projectId ? eq(disbursementRequests.projectId, projectId) : undefined,
+      ].filter(Boolean);
+
+      const [totalPaidResult] = await db
+        .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+        .from(disbursementRequests)
+        .where(paidConditions.length > 0 ? and(...paidConditions) : undefined);
+
+      const totalPaid = Number(totalPaidResult?.total || 0);
+
+      // إجمالي المبلغ المتبقي
+      const totalRemaining = totalApproved - totalPaid;
+
+      // عدد الطلبات قيد المراجعة
+      const pendingConditions = [
+        eq(disbursementRequests.status, "pending"),
+        projectId ? eq(disbursementRequests.projectId, projectId) : undefined,
+      ].filter(Boolean);
+
+      const [pendingResult] = await db
+        .select({ 
+          count: sql<number>`COUNT(*)`,
+          total: sql<number>`COALESCE(SUM(amount), 0)`,
+        })
+        .from(disbursementRequests)
+        .where(pendingConditions.length > 0 ? and(...pendingConditions) : undefined);
+
+      const pendingRequests = Number(pendingResult?.count || 0);
+      const pendingAmount = Number(pendingResult?.total || 0);
+
+      // تفاصيل الدفعات حسب النوع
+      const paymentTypes = ["advance", "progress", "final", "retention"] as const;
+      const paymentBreakdown: Record<string, number> = {};
+
+      for (const type of paymentTypes) {
+        const typeConditions = [
+          eq(disbursementRequests.status, "paid"),
+          eq(disbursementRequests.paymentType, type),
+          projectId ? eq(disbursementRequests.projectId, projectId) : undefined,
+        ].filter(Boolean);
+
+        const [typeResult] = await db
+          .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+          .from(disbursementRequests)
+          .where(typeConditions.length > 0 ? and(...typeConditions) : undefined);
+
+        paymentBreakdown[type] = Number(typeResult?.total || 0);
+      }
+
+      return {
+        totalApproved,
+        totalPaid,
+        totalRemaining,
+        paidPercentage: totalApproved > 0 ? (totalPaid / totalApproved) * 100 : 0,
+        pendingRequests,
+        pendingAmount,
+        advancePayment: paymentBreakdown.advance,
+        progressPayments: paymentBreakdown.progress,
+        finalPayment: paymentBreakdown.final,
+        retentionAmount: paymentBreakdown.retention,
+      };
+    }),
 });
