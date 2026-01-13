@@ -2057,8 +2057,13 @@
 - [x] إضافة procedure getFinancialSummary في disbursements router
 - [x] إنشاء صفحة /financial-dashboard
 - [x] إضافة اختبارات unit test للوحة التحكم المالية (4 اختبارات)
-- [ ] تطوير واجهة طلبات الصرف (Payment Requests) - موجودة لكن تحتاج تحسين
-- [ ] تطوير واجهة أوامر الصرف (Payment Orders) - موجودة لكن تحتاج تحسين
+- [x] تحسين واجهة طلبات الصرف:
+  - [x] إضافة مؤشرات بصرية ملونة للحالة (DisbursementStatusBadge)
+  - [x] إضافة تصفية متقدمة (نوع الدفعة)
+  - [x] تحديث منطق التصفية filteredRequests
+- [x] تحسين واجهة أوامر الصرف:
+  - [x] إضافة مؤشرات بصرية ملونة للحالة (DisbursementStatusBadge)
+  - [x] ربط أمر الصرف بطلب الصرف (موجود requestNumber في الجدول)
 - [x] ربط طلبات الصرف بأوامر الصرف (موجود disbursementRequestId)
 - [ ] إضافة نظام الدفعة الختامية (Final Payment)
 - [ ] ربط طلبات الصرف بأوامر الصرف بشكل سلس

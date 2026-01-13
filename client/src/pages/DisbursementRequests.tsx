@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DisbursementStatusBadge } from "@/components/DisbursementStatusBadge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,6 +130,8 @@ export default function DisbursementRequests() {
   const [activeTab, setActiveTab] = useState("requests");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
   
   // نوافذ الحوار
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -364,14 +367,22 @@ export default function DisbursementRequests() {
   };
 
   const filteredRequests = requestsData?.requests?.filter((req) => {
+    // تصفية البحث
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = (
         req.requestNumber?.toLowerCase().includes(search) ||
         req.title?.toLowerCase().includes(search) ||
         req.projectName?.toLowerCase().includes(search)
       );
+      if (!matchesSearch) return false;
     }
+    
+    // تصفية نوع الدفعة
+    if (paymentTypeFilter !== "all") {
+      if ((req as any).paymentType !== paymentTypeFilter) return false;
+    }
+    
     return true;
   });
 
@@ -472,6 +483,19 @@ export default function DisbursementRequests() {
                   <SelectItem value="paid">مصروف</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <CreditCard className="ml-2 h-4 w-4" />
+                  <SelectValue placeholder="نوع الدفعة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأنواع</SelectItem>
+                  <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                  <SelectItem value="progress">دفعة مرحلية</SelectItem>
+                  <SelectItem value="final">دفعة نهائية</SelectItem>
+                  <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* جدول طلبات الصرف */}
@@ -506,9 +530,10 @@ export default function DisbursementRequests() {
                           <TableCell>{Number(request.amount).toLocaleString()} ريال</TableCell>
                           <TableCell>{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
                           <TableCell>
-                            <Badge variant={STATUS_MAP[request.status || "pending"]?.variant}>
-                              {STATUS_MAP[request.status || "pending"]?.label}
-                            </Badge>
+                            <DisbursementStatusBadge 
+                              status={request.status as any} 
+                              type="request" 
+                            />
                           </TableCell>
                           <TableCell>
                             {request.requestedAt
@@ -619,27 +644,10 @@ export default function DisbursementRequests() {
                             {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                order.status === "executed"
-                                  ? "outline"
-                                  : order.status === "approved"
-                                  ? "default"
-                                  : order.status === "rejected"
-                                  ? "destructive"
-                                  : "secondary"
-                              }
-                            >
-                              {order.status === "draft"
-                                ? "مسودة"
-                                : order.status === "pending"
-                                ? "قيد الاعتماد"
-                                : order.status === "approved"
-                                ? "معتمد"
-                                : order.status === "rejected"
-                                ? "مرفوض"
-                                : "منفذ"}
-                            </Badge>
+                            <DisbursementStatusBadge 
+                              status={order.status as any} 
+                              type="order" 
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
