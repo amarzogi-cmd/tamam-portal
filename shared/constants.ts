@@ -683,7 +683,7 @@ export const TECHNICAL_EVAL_OPTIONS = {
     description: 'تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات',
     requiresJustification: false,
     nextStage: 'boq_preparation',
-    resultStatus: 'approved',
+    resultStatus: 'in_progress',
     allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
     createsProject: true,
     icon: 'FolderKanban',
