@@ -484,13 +484,13 @@ export const requestsRouter = router({
           }
           // التحقق من وجود عروض أسعار مستلمة
           else if (prereq.type === 'quotes_received') {
-            const quotes = await db.select().from(quotations)
+            const quotes = await db.select({ id: quotations.id }).from(quotations)
               .where(eq(quotations.requestId, input.requestId)).limit(1);
             isMet = quotes.length > 0;
           }
           // التحقق من وجود عرض سعر معتمد
           else if (prereq.type === 'supplier_selected') {
-            const acceptedQuotes = await db.select().from(quotations)
+            const acceptedQuotes = await db.select({ id: quotations.id }).from(quotations)
               .where(and(
                 eq(quotations.requestId, input.requestId),
                 inArray(quotations.status, ['accepted', 'approved'])
