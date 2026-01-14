@@ -988,3 +988,129 @@ export const PREREQUISITE_ERROR_MESSAGES: Record<PrerequisiteType, string> = {
   final_report: 'يجب رفع التقرير الختامي للمشروع',
   satisfaction_survey: 'يجب إكمال استبيان رضا المستفيد',
 };
+
+
+// ==================== تكوين الإجراءات النشطة ====================
+export const ACTION_CONFIGS = {
+  submitted: {
+    title: "مراجعة الطلب",
+    description: "قم بمراجعة الطلب الجديد والتأكد من استيفاء جميع المتطلبات الأساسية قبل الانتقال للمرحلة التالية.",
+    icon: "FileSearch",
+    iconColor: "text-blue-600",
+    actionButton: {
+      label: "بدء المراجعة الأولية",
+      nextStage: "initial_review",
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+  initial_review: {
+    title: "المراجعة الأولية",
+    description: "راجع المستندات والمعلومات المقدمة وتأكد من اكتمالها. يمكنك الموافقة على الطلب أو طلب معلومات إضافية.",
+    icon: "ClipboardCheck",
+    iconColor: "text-indigo-600",
+    actionButton: {
+      label: "اعتماد المراجعة والانتقال للزيارة الميدانية",
+      nextStage: "field_visit",
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+  field_visit: {
+    title: "جدولة الزيارة الميدانية",
+    description: "قم بتحديد موعد الزيارة الميدانية وتعيين الفريق المسؤول عن إجراء الزيارة وتقييم الموقع.",
+    icon: "MapPin",
+    iconColor: "text-green-600",
+    actionButton: {
+      label: "جدولة الزيارة الميدانية",
+      nextStage: "field_visit", // يبقى في نفس المرحلة حتى يتم إسناد الزيارة
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "field_team"],
+  },
+  technical_eval: {
+    title: "اتخاذ قرار التقييم الفني",
+    description: "بناءً على نتائج الزيارة الميدانية والتقييم الفني، اختر الإجراء المناسب للطلب.",
+    icon: "GitBranch",
+    iconColor: "text-purple-600",
+    // لا يوجد actionButton واحد - سيتم عرض الخيارات الأربعة
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+  boq_preparation: {
+    title: "إعداد جدول الكميات",
+    description: "قم بإضافة بنود جدول الكميات (BOQ) لتحديد الأعمال والكميات والتكاليف المطلوبة للمشروع.",
+    icon: "FileSpreadsheet",
+    iconColor: "text-orange-600",
+    actionButton: {
+      label: "إعداد جدول الكميات",
+      nextStage: "financial_eval",
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+  financial_eval: {
+    title: "التقييم المالي",
+    description: "راجع جدول الكميات والتكاليف المقدرة وقم بإعداد عرض السعر النهائي للمشروع.",
+    icon: "DollarSign",
+    iconColor: "text-emerald-600",
+    actionButton: {
+      label: "إعداد عرض السعر",
+      nextStage: "quotation_approval",
+    },
+    allowedRoles: ["super_admin", "system_admin", "financial"],
+  },
+  quotation_approval: {
+    title: "اعتماد عرض السعر",
+    description: "راجع عرض السعر النهائي واعتمده للانتقال إلى مرحلة التعاقد مع المقاول.",
+    icon: "CheckCircle2",
+    iconColor: "text-teal-600",
+    actionButton: {
+      label: "اعتماد عرض السعر",
+      nextStage: "contracting",
+    },
+    allowedRoles: ["super_admin", "system_admin", "financial"],
+  },
+  contracting: {
+    title: "إعداد واعتماد العقد",
+    description: "قم بإعداد العقد مع المقاول واعتماده لبدء تنفيذ المشروع.",
+    icon: "FileText",
+    iconColor: "text-cyan-600",
+    actionButton: {
+      label: "إنشاء عقد جديد",
+      nextStage: "contracting", // يبقى في نفس المرحلة حتى يتم اعتماد العقد
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+  execution: {
+    title: "متابعة تنفيذ المشروع",
+    description: "تابع تقدم تنفيذ المشروع وتأكد من سير العمل وفقاً للعقد والجدول الزمني المحدد.",
+    icon: "Hammer",
+    iconColor: "text-amber-600",
+    actionButton: {
+      label: "عرض تفاصيل المشروع",
+      nextStage: "execution", // يبقى في نفس المرحلة
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
+  },
+  closed: {
+    title: "المشروع مكتمل",
+    description: "تم إغلاق المشروع بنجاح. يمكنك مراجعة التقارير النهائية والمستندات.",
+    icon: "CheckCircle",
+    iconColor: "text-green-600",
+    actionButton: {
+      label: "عرض التقرير النهائي",
+      nextStage: "closed", // يبقى في نفس المرحلة
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+  },
+} as const;
+
+// مراحل سير العمل للعرض في ProgressStepper
+export const WORKFLOW_STEPS = [
+  { id: "submitted", label: "تقديم الطلب", order: 1 },
+  { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+  { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
+  { id: "technical_eval", label: "التقييم الفني", order: 4 },
+  { id: "boq_preparation", label: "جدول الكميات", order: 5 },
+  { id: "financial_eval", label: "التقييم المالي", order: 6 },
+  { id: "quotation_approval", label: "اعتماد السعر", order: 7 },
+  { id: "contracting", label: "التعاقد", order: 8 },
+  { id: "execution", label: "التنفيذ", order: 9 },
+  { id: "closed", label: "الإغلاق", order: 10 },
+] as const;

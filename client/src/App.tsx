@@ -23,7 +23,7 @@ import MyMosques from "./pages/MyMosques";
 
 // صفحات الطلبات
 import Requests from "./pages/Requests";
-import RequestDetails from "./pages/RequestDetails";
+import RequestDetails from "./pages/RequestDetailsNew";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
@@ -110,10 +110,12 @@ function Router() {
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
       <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
+      {/* <Route path="/requests/:id/old" component={RequestDetailsOld} /> */}
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requester/requests/:id" component={RequestDetails} />
+      {/* <Route path="/requester/requests/:id/old" component={RequestDetailsOld} /> */}
       
       {/* المستخدمون - إدارية */}
       <Route path="/users">{() => <AdminRoute component={Users} />}</Route>
