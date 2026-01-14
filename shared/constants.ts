@@ -991,7 +991,22 @@ export const PREREQUISITE_ERROR_MESSAGES: Record<PrerequisiteType, string> = {
 
 
 // ==================== تكوين الإجراءات النشطة ====================
-export const ACTION_CONFIGS = {
+export interface ActionButton {
+  label: string;
+  nextStage: string;
+  redirectUrl?: string;
+}
+
+export interface ActionConfig {
+  title: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  actionButton?: ActionButton;
+  allowedRoles: string[];
+}
+
+export const ACTION_CONFIGS: Record<string, ActionConfig> = {
   submitted: {
     title: "مراجعة الطلب",
     description: "قم بمراجعة الطلب الجديد والتأكد من استيفاء جميع المتطلبات الأساسية قبل الانتقال للمرحلة التالية.",
@@ -1041,6 +1056,7 @@ export const ACTION_CONFIGS = {
     actionButton: {
       label: "إعداد جدول الكميات",
       nextStage: "financial_eval",
+      redirectUrl: "/boq/:requestId", // فتح صفحة إعداد جدول الكميات
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office"],
   },
@@ -1074,6 +1090,7 @@ export const ACTION_CONFIGS = {
     actionButton: {
       label: "إنشاء عقد جديد",
       nextStage: "contracting", // يبقى في نفس المرحلة حتى يتم اعتماد العقد
+      redirectUrl: "/contracts/new?requestId=:requestId", // فتح صفحة إنشاء عقد جديد
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office"],
   },
@@ -1085,6 +1102,7 @@ export const ACTION_CONFIGS = {
     actionButton: {
       label: "عرض تفاصيل المشروع",
       nextStage: "execution", // يبقى في نفس المرحلة
+      redirectUrl: "/projects/:projectId", // فتح صفحة تفاصيل المشروع
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
   },

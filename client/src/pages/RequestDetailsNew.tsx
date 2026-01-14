@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 export default function RequestDetailsNew() {
   const { id } = useParams();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const requestId = parseInt(id!);
 
   // States for drawers
@@ -26,8 +27,68 @@ export default function RequestDetailsNew() {
 
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
-  // const { data: history } = trpc.requests.getHistory.useQuery({ id: requestId });
   const history = request?.history || [];
+  const utils = trpc.useUtils();
+
+  // Mutations
+  const updateStageMutation = trpc.requests.updateStage.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: requestId });
+      toast.success("تم الانتقال إلى المرحلة التالية بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء الانتقال");
+    },
+  });
+
+  const addCommentMutation = trpc.requests.addComment.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: requestId });
+      toast.success("تم إضافة التعليق بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إضافة التعليق");
+    },
+  });
+
+  const addAttachmentMutation = trpc.requests.addAttachment.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: requestId });
+      toast.success("تم رفع المرفق بنجاح");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء رفع المرفق");
+    },
+  });
+
+  // Handler for stage transition
+  const handleStageTransition = () => {
+    if (!request || !activeAction) return;
+    
+    // إذا كان هناك redirectUrl، انتقل إلى الصفحة المحددة
+    if (activeAction.actionButton?.redirectUrl) {
+      const url = activeAction.actionButton.redirectUrl
+        .replace(':requestId', requestId.toString())
+        .replace(':projectId', request.project?.id?.toString() || '');
+      setLocation(url);
+      return;
+    }
+    
+    // إذا لم يكن هناك redirectUrl، انتقل إلى المرحلة التالية
+    const nextStage = getNextStage(request.currentStage);
+    if (!nextStage) {
+      toast.error("لا توجد مرحلة تالية");
+      return;
+    }
+    updateStageMutation.mutate({ requestId, newStage: nextStage as any });
+  };
+
+  // Get next stage
+  const getNextStage = (currentStage: string) => {
+    const currentIndex = WORKFLOW_STEPS.findIndex((s) => s.id === currentStage);
+    if (currentIndex === -1 || currentIndex === WORKFLOW_STEPS.length - 1) return null;
+    return WORKFLOW_STEPS[currentIndex + 1].id;
+  };
 
   if (isLoading) {
     return (
@@ -150,10 +211,8 @@ export default function RequestDetailsNew() {
               activeAction.canPerformAction && activeAction.actionButton
                 ? {
                     label: activeAction.actionButton.label,
-                    onClick: () => {
-                      toast.info("سيتم تنفيذ الإجراء قريباً");
-                    },
-                    disabled: !activeAction.canPerformAction,
+                    onClick: handleStageTransition,
+                    disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
                   }
                 : undefined
             }

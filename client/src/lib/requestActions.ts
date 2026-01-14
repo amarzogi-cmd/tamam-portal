@@ -1,4 +1,4 @@
-import { ACTION_CONFIGS, WORKFLOW_STEPS } from "../../../shared/constants";
+import { ACTION_CONFIGS, WORKFLOW_STEPS, ActionButton } from "../../../shared/constants";
 
 export interface ActiveAction {
   stage: string;
@@ -6,10 +6,7 @@ export interface ActiveAction {
   description: string;
   icon: string;
   iconColor: string;
-  actionButton?: {
-    label: string;
-    nextStage: string;
-  };
+  actionButton?: ActionButton;
   allowedRoles: readonly string[];
   canPerformAction: boolean;
 }
