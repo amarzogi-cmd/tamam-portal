@@ -239,6 +239,20 @@
       "when": 1768328542490,
       "tag": "0033_demonic_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1768423781470,
+      "tag": "0034_striped_flatman",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1768423844817,
+      "tag": "0035_bent_zombie",
+      "breakpoints": true
     }
   ]
 }
