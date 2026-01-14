@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +74,7 @@ const UNITS = [
 
 export default function BOQ() {
   const [, navigate] = useLocation();
+  const params = useParams();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -81,7 +82,14 @@ export default function BOQ() {
   const [filterProgram, setFilterProgram] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [selectedRequestId, setSelectedRequestId] = useState<string>("");
+  const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || "");
+  
+  // تعيين requestId من URL عند تحميل الصفحة
+  useEffect(() => {
+    if (params.requestId) {
+      setSelectedRequestId(params.requestId);
+    }
+  }, [params.requestId]);
   
   // حالة النموذج
   const [formData, setFormData] = useState({
