@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ActiveActionCard } from "@/components/ActiveActionCard";
 import { InfoDrawer } from "@/components/InfoDrawer";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { toast } from "sonner";
 
@@ -24,6 +25,11 @@ export default function RequestDetailsNew() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  
+  // States for technical evaluation
+  const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
+  const [selectedDecision, setSelectedDecision] = useState<string | null>(null);
+  const [justification, setJustification] = useState("");
 
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
@@ -58,6 +64,19 @@ export default function RequestDetailsNew() {
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء رفع المرفق");
+    },
+  });
+
+  const technicalEvalMutation = trpc.requests.technicalEvalDecision.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowTechnicalEvalDialog(false);
+      setSelectedDecision(null);
+      setJustification("");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -197,36 +216,117 @@ export default function RequestDetailsNew() {
 
         {/* Active Action Card */}
         {activeAction && (
-          <ActiveActionCard
-            title={activeAction.title}
-            description={activeAction.description}
-            icon={activeAction.icon as any}
-            iconColor={activeAction.iconColor}
-            progress={{
-              current: WORKFLOW_STEPS.findIndex((s) => s.id === request.currentStage) + 1,
-              total: WORKFLOW_STEPS.length,
-              percentage: progress,
-            }}
-            actionButton={
-              activeAction.canPerformAction && activeAction.actionButton
-                ? {
-                    label: activeAction.actionButton.label,
-                    onClick: handleStageTransition,
-                    disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
-                  }
-                : undefined
-            }
-            additionalActions={[
-              {
-                label: "إضافة تعليق",
-                onClick: () => setCommentsOpen(true),
-              },
-              {
-                label: "رفع مرفق",
-                onClick: () => setAttachmentsOpen(true),
-              },
-            ]}
-          />
+          <div>
+            <ActiveActionCard
+              title={activeAction.title}
+              description={activeAction.description}
+              icon={activeAction.icon as any}
+              iconColor={activeAction.iconColor}
+              progress={{
+                current: WORKFLOW_STEPS.findIndex((s) => s.id === request.currentStage) + 1,
+                total: WORKFLOW_STEPS.length,
+                percentage: progress,
+              }}
+              actionButton={
+                activeAction.canPerformAction && activeAction.actionButton && request.currentStage !== 'technical_eval'
+                  ? {
+                      label: activeAction.actionButton.label,
+                      onClick: handleStageTransition,
+                      disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
+                    }
+                  : undefined
+              }
+              additionalActions={
+                request.currentStage !== 'technical_eval' ? [
+                  {
+                    label: "إضافة تعليق",
+                    onClick: () => setCommentsOpen(true),
+                  },
+                  {
+                    label: "رفع مرفق",
+                    onClick: () => setAttachmentsOpen(true),
+                  },
+                ] : []
+              }
+            />
+            
+            {/* خيارات التقييم الفني */}
+            {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* التحويل إلى مشروع */}
+                <button 
+                  className="group p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50"
+                  onClick={() => {
+                    setSelectedDecision('convert_to_project');
+                    setShowTechnicalEvalDialog(true);
+                  }}
+                  disabled={technicalEvalMutation.isPending}
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <div>
+                      <h5 className="font-bold text-green-800 text-base">التحويل إلى مشروع</h5>
+                      <p className="text-sm text-green-600">إكمال الطلب والانتقال للتقييم المالي</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* الاستجابة السريعة */}
+                <button 
+                  className="group p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50"
+                  onClick={() => {
+                    setSelectedDecision('quick_response');
+                    setShowTechnicalEvalDialog(true);
+                  }}
+                  disabled={technicalEvalMutation.isPending}
+                >
+                  <div className="flex items-center gap-3">
+                    <Zap className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <h5 className="font-bold text-purple-800 text-base">الاستجابة السريعة</h5>
+                      <p className="text-sm text-purple-600">تحويل للحالات البسيطة التي تحتاج تدخل مباشر</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* التعليق */}
+                <button 
+                  className="group p-4 rounded-lg border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50"
+                  onClick={() => {
+                    setSelectedDecision('suspend');
+                    setShowTechnicalEvalDialog(true);
+                  }}
+                  disabled={technicalEvalMutation.isPending}
+                >
+                  <div className="flex items-center gap-3">
+                    <PauseCircle className="w-6 h-6 text-amber-600" />
+                    <div>
+                      <h5 className="font-bold text-amber-800 text-base">التعليق</h5>
+                      <p className="text-sm text-amber-600">تعليق الطلب مؤقتاً لحين توفر متطلبات</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* الاعتذار */}
+                <button 
+                  className="group p-4 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50"
+                  onClick={() => {
+                    setSelectedDecision('apologize');
+                    setShowTechnicalEvalDialog(true);
+                  }}
+                  disabled={technicalEvalMutation.isPending}
+                >
+                  <div className="flex items-center gap-3">
+                    <XCircle className="w-6 h-6 text-red-600" />
+                    <div>
+                      <h5 className="font-bold text-red-800 text-base">الاعتذار</h5>
+                      <p className="text-sm text-red-600">رفض الطلب نهائياً</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -307,6 +407,82 @@ export default function RequestDetailsNew() {
           </Button>
         </div>
       </InfoDrawer>
+
+      {/* Technical Evaluation Dialog */}
+      {showTechnicalEvalDialog && selectedDecision && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">
+              {TECHNICAL_EVAL_OPTION_LABELS[selectedDecision]}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {TECHNICAL_EVAL_OPTIONS[selectedDecision as keyof typeof TECHNICAL_EVAL_OPTIONS]?.description}
+            </p>
+
+            {/* حقل المبررات (مطلوب للاعتذار والتعليق) */}
+            {(selectedDecision === 'apologize' || selectedDecision === 'suspend') && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  المبررات <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  placeholder="اكتب المبررات هنا..."
+                  rows={4}
+                />
+              </div>
+            )}
+
+            {/* ملاحظات إضافية (اختياري) */}
+            {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">ملاحظات (اختياري)</label>
+                <Textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  placeholder="أضف ملاحظات إضافية..."
+                  rows={3}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTechnicalEvalDialog(false);
+                  setSelectedDecision(null);
+                  setJustification("");
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  technicalEvalMutation.mutate({
+                    requestId,
+                    decision: selectedDecision as any,
+                    justification: justification || undefined,
+                  });
+                }}
+                disabled={
+                  technicalEvalMutation.isPending ||
+                  ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim())
+                }
+                className={
+                  selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
+                  selectedDecision === 'quick_response' ? 'bg-purple-600 hover:bg-purple-700' :
+                  selectedDecision === 'suspend' ? 'bg-amber-500 hover:bg-amber-600' :
+                  'bg-red-600 hover:bg-red-700'
+                }
+              >
+                {technicalEvalMutation.isPending ? 'جاري...' : 'تأكيد'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
