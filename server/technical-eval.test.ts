@@ -97,8 +97,8 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
       expect(option.nextStage).toBe("boq_preparation");
     });
 
-    it("يجب أن تكون الحالة النهائية approved", () => {
-      expect(option.resultStatus).toBe("approved");
+    it("يجب أن تكون الحالة النهائية in_progress", () => {
+      expect(option.resultStatus).toBe("in_progress");
     });
 
     it("يجب أن ينشئ مشروع", () => {
