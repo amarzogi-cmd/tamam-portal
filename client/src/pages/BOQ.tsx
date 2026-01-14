@@ -151,6 +151,17 @@ export default function BOQ() {
     },
   });
 
+  // إنهاء إعداد جدول الكميات والانتقال للمرحلة التالية
+  const completeBOQMutation = trpc.requests.updateStage.useMutation({
+    onSuccess: () => {
+      toast.success("تم إنهاء إعداد جدول الكميات بنجاح");
+      navigate(`/requests/${selectedRequestId}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء الانتقال للمرحلة التالية");
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       category: "",
@@ -528,6 +539,41 @@ export default function BOQ() {
                   >
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة أول بند
+                  </Button>
+                </div>
+              )}
+              
+              {/* زر إنهاء إعداد جدول الكميات */}
+              {boqData && boqData.length > 0 && (
+                <div className="mt-6 pt-6 border-t flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      عدد البنود: {boqData.length}
+                    </p>
+                    <p className="text-lg font-bold text-primary">
+                      الإجمالي: {totalAmount.toLocaleString("ar-SA")} ريال
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    onClick={() => {
+                      if (confirm("هل أنت متأكد من إنهاء إعداد جدول الكميات والانتقال للمرحلة التالية؟")) {
+                        completeBOQMutation.mutate({
+                          requestId: parseInt(selectedRequestId),
+                          newStage: "financial_eval",
+                          notes: "تم إنهاء إعداد جدول الكميات",
+                        });
+                      }
+                    }}
+                    disabled={completeBOQMutation.isPending}
+                    className="gap-2"
+                  >
+                    {completeBOQMutation.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <FileText className="h-5 w-5" />
+                    )}
+                    إنهاء إعداد جدول الكميات
                   </Button>
                 </div>
               )}

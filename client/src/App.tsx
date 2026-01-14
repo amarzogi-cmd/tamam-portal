@@ -148,6 +148,7 @@ function Router() {
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
       
       {/* التقييم المالي - إدارية */}
+      <Route path="/boq">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/boq/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/quotations">{() => <AdminRoute component={Quotations} />}</Route>
       <Route path="/financial-approval">{() => <AdminRoute component={FinancialApproval} />}</Route>
