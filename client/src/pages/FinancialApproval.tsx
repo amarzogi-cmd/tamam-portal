@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -35,28 +35,27 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   CheckSquare,
-  Search,
   Eye,
   CheckCircle2,
-  XCircle,
-  Clock,
   Loader2,
-  Building2,
   FileText,
   Calculator,
   Receipt,
-  Percent,
-  DollarSign,
-  ArrowLeft,
   ClipboardList,
+  TrendingDown,
+  DollarSign,
+  Building2,
 } from "lucide-react";
 
 export default function FinancialApproval() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
+  const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
+
+  const utils = trpc.useUtils();
 
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
@@ -70,51 +69,81 @@ export default function FinancialApproval() {
   );
 
   // جلب عروض الأسعار للطلب
-  const { data: quotationsData, isLoading: quotationsLoading, refetch } = trpc.projects.getQuotationsByRequest.useQuery(
+  const { data: quotationsData, isLoading: quotationsLoading, refetch: refetchQuotations } = trpc.projects.getQuotationsByRequest.useQuery(
     { requestId: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
 
-  // تحديث مرحلة الطلب
-  const updateStageMutation = trpc.requests.updateStage.useMutation({
+  // جلب تفاصيل الطلب لمعرفة العرض المختار
+  const { data: requestDetails } = trpc.requests.getById.useQuery(
+    { id: parseInt(selectedRequestId) || 0 },
+    { enabled: !!selectedRequestId }
+  );
+
+  // اختيار عرض السعر الفائز
+  const selectWinningMutation = trpc.requests.selectWinningQuotation.useMutation({
     onSuccess: () => {
-      toast.success("تم اعتماد الطلب مالياً وتحويله لمرحلة التنفيذ");
-      setShowApprovalDialog(false);
-      refetch();
+      toast.success("تم اختيار العرض الفائز بنجاح");
+      refetchQuotations();
+      utils.requests.getById.invalidate({ id: parseInt(selectedRequestId) });
     },
     onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء اعتماد الطلب");
+      toast.error(error.message || "حدث خطأ أثناء اختيار العرض");
     },
   });
 
-  // حساب التكاليف
-  const boqTotal = boqData?.total || 0;
-  const acceptedQuotation = quotationsData?.quotations?.find((q: any) => q.status === "accepted");
-  // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
-  const originalAmount = acceptedQuotation ? parseFloat(acceptedQuotation.totalAmount) : 0;
-  const negotiatedAmount = acceptedQuotation?.negotiatedAmount ? parseFloat(acceptedQuotation.negotiatedAmount) : null;
-  const approvedAmount = acceptedQuotation?.approvedAmount ? parseFloat(acceptedQuotation.approvedAmount) : null;
-  const quotationAmount = approvedAmount || negotiatedAmount || originalAmount;
-  const hasNegotiation = negotiatedAmount !== null && negotiatedAmount !== originalAmount;
-  const savingsAmount = hasNegotiation ? originalAmount - (negotiatedAmount || originalAmount) : 0;
-  const savingsPercentage = hasNegotiation && originalAmount > 0 ? ((savingsAmount / originalAmount) * 100).toFixed(1) : '0';
+  // الاعتماد المالي النهائي
+  const approveMutation = trpc.requests.approveFinancially.useMutation({
+    onSuccess: () => {
+      toast.success("تم الاعتماد المالي بنجاح وتم الانتقال لمرحلة التعاقد");
+      setShowApprovalDialog(false);
+      setSelectedRequestId("");
+      setSelectedQuotationId(null);
+      utils.requests.search.invalidate();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي");
+    },
+  });
 
-  const isLoading = boqLoading || quotationsLoading;
+  const handleSelectWinning = () => {
+    if (!selectedQuotationId) {
+      toast.error("يرجى اختيار عرض سعر");
+      return;
+    }
+
+    selectWinningMutation.mutate({
+      requestId: parseInt(selectedRequestId),
+      quotationId: selectedQuotationId,
+    });
+  };
 
   const handleApprove = () => {
     if (!selectedRequestId) return;
-    
-    updateStageMutation.mutate({
+
+    approveMutation.mutate({
       requestId: parseInt(selectedRequestId),
-      newStage: "execution",
-      notes: `الاعتماد المالي: ${quotationAmount.toLocaleString("ar-SA")} ريال (تكلفة المورد المعتمدة). ${approvalNotes}`,
+      approvalNotes,
     });
   };
+
+  // حساب التكاليف
+  const boqTotal = boqData?.total || 0;
+  const selectedQuotation = quotationsData?.quotations?.find((q: any) => 
+    requestDetails?.selectedQuotationId ? q.id === requestDetails.selectedQuotationId : q.id === selectedQuotationId
+  );
+  const finalAmount = selectedQuotation ? parseFloat(selectedQuotation.finalAmount || selectedQuotation.totalAmount) : 0;
+
+  const isLoading = boqLoading || quotationsLoading;
 
   // التحقق من جاهزية الاعتماد
   const hasBoq = boqData?.items && boqData.items.length > 0;
   const hasQuotations = quotationsData?.quotations && quotationsData.quotations.length > 0;
-  const hasAcceptedQuotation = !!acceptedQuotation;
+  const hasSelectedQuotation = !!requestDetails?.selectedQuotationId || !!selectedQuotationId;
+
+  // التحقق من الصلاحيات
+  const canSelectWinning = ["financial", "super_admin", "system_admin"].includes(user?.role || "");
+  const canApprove = ["financial", "super_admin", "system_admin"].includes(user?.role || "");
 
   return (
     <DashboardLayout>
@@ -123,7 +152,7 @@ export default function FinancialApproval() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">الاعتماد المالي</h1>
-            <p className="text-muted-foreground">مراجعة واعتماد التكلفة النهائية للمشاريع</p>
+            <p className="text-muted-foreground">مقارنة عروض الأسعار واختيار العرض الأفضل واعتماد التكلفة النهائية</p>
           </div>
         </div>
 
@@ -134,13 +163,16 @@ export default function FinancialApproval() {
               <FileText className="h-5 w-5" />
               اختيار الطلب
             </CardTitle>
-            <CardDescription>اختر الطلب لمراجعة واعتماد التكلفة النهائية</CardDescription>
+            <CardDescription>اختر الطلب لمراجعة عروض الأسعار واعتماد التكلفة النهائية</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 items-end">
               <div className="flex-1">
                 <Label>الطلب</Label>
-                <Select value={selectedRequestId} onValueChange={setSelectedRequestId}>
+                <Select value={selectedRequestId} onValueChange={(value) => {
+                  setSelectedRequestId(value);
+                  setSelectedQuotationId(null);
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الطلب..." />
                   </SelectTrigger>
@@ -157,7 +189,7 @@ export default function FinancialApproval() {
           </CardContent>
         </Card>
 
-        {/* ملخص التكلفة */}
+        {/* محتوى الصفحة */}
         {selectedRequestId && (
           <>
             {isLoading ? (
@@ -201,7 +233,7 @@ export default function FinancialApproval() {
                             variant="outline"
                             size="sm"
                             className="mt-2"
-                            onClick={() => navigate("/quotations")}
+                            onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
                           >
                             إضافة عروض أسعار
                           </Button>
@@ -211,177 +243,195 @@ export default function FinancialApproval() {
                   </Card>
                 )}
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* جدول الكميات */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calculator className="h-5 w-5" />
-                        جدول الكميات
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {hasBoq ? (
-                        <div className="space-y-4">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>البند</TableHead>
-                                <TableHead>الكمية</TableHead>
-                                <TableHead>الإجمالي</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {boqData.items.slice(0, 5).map((item: any) => (
-                                <TableRow key={item.id}>
-                                  <TableCell>{item.itemName}</TableCell>
-                                  <TableCell>{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
-                                  <TableCell>{item.totalPrice ? parseFloat(item.totalPrice).toLocaleString("ar-SA") : "-"} ريال</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                          {boqData.items.length > 5 && (
-                            <p className="text-sm text-muted-foreground text-center">
-                              و {boqData.items.length - 5} بنود أخرى...
-                            </p>
-                          )}
-                          <div className="flex justify-between items-center pt-4 border-t">
-                            <span className="font-medium">إجمالي جدول الكميات:</span>
-                            <span className="text-lg font-bold">{boqTotal.toLocaleString("ar-SA")} ريال</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">لا يوجد جدول كميات</p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* عروض الأسعار */}
+                {/* جدول مقارنة عروض الأسعار */}
+                {hasQuotations && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Receipt className="h-5 w-5" />
-                        عروض الأسعار
+                        مقارنة عروض الأسعار
                       </CardTitle>
+                      <CardDescription>
+                        {requestDetails?.selectedQuotationId 
+                          ? "تم اختيار العرض الفائز - يمكنك المتابعة للاعتماد المالي"
+                          : "اختر أفضل عرض سعر من القائمة أدناه"}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {hasQuotations ? (
-                        <div className="space-y-4">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>المورد</TableHead>
-                                <TableHead>المبلغ</TableHead>
-                                <TableHead>الحالة</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {quotationsData.quotations.map((quotation: any) => (
-                                <TableRow key={quotation.id} className={quotation.status === "accepted" ? "bg-green-50" : ""}>
-                                  <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
-                                  <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
+                      <div className="space-y-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12">اختيار</TableHead>
+                              <TableHead>رقم العرض</TableHead>
+                              <TableHead>المورد</TableHead>
+                              <TableHead>المبلغ الأصلي</TableHead>
+                              <TableHead>الضريبة</TableHead>
+                              <TableHead>الخصم</TableHead>
+                              <TableHead>المبلغ النهائي</TableHead>
+                              <TableHead>تاريخ الانتهاء</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {quotationsData.quotations.map((quotation: any) => {
+                              const isSelected = requestDetails?.selectedQuotationId 
+                                ? quotation.id === requestDetails.selectedQuotationId 
+                                : quotation.id === selectedQuotationId;
+                              const totalAmount = parseFloat(quotation.totalAmount);
+                              const taxAmount = parseFloat(quotation.taxAmount || "0");
+                              const discountAmount = parseFloat(quotation.discountAmount || "0");
+                              const finalAmt = parseFloat(quotation.finalAmount || quotation.totalAmount);
+                              
+                              return (
+                                <TableRow 
+                                  key={quotation.id} 
+                                  className={isSelected ? "bg-green-50 border-green-200" : ""}
+                                >
                                   <TableCell>
-                                    <Badge variant={quotation.status === "accepted" ? "default" : "outline"}>
-                                      {quotation.status === "accepted" ? "معتمد" : quotation.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
-                                    </Badge>
+                                    <RadioGroup
+                                      value={requestDetails?.selectedQuotationId?.toString() || selectedQuotationId?.toString() || ""}
+                                      onValueChange={(value) => setSelectedQuotationId(parseInt(value))}
+                                      disabled={!!requestDetails?.selectedQuotationId || !canSelectWinning}
+                                    >
+                                      <RadioGroupItem value={quotation.id.toString()} />
+                                    </RadioGroup>
+                                  </TableCell>
+                                  <TableCell className="font-medium">{quotation.quotationNumber}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                                      {quotation.supplierName || "غير محدد"}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{totalAmount.toLocaleString("ar-SA")} ريال</TableCell>
+                                  <TableCell>
+                                    {taxAmount > 0 ? (
+                                      <span className="text-green-600">+{parseFloat(quotation.taxAmount || "0").toLocaleString("ar-SA")} ريال</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {discountAmount > 0 ? (
+                                      <span className="text-red-600 flex items-center gap-1">
+                                        <TrendingDown className="h-3 w-3" />
+                                        -{parseFloat(quotation.discountAmount || "0").toLocaleString("ar-SA")} ريال
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className={`font-bold ${isSelected ? "text-green-600" : ""}`}>
+                                      {finalAmt.toLocaleString("ar-SA")} ريال
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    {quotation.validUntil 
+                                      ? new Date(quotation.validUntil).toLocaleDateString("ar-SA")
+                                      : "-"}
                                   </TableCell>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                          {acceptedQuotation && (
-                            <div className="flex justify-between items-center pt-4 border-t">
-                              <span className="font-medium">العرض المعتمد:</span>
-                              <span className="text-lg font-bold text-green-600">{quotationAmount.toLocaleString("ar-SA")} ريال</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">لا توجد عروض أسعار</p>
-                      )}
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+
+                        {/* زر اختيار العرض الفائز */}
+                        {!requestDetails?.selectedQuotationId && canSelectWinning && (
+                          <div className="flex justify-end">
+                            <Button 
+                              onClick={handleSelectWinning}
+                              disabled={!selectedQuotationId || selectWinningMutation.isPending}
+                            >
+                              {selectWinningMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                              <CheckCircle2 className="h-4 w-4 ml-2" />
+                              تأكيد اختيار العرض الفائز
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
-                </div>
+                )}
 
                 {/* ملخص الاعتماد المالي */}
-                {hasAcceptedQuotation && (
+                {hasSelectedQuotation && selectedQuotation && (
                   <Card className="border-primary">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CheckSquare className="h-5 w-5 text-primary" />
                         ملخص الاعتماد المالي
                       </CardTitle>
-                      <CardDescription>مراجعة تكلفة المورد المعتمدة قبل الاعتماد - نسبة الإشراف تُضاف عند إنشاء العقد</CardDescription>
+                      <CardDescription>مراجعة التكلفة النهائية قبل الاعتماد والانتقال لمرحلة التعاقد</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-6">
                         {/* تفاصيل التكلفة */}
-                        <div className={`grid gap-4 ${hasNegotiation ? 'md:grid-cols-3' : 'md:grid-cols-1 max-w-md mx-auto'}`}>
-                          {/* السعر الأصلي - يظهر فقط إذا كان هناك تفاوض */}
-                          {hasNegotiation && (
-                            <div className="p-4 bg-muted rounded-lg">
-                              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                <Receipt className="h-4 w-4" />
-                                <span>السعر الأصلي</span>
-                              </div>
-                              <p className="text-2xl font-bold line-through text-muted-foreground">{originalAmount.toLocaleString("ar-SA")} ريال</p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {/* جدول الكميات */}
+                          <div className="p-4 bg-muted rounded-lg">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                              <Calculator className="h-4 w-4" />
+                              <span>إجمالي جدول الكميات</span>
                             </div>
-                          )}
-                          {/* الوفر - يظهر فقط إذا كان هناك تفاوض */}
-                          {hasNegotiation && (
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                              <div className="flex items-center gap-2 text-green-700 mb-2">
-                                <Percent className="h-4 w-4" />
-                                <span>الوفر المحقق ({savingsPercentage}%)</span>
-                              </div>
-                              <p className="text-2xl font-bold text-green-700">{savingsAmount.toLocaleString("ar-SA")} ريال</p>
-                            </div>
-                          )}
+                            <p className="text-2xl font-bold">{boqTotal.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-xs text-muted-foreground mt-2">للمرجعية فقط</p>
+                          </div>
+
                           {/* التكلفة المعتمدة */}
                           <div className="p-4 bg-primary/10 rounded-lg border border-primary">
                             <div className="flex items-center gap-2 text-primary mb-2">
                               <DollarSign className="h-4 w-4" />
-                              <span>تكلفة المورد المعتمدة</span>
+                              <span>التكلفة المعتمدة (عرض السعر الفائز)</span>
                             </div>
-                            <p className="text-2xl font-bold text-primary">{quotationAmount.toLocaleString("ar-SA")} ريال</p>
-                            <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>
+                            <p className="text-2xl font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              المورد: {selectedQuotation.supplierName || "غير محدد"}
+                            </p>
                           </div>
                         </div>
 
-                        {/* زر الاعتماد */}
+                        {/* معلومات العرض المختار */}
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Receipt className="h-4 w-4" />
+                            تفاصيل العرض المختار
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <span>رقم العرض:</span>
+                            <span className="font-medium">{selectedQuotation.quotationNumber}</span>
+                            <span>المبلغ الأصلي:</span>
+                            <span className="font-medium">{parseFloat(selectedQuotation.totalAmount).toLocaleString("ar-SA")} ريال</span>
+                            {parseFloat(selectedQuotation.taxAmount || "0") > 0 && (
+                              <>
+                                <span>الضريبة:</span>
+                                <span className="font-medium text-green-600">+{parseFloat(selectedQuotation.taxAmount || "0").toLocaleString("ar-SA")} ريال</span>
+                              </>
+                            )}
+                            {parseFloat(selectedQuotation.discountAmount || "0") > 0 && (
+                              <>
+                                <span>الخصم:</span>
+                                <span className="font-medium text-red-600">-{parseFloat(selectedQuotation.discountAmount || "0").toLocaleString("ar-SA")} ريال</span>
+                              </>
+                            )}
+                            <span className="font-bold">المبلغ النهائي:</span>
+                            <span className="font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</span>
+                          </div>
+                        </div>
+
+                        {/* أزرار الإجراءات */}
                         <div className="flex justify-end gap-4">
                           <Button variant="outline" onClick={() => navigate("/requests/" + selectedRequestId)}>
                             <Eye className="h-4 w-4 ml-2" />
                             عرض تفاصيل الطلب
                           </Button>
-                          <Button onClick={() => setShowApprovalDialog(true)}>
-                            <CheckCircle2 className="h-4 w-4 ml-2" />
-                            اعتماد وتحويل للتنفيذ
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* رسالة عدم وجود عرض معتمد */}
-                {!hasAcceptedQuotation && hasQuotations && (
-                  <Card className="border-yellow-500">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-4 text-yellow-600">
-                        <Clock className="h-8 w-8" />
-                        <div>
-                          <p className="font-medium">لم يتم اعتماد عرض سعر بعد</p>
-                          <p className="text-sm">يرجى اعتماد أحد عروض الأسعار من صفحة عروض الأسعار قبل الاعتماد المالي</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => navigate("/quotations")}
-                          >
-                            الذهاب لعروض الأسعار
-                          </Button>
+                          {canApprove && (
+                            <Button onClick={() => setShowApprovalDialog(true)}>
+                              <CheckCircle2 className="h-4 w-4 ml-2" />
+                              اعتماد مالياً وانتقال للتعاقد
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -398,24 +448,19 @@ export default function FinancialApproval() {
             <DialogHeader>
               <DialogTitle>تأكيد الاعتماد المالي</DialogTitle>
               <DialogDescription>
-                سيتم اعتماد الطلب مالياً بتكلفة مورد {quotationAmount.toLocaleString("ar-SA")} ريال وتحويله لمرحلة التنفيذ
+                سيتم اعتماد الطلب مالياً بتكلفة {finalAmount.toLocaleString("ar-SA")} ريال وتحويله لمرحلة التعاقد
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  {hasNegotiation && (
-                    <>
-                      <span>السعر الأصلي:</span>
-                      <span className="font-medium line-through text-muted-foreground">{originalAmount.toLocaleString("ar-SA")} ريال</span>
-                      <span>الوفر المحقق:</span>
-                      <span className="font-medium text-green-600">{savingsAmount.toLocaleString("ar-SA")} ريال ({savingsPercentage}%)</span>
-                    </>
-                  )}
-                  <span className="font-bold">تكلفة المورد المعتمدة:</span>
-                  <span className="font-bold text-primary">{quotationAmount.toLocaleString("ar-SA")} ريال</span>
+                  <span>رقم العرض:</span>
+                  <span className="font-medium">{selectedQuotation?.quotationNumber}</span>
+                  <span>المورد:</span>
+                  <span className="font-medium">{selectedQuotation?.supplierName || "غير محدد"}</span>
+                  <span className="font-bold">التكلفة المعتمدة:</span>
+                  <span className="font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3 text-center">نسبة الإشراف تُضاف عند إنشاء العقد</p>
               </div>
               <div>
                 <Label>ملاحظات (اختياري)</Label>
@@ -430,8 +475,8 @@ export default function FinancialApproval() {
               <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={handleApprove} disabled={updateStageMutation.isPending}>
-                {updateStageMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+              <Button onClick={handleApprove} disabled={approveMutation.isPending}>
+                {approveMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 تأكيد الاعتماد
               </Button>
             </DialogFooter>

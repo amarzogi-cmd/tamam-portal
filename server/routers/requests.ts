@@ -1218,4 +1218,142 @@ export const requestsRouter = router({
         completedAt: request.completedAt,
       };
     }),
+
+  // اختيار عرض السعر الفائز للاعتماد المالي
+  selectWinningQuotation: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      quotationId: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
+      if (!["financial", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاختيار عرض السعر الفائز" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود الطلب
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من أن الطلب في مرحلة التقييم المالي
+      if (request[0].currentStage !== "financial_eval") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن اختيار عرض السعر فقط في مرحلة التقييم المالي" });
+      }
+
+      // التحقق من وجود عرض السعر
+      const quotation = await db.select().from(quotations).where(eq(quotations.id, input.quotationId)).limit(1);
+      if (quotation.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر غير موجود" });
+      }
+
+      // التحقق من أن عرض السعر يخص الطلب نفسه
+      if (quotation[0].requestId !== input.requestId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "عرض السعر لا يخص هذا الطلب" });
+      }
+
+      // تحديث الطلب بعرض السعر المختار
+      await db.update(mosqueRequests).set({
+        selectedQuotationId: input.quotationId,
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إضافة سجل في تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: "financial_eval",
+        toStage: "financial_eval",
+        fromStatus: request[0].status,
+        toStatus: request[0].status,
+        action: "select_winning_quotation",
+        notes: `تم اختيار عرض السعر ${quotation[0].quotationNumber} كعرض فائز`,
+      });
+
+      return { success: true, message: "تم اختيار عرض السعر الفائز بنجاح" };
+    }),
+
+  // الاعتماد المالي النهائي والانتقال للتنفيذ
+  approveFinancially: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      approvalNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
+      if (!["financial", "super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية للاعتماد المالي" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود الطلب
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من أن الطلب في مرحلة التقييم المالي
+      if (request[0].currentStage !== "financial_eval") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن الاعتماد المالي فقط في مرحلة التقييم المالي" });
+      }
+
+      // التحقق من وجود عرض سعر مختار
+      if (!request[0].selectedQuotationId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يجب اختيار عرض سعر أولاً" });
+      }
+
+      // جلب بيانات عرض السعر المختار
+      const quotation = await db.select().from(quotations).where(eq(quotations.id, request[0].selectedQuotationId)).limit(1);
+      if (quotation.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر المختار غير موجود" });
+      }
+
+      const finalAmount = parseFloat(quotation[0].finalAmount || "0");
+
+      // تحديث الطلب: الانتقال لمرحلة التعاقد وحفظ الميزانية المعتمدة
+      await db.update(mosqueRequests).set({
+        currentStage: "contracting",
+        status: "approved",
+        approvedBudget: finalAmount.toString(),
+        approvedAt: new Date(),
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // تحديث حالة عرض السعر إلى "accepted"
+      await db.update(quotations).set({
+        status: "accepted",
+      }).where(eq(quotations.id, request[0].selectedQuotationId));
+
+      // إضافة سجل في تاريخ الطلب
+      const notes = input.approvalNotes 
+        ? `الاعتماد المالي: ${finalAmount.toLocaleString("ar-SA")} ريال. ${input.approvalNotes}`
+        : `الاعتماد المالي: ${finalAmount.toLocaleString("ar-SA")} ريال`;
+      
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: "financial_eval",
+        toStage: "contracting",
+        fromStatus: request[0].status,
+        toStatus: "approved",
+        action: "financial_approval",
+        notes,
+      });
+
+      // إرسال إشعار لمقدم الطلب
+      await db.insert(notifications).values({
+        userId: request[0].userId,
+        title: "تم اعتماد طلبك مالياً",
+        message: `تم اعتماد طلبك رقم ${request[0].requestNumber} مالياً بمبلغ ${finalAmount.toLocaleString("ar-SA")} ريال وتم الانتقال لمرحلة التعاقد`,
+        type: "request_update",
+        relatedType: "request",
+        relatedId: input.requestId,
+      });
+
+      return { success: true, message: "تم الاعتماد المالي بنجاح وتم الانتقال لمرحلة التعاقد" };
+    }),
 });

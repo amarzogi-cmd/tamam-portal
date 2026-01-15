@@ -247,6 +247,9 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }),
   approvedBudget: decimal("approvedBudget", { precision: 15, scale: 2 }),
   
+  // عرض السعر المختار للاعتماد المالي
+  selectedQuotationId: int("selectedQuotationId"),
+  
   // التواريخ
   submittedAt: timestamp("submittedAt").defaultNow().notNull(),
   reviewedAt: timestamp("reviewedAt"),
