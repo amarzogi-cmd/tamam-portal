@@ -281,6 +281,13 @@
       "when": 1768480177765,
       "tag": "0039_complete_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1768481869046,
+      "tag": "0040_nice_betty_ross",
+      "breakpoints": true
     }
   ]
 }

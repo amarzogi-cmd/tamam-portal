@@ -1256,9 +1256,9 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "عرض السعر لا يخص هذا الطلب" });
       }
 
-      // تحديث الطلب بعرض السعر المختار
+      // تحديث الطلب بعرض السعر المختار (حفظ quotationNumber)
       await db.update(mosqueRequests).set({
-        selectedQuotationId: input.quotationId,
+        selectedQuotationId: quotation[0].quotationNumber,
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب
@@ -1308,7 +1308,7 @@ export const requestsRouter = router({
       }
 
       // جلب بيانات عرض السعر المختار
-      const quotation = await db.select().from(quotations).where(eq(quotations.id, request[0].selectedQuotationId)).limit(1);
+      const quotation = await db.select().from(quotations).where(eq(quotations.quotationNumber, request[0].selectedQuotationId)).limit(1);
       if (quotation.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر المختار غير موجود" });
       }
@@ -1326,7 +1326,7 @@ export const requestsRouter = router({
       // تحديث حالة عرض السعر إلى "accepted"
       await db.update(quotations).set({
         status: "accepted",
-      }).where(eq(quotations.id, request[0].selectedQuotationId));
+      }).where(eq(quotations.quotationNumber, request[0].selectedQuotationId));
 
       // إضافة سجل في تاريخ الطلب
       const notes = input.approvalNotes 
