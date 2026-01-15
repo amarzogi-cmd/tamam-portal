@@ -419,6 +419,7 @@ export const stageSettingsRouter = router({
 
     for (const tracking of trackings) {
       // حساب أيام التأخير
+      if (!tracking.dueAt) continue; // تخطي إذا لم يكن هناك تاريخ استحقاق
       const delayDays = Math.floor((now.getTime() - new Date(tracking.dueAt).getTime()) / (1000 * 60 * 60 * 24));
       
       // تحديث سجل التتبع

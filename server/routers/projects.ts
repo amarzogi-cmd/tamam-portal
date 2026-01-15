@@ -620,7 +620,7 @@ export const projectsRouter = router({
 
       const quotationNumber = generateQuotationNumber();
 
-      const [quotation] = await db.insert(quotations).values({
+      const result = await db.insert(quotations).values({
         quotationNumber,
         projectId: input.projectId,
         requestId: input.requestId,
@@ -628,20 +628,17 @@ export const projectsRouter = router({
         totalAmount: input.totalAmount.toString(),
         finalAmount: input.finalAmount?.toString() || input.totalAmount.toString(),
         validUntil: input.validUntil,
-        items: input.items,
         notes: input.notes,
-        status: "pending",
-        // حقول الضريبة
+        status: "pending" as const,
         includesTax: input.includesTax || false,
         taxRate: input.taxRate?.toString() || null,
         taxAmount: input.taxAmount?.toString() || null,
-        // حقول الخصم
         discountType: input.discountType || null,
         discountValue: input.discountValue?.toString() || null,
         discountAmount: input.discountAmount?.toString() || null,
-      });
+      } as any);
 
-      return { id: quotation.insertId, quotationNumber };
+      return { id: result[0].insertId, quotationNumber };
     }),
 
   // جلب عروض الأسعار للطلب

@@ -598,8 +598,7 @@ export const quotations = mysqlTable("quotations", {
   supplierId: int("supplierId").notNull().references(() => suppliers.id),
   
   // المبلغ الأصلي من المورد (قبل الضريبة والخصم)
-  totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
-  
+  totalAmount: decimal('totalAmount', { precision: 15, scale: 2 }).notNull(),
   // بيانات الضريبة
   includesTax: boolean("includesTax").default(false), // هل السعر شامل الضريبة
   taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("15.00"), // نسبة الضريبة (افتراضي 15%)
@@ -1109,8 +1108,8 @@ export const requestStageTracking = mysqlTable("request_stage_tracking", {
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   stageCode: varchar("stageCode", { length: 50 }).notNull(),
   subStageCode: varchar("subStageCode", { length: 50 }), // المرحلة الفرعية الحالية
-  startedAt: timestamp("startedAt").defaultNow().notNull(), // تاريخ بداية المرحلة
-  dueAt: timestamp("dueAt").notNull(), // تاريخ الاستحقاق
+  startedAt: timestamp("startedAt").defaultNow(), // تاريخ بداية المرحلة
+  dueAt: timestamp("dueAt"), // تاريخ الاستحقاق
   completedAt: timestamp("completedAt"), // تاريخ الاكتمال
   isDelayed: boolean("isDelayed").default(false), // هل متأخر
   delayDays: int("delayDays").default(0), // عدد أيام التأخير

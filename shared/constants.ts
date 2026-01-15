@@ -993,7 +993,7 @@ export const PREREQUISITE_ERROR_MESSAGES: Record<PrerequisiteType, string> = {
 // ==================== تكوين الإجراءات النشطة ====================
 export interface ActionButton {
   label: string;
-  nextStage: string;
+  nextStage?: string;
   redirectUrl?: string;
 }
 
@@ -1066,8 +1066,8 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
     icon: "DollarSign",
     iconColor: "text-emerald-600",
     actionButton: {
-      label: "إعداد عرض السعر",
-      nextStage: "quotation_approval",
+      label: "إضافة عروض الأسعار",
+      redirectUrl: "/quotations",
     },
     allowedRoles: ["super_admin", "system_admin", "financial"],
   },
