@@ -130,7 +130,7 @@ export default function FinancialApproval() {
   // حساب التكاليف
   const boqTotal = boqData?.total || 0;
   const selectedQuotation = quotationsData?.quotations?.find((q: any) => 
-    requestDetails?.selectedQuotationId ? q.id === requestDetails.selectedQuotationId : q.id === selectedQuotationId
+    requestDetails?.selectedQuotationId ? q.quotationNumber === requestDetails.selectedQuotationId : q.id === selectedQuotationId
   );
   const finalAmount = selectedQuotation ? parseFloat(selectedQuotation.finalAmount || selectedQuotation.totalAmount) : 0;
 
