@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { FinancialApprovalDetails } from "@/components/FinancialApprovalDetails";
 import { 
   PROGRAM_LABELS, 
   STAGE_LABELS, 
@@ -593,7 +594,7 @@ export default function RequestDetails() {
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
                 {/* التقييم المالي - للموظفين فقط */}
-                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
@@ -756,9 +757,33 @@ export default function RequestDetails() {
               </TabsContent>
 
               {/* تبويب التقييم المالي - للموظفين فقط */}
-              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                 <TabsContent value="financial">
                   <div className="space-y-6">
+                    {/* تفاصيل الاعتماد المالي - يظهر فقط بعد الاعتماد */}
+                    {request.selectedQuotationId && quotations?.quotations && (() => {
+                      const selectedQuotation = quotations.quotations.find((q: any) => q.quotationNumber === request.selectedQuotationId);
+                      if (selectedQuotation) {
+                        return (
+                          <FinancialApprovalDetails
+                            quotationNumber={selectedQuotation.quotationNumber}
+                            supplierName={(selectedQuotation as any).supplier?.companyName || "غير محدد"}
+                            totalAmount={selectedQuotation.totalAmount}
+                            finalAmount={selectedQuotation.finalAmount || selectedQuotation.totalAmount}
+                            approvedAt={request.updatedAt?.toISOString()}
+                            approvedBy={user?.name}
+                            includesTax={selectedQuotation.includesTax || undefined}
+                            taxRate={selectedQuotation.taxRate || undefined}
+                            taxAmount={selectedQuotation.taxAmount || undefined}
+                            discountType={selectedQuotation.discountType || undefined}
+                            discountValue={selectedQuotation.discountValue || undefined}
+                            discountAmount={selectedQuotation.discountAmount || undefined}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* جدول الكميات */}
                     <Card className="border-0 shadow-sm">
                       <CardHeader>

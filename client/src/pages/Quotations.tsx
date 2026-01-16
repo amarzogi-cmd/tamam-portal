@@ -734,6 +734,7 @@ export default function Quotations() {
                       <TableHead>رقم العرض</TableHead>
                       <TableHead>المورد</TableHead>
                       <TableHead>المبلغ الأصلي</TableHead>
+                      <TableHead>المبلغ النهائي</TableHead>
                       <TableHead>بعد التفاوض</TableHead>
                       <TableHead>صالح حتى</TableHead>
                       <TableHead>الحالة</TableHead>
@@ -748,6 +749,9 @@ export default function Quotations() {
                           <TableCell className="font-medium">{quotation.quotationNumber}</TableCell>
                           <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
                           <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
+                          <TableCell className="font-medium text-primary">
+                            {parseFloat(quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
+                          </TableCell>
                           <TableCell>
                             {quotation.negotiatedAmount ? (
                               <div className="flex flex-col">

@@ -95,11 +95,27 @@ export default function FinancialApproval() {
   // الاعتماد المالي النهائي
   const approveMutation = trpc.requests.approveFinancially.useMutation({
     onSuccess: () => {
-      toast.success("تم الاعتماد المالي بنجاح وتم الانتقال لمرحلة التعاقد");
-      setShowApprovalDialog(false);
-      setSelectedRequestId("");
-      setSelectedQuotationId(null);
-      utils.requests.search.invalidate();
+      const approvedQuotation = selectedQuotation;
+      const supplierName = approvedQuotation?.supplierName || "غير محدد";
+      const finalAmount = parseFloat(approvedQuotation?.finalAmount || approvedQuotation?.totalAmount || "0").toLocaleString("ar-SA");
+      const quotationNumber = approvedQuotation?.quotationNumber || "";
+      
+      toast.success(
+        `✅ تم الاعتماد المالي بنجاح!\n\n` +
+        `📄 رقم العرض: ${quotationNumber}\n` +
+        `🏭 المورد: ${supplierName}\n` +
+        `💰 المبلغ النهائي: ${finalAmount} ريال\n\n` +
+        `➡️ تم الانتقال إلى مرحلة التعاقد`,
+        { duration: 5000 }
+      );
+      
+      // تأخير قصير قبل إغلاق الـ dialog
+      setTimeout(() => {
+        setShowApprovalDialog(false);
+        setSelectedRequestId("");
+        setSelectedQuotationId(null);
+        utils.requests.search.invalidate();
+      }, 1500);
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء الاعتماد المالي");
