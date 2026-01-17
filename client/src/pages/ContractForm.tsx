@@ -74,10 +74,16 @@ interface ClauseValue {
 }
 
 export default function ContractForm() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const params = useParams();
+  
+  // قراءة requestId من query parameters
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const requestIdFromQuery = searchParams.get('requestId');
+  const requestId = requestIdFromQuery ? parseInt(requestIdFromQuery) : 
+                   (params.requestId ? parseInt(params.requestId) : undefined);
+  
   const projectId = params.projectId ? parseInt(params.projectId) : undefined;
-  const requestId = params.requestId ? parseInt(params.requestId) : undefined;
   
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
@@ -160,7 +166,7 @@ export default function ContractForm() {
   );
 
   // جلب تفاصيل الطلب للحصول على المشروع المرتبط
-  const { data: requestDetails } = trpc.requests.getById.useQuery(
+  const { data: requestDetails, isLoading: isLoadingRequest } = trpc.requests.getById.useQuery(
     { id: requestId! },
     { enabled: !!requestId }
   );
@@ -235,13 +241,45 @@ export default function ContractForm() {
     }
   }, [approvedQuotation]);
 
-  // تحديث المشروع من بيانات الطلب
+  // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
-    if (requestDetails && requestDetails.project?.id) {
-      setContractData(prev => ({
-        ...prev,
-        projectId: requestDetails.project!.id,
-      }));
+    if (requestDetails) {
+      const updates: any = {};
+      
+      // ربط المشروع
+      if (requestDetails.project?.id) {
+        updates.projectId = requestDetails.project.id;
+      }
+      
+      // ملء موضوع العقد تلقائياً إذا كان فارغاً
+      if (!contractData.subject && requestDetails.mosque?.name) {
+        const programName = requestDetails.programType === 'bunyan' ? 'بناء' :
+                           requestDetails.programType === 'daaem' ? 'استكمال' :
+                           requestDetails.programType === 'enaya' ? 'صيانة وترميم' :
+                           requestDetails.programType === 'emdad' ? 'تجهيزات' :
+                           requestDetails.programType === 'ethraa' ? 'سداد فواتير' :
+                           requestDetails.programType === 'sedana' ? 'نظافة' :
+                           requestDetails.programType === 'taqa' ? 'طاقة شمسية' :
+                           requestDetails.programType === 'miyah' ? 'أنظمة مياه' :
+                           requestDetails.programType === 'suqya' ? 'ماء شرب' : 'خدمة';
+        
+        updates.subject = `عقد ${programName} لمسجد ${requestDetails.mosque.name}`;
+      }
+      
+      // تعيين تاريخ البدء إلى اليوم إذا كان فارغاً
+      if (!contractData.startDate) {
+        updates.startDate = new Date().toISOString().split('T')[0];
+      }
+      
+      // تعيين مدة افتراضية (3 أشهر) إذا كانت فارغة
+      if (!contractData.duration || contractData.duration === 0) {
+        updates.duration = 3;
+        updates.durationUnit = 'months';
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setContractData(prev => ({ ...prev, ...updates }));
+      }
     }
   }, [requestDetails]);
 
@@ -443,6 +481,60 @@ export default function ContractForm() {
             إنشاء عقد باستخدام قالب مع إمكانية التخصيص
           </p>
         </div>
+
+        {/* بطاقة معلومات الطلب عند وجود requestId */}
+        {requestId && isLoadingRequest && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="py-8">
+              <div className="flex items-center justify-center gap-2 text-blue-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>جاري تحميل بيانات الطلب...</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {requestId && !isLoadingRequest && requestDetails && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                معلومات الطلب المرتبط
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm text-muted-foreground">رقم الطلب:</span>
+                  <p className="font-semibold text-blue-900">{requestDetails.requestNumber}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">المسجد:</span>
+                  <p className="font-semibold text-blue-900">{requestDetails.mosque?.name || "-"}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">المبلغ المعتمد:</span>
+                  <p className="font-semibold text-blue-900">
+                    {contractData.totalValue > 0 
+                      ? `${contractData.totalValue.toLocaleString('ar-SA')} ريال`
+                      : "لم يتم التحديد"}
+                  </p>
+                </div>
+              </div>
+              {requestDetails.project && (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm text-muted-foreground">المشروع:</span>
+                    <span className="font-medium text-blue-900">
+                      {requestDetails.project.projectNumber} - {requestDetails.project.name}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* تحذير عندما لا يتم تمرير requestId */}
         {!requestId && (
