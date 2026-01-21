@@ -1264,18 +1264,32 @@ export default function RequestDetails() {
                         </div>
                       )}
 
-                      {/* زر تحويل المرحلة */}
+                      {/* زر تحويل المرحلة أو الإجراء المطلوب */}
                       {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
                         canTransition ? (
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
-                            onClick={handleAdvanceStage}
-                            disabled={updateStageMutation.isPending}
-                          >
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                            {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
-                          </Button>
+                          // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير
+                          request.currentStage === "field_visit" ? (
+                            <Link href={`/field-inspection/${requestId}`}>
+                              <Button 
+                                variant="default" 
+                                className="w-full gradient-primary text-white"
+                              >
+                                <FileText className="w-4 h-4 ml-2" />
+                                رفع تقرير الزيارة الميدانية
+                              </Button>
+                            </Link>
+                          ) : (
+                            // في المراحل الأخرى، عرض زر تحويل المرحلة
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={handleAdvanceStage}
+                              disabled={updateStageMutation.isPending}
+                            >
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                              {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
+                            </Button>
+                          )
                         ) : (
                           <div className="p-3 bg-amber-50 rounded-lg">
                             <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
