@@ -50,6 +50,7 @@ import {
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import { RequestProgressCard } from "@/components/RequestProgressCard";
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -431,6 +432,77 @@ export default function RequestDetails() {
   const activeSteps = isQuickResponse ? quickResponseSteps : stageSteps;
   const currentStageIndex = activeSteps.findIndex(s => s.key === request.currentStage);
 
+  // تحديد الإجراءات المكتملة والمتبقية لكل مرحلة
+  const getStageChecklist = () => {
+    const checklist: Array<{ id: string; label: string; completed: boolean; required: boolean }> = [];
+
+    switch (request.currentStage) {
+      case 'submitted':
+        checklist.push(
+          { id: '1', label: 'تم تقديم الطلب', completed: true, required: true },
+          { id: '2', label: 'بدء المراجعة الأولية', completed: false, required: true }
+        );
+        break;
+      case 'initial_review':
+        checklist.push(
+          { id: '1', label: 'مراجعة بيانات الطلب', completed: true, required: true },
+          { id: '2', label: 'جدولة الزيارة الميدانية', completed: !!request.fieldVisitScheduledDate, required: true }
+        );
+        break;
+      case 'field_visit':
+        const hasFieldVisit = !!request.fieldVisitScheduledDate;
+        const hasFieldReport = request.history?.some((h: any) => h.action === 'field_visit_completed');
+        checklist.push(
+          { id: '1', label: 'جدولة الزيارة الميدانية', completed: hasFieldVisit, required: true },
+          { id: '2', label: 'رفع تقرير الزيارة الميدانية', completed: hasFieldReport, required: true }
+        );
+        break;
+      case 'technical_eval':
+        const hasTechnicalDecision = !!request.technicalEvalDecision;
+        checklist.push(
+          { id: '1', label: 'مراجعة تقرير الزيارة', completed: true, required: true },
+          { id: '2', label: 'اتخاذ قرار التقييم الفني', completed: hasTechnicalDecision, required: true }
+        );
+        break;
+      case 'financial_eval':
+        const hasApprovedQuotation = request.history?.some((h: any) => h.action === 'quotation_approved');
+        checklist.push(
+          { id: '1', label: 'إعداد جدول الكميات', completed: true, required: true },
+          { id: '2', label: 'تقييم عروض الأسعار', completed: false, required: true },
+          { id: '3', label: 'اعتماد عرض السعر', completed: hasApprovedQuotation, required: true }
+        );
+        break;
+      case 'contracting':
+        const hasContract = !!existingContract;
+        checklist.push(
+          { id: '1', label: 'إنشاء العقد', completed: hasContract, required: true },
+          { id: '2', label: 'توقيع العقد', completed: false, required: true }
+        );
+        break;
+      case 'execution':
+        checklist.push(
+          { id: '1', label: 'بدء التنفيذ', completed: true, required: true },
+          { id: '2', label: 'متابعة التنفيذ', completed: false, required: true },
+          { id: '3', label: 'رفع التقرير الختامي', completed: false, required: true }
+        );
+        break;
+      case 'closed':
+        checklist.push(
+          { id: '1', label: 'إغلاق الطلب', completed: true, required: true },
+          { id: '2', label: 'قياس رضا المستفيد', completed: false, required: false }
+        );
+        break;
+      default:
+        checklist.push(
+          { id: '1', label: 'لا توجد إجراءات محددة', completed: false, required: false }
+        );
+    }
+
+    return checklist;
+  };
+
+  const stageChecklist = getStageChecklist();
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -503,8 +575,15 @@ export default function RequestDetails() {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          /* شريط التقدم بالنسبة المئوية - لطالب الخدمة */
+        ) : null}
+
+        {/* بطاقة التقدم - للموظفين فقط */}
+        {user?.role !== "service_requester" && (
+          <RequestProgressCard stage={request.currentStage} checklist={stageChecklist} />
+        )}
+
+        {/* شريط التقدم بالنسبة المئوية - لطالب الخدمة */}
+        {user?.role === "service_requester" && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="text-center mb-4">
@@ -607,20 +686,33 @@ export default function RequestDetails() {
                     <CardContent className="p-4">
                       {request.history && request.history.length > 0 ? (
                         <div className="space-y-4">
-                          {request.history.map((item: any) => (
-                            <div key={item.id} className="flex gap-4">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <Clock className="w-5 h-5 text-primary" />
+                          {request.history.map((item: any) => {
+                            // تحسين عرض الأحداث
+                            let displayAction = ACTION_LABELS[item.action] || item.action;
+                            let displayNotes = item.notes;
+                            
+                            // إذا كان الحدث "stage_updated" ولم تكن هناك ملاحظات، عرض المرحلة الحالية
+                            if (item.action === 'stage_updated' && !item.notes) {
+                              displayNotes = `تم الانتقال إلى مرحلة: ${STAGE_LABELS[request.currentStage] || request.currentStage}`;
+                            }
+                            
+                            return (
+                              <div key={item.id} className="flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <Clock className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium">{displayAction}</p>
+                                  {displayNotes && (
+                                    <p className="text-sm text-muted-foreground">{displayNotes}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {new Date(item.createdAt).toLocaleString("ar-SA")}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{ACTION_LABELS[item.action] || item.action}</p>
-                                <p className="text-sm text-muted-foreground">{item.notes}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(item.createdAt).toLocaleString("ar-SA")}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="text-center py-8">
@@ -1085,18 +1177,30 @@ export default function RequestDetails() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
-                    معلومات البرنامج
+                    معلومات المشروع
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div>
+                      <p className="text-sm text-muted-foreground">اسم المشروع</p>
+                      <p className="font-medium">{(request.programData as any)?.projectName || "غير محدد"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">الموقع</p>
+                      <p className="font-medium">{(request.programData as any)?.projectLocation || "غير محدد"}</p>
+                    </div>
+                    <div>
                       <p className="text-sm text-muted-foreground">البرنامج</p>
                       <p className="font-medium">{PROGRAM_LABELS[request.programType]}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">رقم الطلب</p>
-                      <p className="font-medium">{request.requestNumber}</p>
+                      <p className="text-sm text-muted-foreground">المساحة</p>
+                      <p className="font-medium">{(request.programData as any)?.projectArea ? `${(request.programData as any).projectArea} م²` : "غير محدد"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">السعة</p>
+                      <p className="font-medium">{(request.programData as any)?.projectCapacity ? `${(request.programData as any).projectCapacity} مصلي` : "غير محدد"}</p>
                     </div>
                   </div>
                 </CardContent>
