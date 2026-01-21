@@ -447,7 +447,8 @@ export default function RequestDetails() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{request.requestNumber}</h1>
                 <p className="text-muted-foreground">
-                  {PROGRAM_LABELS[request.programType]} - {request.mosque?.name || "مسجد غير محدد"}
+                  {PROGRAM_LABELS[request.programType]}
+                  {request.mosque?.name && ` - ${request.mosque.name}`}
                   {isQuickResponse && <span className="mr-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">استجابة سريعة</span>}
                 </p>
               </div>
@@ -1077,32 +1078,59 @@ export default function RequestDetails() {
 
           {/* الشريط الجانبي */}
           <div className="space-y-6">
-            {/* معلومات المسجد */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  المسجد
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">اسم المسجد</p>
-                    <p className="font-medium">{request.mosque?.name || "-"}</p>
+            {/* معلومات المسجد أو البرنامج */}
+            {request.programType === 'bunyan' ? (
+              // برنامج بنيان: عرض معلومات البرنامج
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    معلومات البرنامج
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">البرنامج</p>
+                      <p className="font-medium">{PROGRAM_LABELS[request.programType]}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">رقم الطلب</p>
+                      <p className="font-medium">{request.requestNumber}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">المدينة</p>
-                    <p className="font-medium">{request.mosque?.city || "-"}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              // البرامج الأخرى: عرض معلومات المسجد
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    المسجد
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">اسم المسجد</p>
+                      <p className="font-medium">{request.mosque?.name || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">المدينة</p>
+                      <p className="font-medium">{request.mosque?.city || "-"}</p>
+                    </div>
+                    {request.mosqueId && (
+                      <Link href={`/mosques/${request.mosqueId}`}>
+                        <Button variant="outline" className="w-full mt-2">
+                          عرض تفاصيل المسجد
+                        </Button>
+                      </Link>
+                    )}
                   </div>
-                  <Link href={`/mosques/${request.mosqueId}`}>
-                    <Button variant="outline" className="w-full mt-2">
-                      عرض تفاصيل المسجد
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* الإجراءات - للموظفين فقط */}
             {user?.role !== "service_requester" && (
@@ -1266,9 +1294,9 @@ export default function RequestDetails() {
 
                       {/* زر تحويل المرحلة أو الإجراء المطلوب */}
                       {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
-                        canTransition ? (
-                          // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير
-                          request.currentStage === "field_visit" ? (
+                        // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير دائماً (بغض النظر عن canTransition)
+                        request.currentStage === "field_visit" ? (
+                          canTransition ? (
                             <Link href={`/field-inspection/${requestId}`}>
                               <Button 
                                 variant="default" 
@@ -1279,7 +1307,16 @@ export default function RequestDetails() {
                               </Button>
                             </Link>
                           ) : (
-                            // في المراحل الأخرى، عرض زر تحويل المرحلة
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك رفع التقرير</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
+                        ) : (
+                          // في المراحل الأخرى، عرض زر تحويل المرحلة أو رسالة عدم الصلاحية
+                          canTransition ? (
                             <Button 
                               variant="outline" 
                               className="w-full" 
@@ -1289,14 +1326,14 @@ export default function RequestDetails() {
                               <ArrowRight className="w-4 h-4 ml-2" />
                               {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
                             </Button>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
                           )
-                        ) : (
-                          <div className="p-3 bg-amber-50 rounded-lg">
-                            <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
-                            <p className="text-xs text-amber-600">
-                              الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
-                            </p>
-                          </div>
                         )
                       )}
 
