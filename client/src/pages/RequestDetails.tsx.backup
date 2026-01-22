@@ -49,9 +49,8 @@ import {
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
-
+import { RequestProgressCard } from "@/components/RequestProgressCard";
 import { RequestActionsPanel } from "@/components/RequestActionsPanel";
-// Force rebuild: 2026-01-22-06:00
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -1337,6 +1336,323 @@ export default function RequestDetails() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Dialog التقييم الفني */}
+      {showTechnicalEvalDialog && selectedDecision && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">
+              {TECHNICAL_EVAL_OPTION_LABELS[selectedDecision]}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {TECHNICAL_EVAL_OPTIONS[selectedDecision as keyof typeof TECHNICAL_EVAL_OPTIONS]?.description}
+            </p>
+
+            {/* حقل المبررات (مطلوب للاعتذار والتعليق) */}
+            {(selectedDecision === 'apologize' || selectedDecision === 'suspend') && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  المبررات <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  placeholder="اكتب المبررات هنا..."
+                  rows={4}
+                />
+              </div>
+            )}
+
+            {/* ملاحظات إضافية (اختياري) */}
+            {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">ملاحظات (اختياري)</label>
+                <Textarea
+                  value={justification}
+                  onChange={(e) => setJustification(e.target.value)}
+                  placeholder="أضف ملاحظات إضافية..."
+                  rows={3}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTechnicalEvalDialog(false);
+                  setSelectedDecision(null);
+                  setJustification("");
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  technicalEvalMutation.mutate({
+                    requestId,
+                    decision: selectedDecision as any,
+                    justification: justification || undefined,
+                  });
+                }}
+                disabled={
+                  technicalEvalMutation.isPending ||
+                  ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim())
+                }
+              >
+                {technicalEvalMutation.isPending ? "جاري..." : "تأكيد"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog إسناد الزيارة */}
+      {showAssignDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">إسناد الزيارة الميدانية</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              اختر الفريق المسؤول عن الزيارة الميدانية
+            </p>
+            {/* هنا يمكن إضافة قائمة بالفرق الميدانية */}
+            <div className="flex gap-3 justify-end mt-4">
+              <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={() => setShowAssignDialog(false)}>
+                تأكيد
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog جدولة الزيارة */}
+      {showScheduleDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4">جدولة الزيارة الميدانية</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              حدد موعد الزيارة الميدانية
+            </p>
+            {/* هنا يمكن إضافة حقول التاريخ والوقت */}
+            <div className="flex gap-3 justify-end mt-4">
+              <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={() => setShowScheduleDialog(false)}>
+                تأكيد
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
+  );
+}
+
+                  const canTransition = user?.role && STAGE_TRANSITION_PERMISSIONS[request.currentStage]?.includes(user.role);
+                  const canApprove = user?.role && STATUS_CHANGE_PERMISSIONS.approve?.includes(user.role);
+                  const canReject = user?.role && STATUS_CHANGE_PERMISSIONS.reject?.includes(user.role);
+                  const allowedRolesForStage = STAGE_TRANSITION_PERMISSIONS[request.currentStage] || [];
+                  
+                  return (
+                    <>
+                      {/* زر اعتماد الطلب */}
+                      {canApprove ? (
+                        <Button 
+                          className="w-full gradient-primary text-white" 
+                          onClick={handleApprove}
+                          disabled={updateStatusMutation.isPending || request.status === "approved"}
+                        >
+                          <CheckCircle2 className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "اعتماد الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية اعتماد الطلب</p>
+                        </div>
+                      )}
+
+                      {/* زر تحويل المرحلة أو الإجراء المطلوب */}
+                      {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
+                        // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير دائماً (بغض النظر عن canTransition)
+                        request.currentStage === "field_visit" ? (
+                          canTransition ? (
+                            <Link href={`/field-inspection/${requestId}`}>
+                              <Button 
+                                variant="default" 
+                                className="w-full gradient-primary text-white"
+                              >
+                                <FileText className="w-4 h-4 ml-2" />
+                                رفع تقرير الزيارة الميدانية
+                              </Button>
+                            </Link>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك رفع التقرير</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
+                        ) : (
+                          // في المراحل الأخرى، عرض زر تحويل المرحلة أو رسالة عدم الصلاحية
+                          canTransition ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={handleAdvanceStage}
+                              disabled={updateStageMutation.isPending}
+                            >
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                              {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
+                            </Button>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
+                        )
+                      )}
+
+                      {/* الخيارات الأربعة للتقييم الفني */}
+                      {request.currentStage === "technical_eval" && canTransition && (
+                        <div className="space-y-4">
+                          {/* عنوان القسم */}
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+                            <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center">
+                              <ClipboardList className="w-4 h-4 ml-2" />
+                              قرار التقييم الفني
+                            </h4>
+                            <p className="text-xs text-blue-600">اختر أحد الخيارات التالية بناءً على نتائج الدراسة الفنية</p>
+                          </div>
+
+                          {/* الخيارات الإيجابية */}
+                          <div className="grid grid-cols-1 gap-3">
+                            {/* التحويل إلى مشروع */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('convert_to_project');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-green-500 rounded-lg text-white">
+                                  <FolderKanban className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-green-800">التحويل إلى مشروع</h5>
+                                  <p className="text-xs text-green-600 mt-1">للطلبات التي تحتاج تقييم مالي وعقود موردين</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-green-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
+
+                            {/* التحويل للاستجابة السريعة */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('quick_response');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-purple-500 rounded-lg text-white">
+                                  <Zap className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-purple-800">التحويل إلى الاستجابة السريعة</h5>
+                                  <p className="text-xs text-purple-600 mt-1">للحالات البسيطة التي يمكن تنفيذها مباشرة</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
+                          </div>
+
+                          {/* فاصل */}
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-white px-2 text-gray-400">أو</span>
+                            </div>
+                          </div>
+
+                          {/* الخيارات الأخرى */}
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* تعليق الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('suspend');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <PauseCircle className="w-5 h-5 text-amber-600" />
+                                <div>
+                                  <h5 className="font-bold text-amber-800 text-sm">تعليق الطلب</h5>
+                                  <p className="text-xs text-amber-600">مع ذكر المبررات</p>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* الاعتذار عن الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('apologize');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-5 h-5 text-red-600" />
+                                <div>
+                                  <h5 className="font-bold text-red-800 text-sm">الاعتذار</h5>
+                                  <p className="text-xs text-red-600">رفض الطلب نهائياً</p>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* زر رفض الطلب */}
+                      {canReject ? (
+                        <Button 
+                          variant="destructive" 
+                          className="w-full" 
+                          onClick={handleReject}
+                          disabled={updateStatusMutation.isPending || request.status === "rejected"}
+                        >
+                          <XCircle className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "رفض الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية رفض الطلب</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
