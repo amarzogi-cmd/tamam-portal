@@ -687,13 +687,18 @@ export default function RequestDetails() {
                       {request.history && request.history.length > 0 ? (
                         <div className="space-y-4">
                           {request.history.map((item: any) => {
-                            // تحسين عرض الأحداث
+                            // تحسين عرض الأحداث - VERSION 2
+                            console.log('[RequestDetails] Processing history item:', item.action, item.fromStage, item.toStage);
                             let displayAction = ACTION_LABELS[item.action] || item.action;
                             let displayNotes = item.notes;
                             
-                            // إذا كان الحدث "stage_updated" ولم تكن هناك ملاحظات، عرض المرحلة الحالية
-                            if (item.action === 'stage_updated' && !item.notes) {
-                              displayNotes = `تم الانتقال إلى مرحلة: ${STAGE_LABELS[request.currentStage] || request.currentStage}`;
+                            // إذا كان الحدث "stage_updated" ويحتوي على fromStage/toStage، عرض المراحل بوضوح
+                            if (item.action === 'stage_updated' && (item.fromStage || item.toStage)) {
+                              console.log('[RequestDetails] Transforming stage_updated to readable format');
+                              const fromStageLabel = item.fromStage ? STAGE_LABELS[item.fromStage] || item.fromStage : 'غير محدد';
+                              const toStageLabel = item.toStage ? STAGE_LABELS[item.toStage] || item.toStage : 'غير محدد';
+                              displayAction = 'تحديث المرحلة';
+                              displayNotes = `من: ${fromStageLabel} ← إلى: ${toStageLabel}`;
                             }
                             
                             return (
