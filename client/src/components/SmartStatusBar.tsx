@@ -5,21 +5,12 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Clock, 
-  FileText, 
-  ClipboardList,
-  Zap,
-  FolderKanban,
-  Eye,
-  DollarSign,
   AlertCircle,
   Loader2,
-  FileSpreadsheet,
-  FileCheck,
-  Handshake,
-  PackageCheck,
 } from "lucide-react";
 import { Link } from "wouter";
-import { STAGE_LABELS, STAGE_TRANSITION_PERMISSIONS, ROLE_LABELS } from "@shared/constants";
+import { STAGE_LABELS, STAGE_TRANSITION_PERMISSIONS } from "@shared/constants";
+import { getCurrentActiveAction, getStageProgress, type ActionConfig } from "@shared/stageActionConfig";
 
 interface SmartStatusBarProps {
   request: any;
@@ -31,110 +22,6 @@ interface SmartStatusBarProps {
   onNavigate: (path: string) => void;
   isLoading?: boolean;
 }
-
-// تعريف الإجراءات المطلوبة لكل مرحلة (11 مرحلة)
-const STAGE_ACTIONS: Record<string, {
-  title: string;
-  description: string;
-  icon: any;
-  actionLabel: string;
-  actionType: 'advance' | 'navigate' | 'info' | 'custom';
-  actionPath?: string;
-  color: string;
-}> = {
-  submitted: {
-    title: "في انتظار المراجعة الأولية",
-    description: "يتم مراجعة الطلب من قبل مكتب المشاريع",
-    icon: Clock,
-    actionLabel: "تحويل للمراجعة الأولية",
-    actionType: 'advance',
-    color: "blue",
-  },
-  initial_review: {
-    title: "المراجعة الأولية",
-    description: "يتم تقييم الطلب وتحديد الأولوية",
-    icon: ClipboardList,
-    actionLabel: "تحويل للزيارة الميدانية",
-    actionType: 'advance',
-    color: "indigo",
-  },
-  field_visit: {
-    title: "الزيارة الميدانية",
-    description: "يتم إجراء معاينة ميدانية للموقع",
-    icon: Eye,
-    actionLabel: "إنشاء تقرير المعاينة",
-    actionType: 'navigate',
-    actionPath: '/field-inspection',
-    color: "purple",
-  },
-  technical_eval: {
-    title: "التقييم الفني",
-    description: "يتم تقييم الطلب فنياً واتخاذ القرار",
-    icon: FolderKanban,
-    actionLabel: "اتخاذ قرار التقييم الفني",
-    actionType: 'custom',
-    color: "amber",
-  },
-  boq_preparation: {
-    title: "إعداد جدول الكميات",
-    description: "يتم إعداد جدول الكميات والمواصفات الفنية",
-    icon: FileSpreadsheet,
-    actionLabel: "إعداد جدول الكميات",
-    actionType: 'navigate',
-    actionPath: '/boq',
-    color: "cyan",
-  },
-  financial_eval: {
-    title: "التقييم المالي",
-    description: "يتم جمع عروض الأسعار ومقارنتها",
-    icon: DollarSign,
-    actionLabel: "إدارة عروض الأسعار",
-    actionType: 'navigate',
-    actionPath: '/quotations',
-    color: "green",
-  },
-  quotation_approval: {
-    title: "اعتماد العرض",
-    description: "يتم اعتماد العرض الفائز",
-    icon: FileCheck,
-    actionLabel: "اعتماد العرض",
-    actionType: 'info',
-    color: "teal",
-  },
-  contracting: {
-    title: "التعاقد",
-    description: "يتم إنشاء العقد وتوقيعه",
-    icon: Handshake,
-    actionLabel: "إنشاء العقد",
-    actionType: 'navigate',
-    actionPath: '/contracts/new/request/',
-    color: "emerald",
-  },
-  execution: {
-    title: "مرحلة التنفيذ",
-    description: "يتم تنفيذ الأعمال حسب العقد",
-    icon: Zap,
-    actionLabel: "عرض المشروع",
-    actionType: 'custom',
-    color: "orange",
-  },
-  handover: {
-    title: "الاستلام",
-    description: "يتم الاستلام الابتدائي والنهائي",
-    icon: PackageCheck,
-    actionLabel: "إدارة الاستلام",
-    actionType: 'info',
-    color: "lime",
-  },
-  closed: {
-    title: "تم الإغلاق",
-    description: "تم إكمال الطلب بنجاح",
-    icon: CheckCircle2,
-    actionLabel: "عرض التفاصيل",
-    actionType: 'info',
-    color: "gray",
-  },
-};
 
 // المراحل الـ 11 بالترتيب
 const ALL_STAGES = [
@@ -161,126 +48,6 @@ const calculateProgress = (currentStage: string, track: string = 'standard'): nu
   return Math.round(((currentIndex + 1) / stages.length) * 100);
 };
 
-// تحديد الخطوة التالية في مرحلة إعداد جدول الكميات
-const getBOQStep = (boqItems: any): {
-  step: number;
-  label: string;
-  description: string;
-  actionLabel: string;
-  actionPath: string;
-  isComplete: boolean;
-} => {
-  const hasBoq = boqItems?.items && boqItems.items.length > 0;
-  
-  if (!hasBoq) {
-    return {
-      step: 1,
-      label: "إضافة بنود جدول الكميات",
-      description: "قم بإضافة بنود جدول الكميات (BOQ) لتحديد الأعمال والكميات المطلوبة",
-      actionLabel: "إعداد جدول الكميات",
-      actionPath: "/boq",
-      isComplete: false,
-    };
-  }
-
-  return {
-    step: 2,
-    label: "جاهز للتقييم المالي",
-    description: "تم إعداد جدول الكميات ويمكن الانتقال للتقييم المالي",
-    actionLabel: "الانتقال للتقييم المالي",
-    actionPath: "",
-    isComplete: true,
-  };
-};
-
-// تحديد الخطوة التالية في التقييم المالي
-const getFinancialEvalStep = (quotations: any): {
-  step: number;
-  label: string;
-  description: string;
-  actionLabel: string;
-  actionPath: string;
-  isComplete: boolean;
-} => {
-  const hasQuotations = quotations?.quotations && quotations.quotations.length > 0;
-  const hasApprovedQuotation = quotations?.quotations?.some((q: any) => q.status === 'approved' || q.status === 'accepted');
-
-  if (!hasQuotations) {
-    return {
-      step: 1,
-      label: "طلب عروض الأسعار",
-      description: "قم بطلب عروض أسعار من الموردين المعتمدين",
-      actionLabel: "طلب عروض أسعار",
-      actionPath: "/quotations",
-      isComplete: false,
-    };
-  }
-
-  if (!hasApprovedQuotation) {
-    return {
-      step: 2,
-      label: "مقارنة العروض",
-      description: "قم بمراجعة ومقارنة عروض الأسعار المقدمة",
-      actionLabel: "مراجعة العروض",
-      actionPath: "/quotations",
-      isComplete: false,
-    };
-  }
-
-  return {
-    step: 3,
-    label: "جاهز لاعتماد العرض",
-    description: "تم استلام العروض ويمكن الانتقال لاعتماد العرض",
-    actionLabel: "الانتقال لاعتماد العرض",
-    actionPath: "",
-    isComplete: true,
-  };
-};
-
-// تحديد الخطوة التالية في التعاقد
-const getContractingStep = (existingContract: any): {
-  step: number;
-  label: string;
-  description: string;
-  actionLabel: string;
-  actionPath: string;
-  isComplete: boolean;
-} => {
-  const hasContract = !!existingContract;
-  const isContractApproved = existingContract?.status === 'approved' || existingContract?.status === 'signed';
-
-  if (!hasContract) {
-    return {
-      step: 1,
-      label: "إنشاء العقد",
-      description: "قم بإنشاء عقد مع المورد المعتمد",
-      actionLabel: "إنشاء العقد",
-      actionPath: "/contracts/new/request/",
-      isComplete: false,
-    };
-  }
-
-  if (!isContractApproved) {
-    return {
-      step: 2,
-      label: "توقيع العقد",
-      description: "قم بمراجعة وتوقيع العقد للانتقال لمرحلة التنفيذ",
-      actionLabel: "عرض العقد",
-      actionPath: `/contracts/${existingContract.id}/preview`,
-      isComplete: false,
-    };
-  }
-
-  return {
-    step: 3,
-    label: "جاهز للتنفيذ",
-    description: "تم توقيع العقد ويمكن الانتقال لمرحلة التنفيذ",
-    actionLabel: "الانتقال للتنفيذ",
-    actionPath: "",
-    isComplete: true,
-  };
-};
-
 export default function SmartStatusBar({
   request,
   user,
@@ -293,25 +60,48 @@ export default function SmartStatusBar({
 }: SmartStatusBarProps) {
   const currentStage = request?.currentStage || 'submitted';
   const requestTrack = request?.requestTrack || 'standard';
-  const stageInfo = STAGE_ACTIONS[currentStage] || STAGE_ACTIONS.submitted;
   const progress = calculateProgress(currentStage, requestTrack);
   const canTransition = user?.role && STAGE_TRANSITION_PERMISSIONS[currentStage]?.includes(user.role);
-  const allowedRoles = STAGE_TRANSITION_PERMISSIONS[currentStage] || [];
 
-  // للمراحل المختلفة، نحصل على الخطوة الحالية
-  const boqStep = currentStage === 'boq_preparation' 
-    ? getBOQStep(boqItems) 
-    : null;
-  const financialStep = currentStage === 'financial_eval' 
-    ? getFinancialEvalStep(quotations) 
-    : null;
-  const contractingStep = currentStage === 'contracting' 
-    ? getContractingStep(existingContract) 
-    : null;
+  // إضافة بيانات إضافية للطلب لاستخدامها في دوال checkCompletion
+  const enrichedRequest = {
+    ...request,
+    fieldVisitReportId: request?.fieldVisitReportId,
+    technicalEvalDecision: request?.technicalEvalDecision,
+    boqItemsCount: boqItems?.items?.length || 0,
+    quotationsCount: quotations?.quotations?.length || 0,
+    selectedQuotationId: request?.selectedQuotationId,
+    contractId: existingContract?.id,
+    contractStatus: existingContract?.status,
+    quickResponseReportId: request?.quickResponseReportId,
+  };
 
-  const Icon = stageInfo.icon;
+  // الحصول على الإجراء النشط الحالي
+  const activeAction = getCurrentActiveAction(currentStage, user?.role || '', enrichedRequest);
+  
+  // حساب نسبة التقدم داخل المرحلة الحالية
+  const stageProgress = getStageProgress(currentStage, enrichedRequest);
 
-  // تحديد لون الشريط
+  // تحديد لون الشريط حسب المرحلة
+  const getStageColor = (stage: string): string => {
+    const colorMap: Record<string, string> = {
+      submitted: "blue",
+      initial_review: "indigo",
+      field_visit: "purple",
+      technical_eval: "amber",
+      boq_preparation: "cyan",
+      financial_eval: "green",
+      quotation_approval: "teal",
+      contracting: "emerald",
+      execution: "orange",
+      handover: "lime",
+      closed: "gray",
+    };
+    return colorMap[stage] || "blue";
+  };
+
+  const stageColor = getStageColor(currentStage);
+
   const colorClasses: Record<string, string> = {
     blue: "from-blue-500 to-blue-600",
     indigo: "from-indigo-500 to-indigo-600",
@@ -355,299 +145,172 @@ export default function SmartStatusBar({
   };
 
   const renderActionButton = () => {
-    if (isLoading) {
+    if (!activeAction) {
       return (
-        <Button disabled className="min-w-[180px]">
-          <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-          جاري...
-        </Button>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>جميع الإجراءات مكتملة</span>
+        </div>
       );
     }
 
-    // لمرحلة إعداد جدول الكميات
-    if (currentStage === 'boq_preparation' && boqStep) {
-      if (boqStep.isComplete) {
-        return (
-          <Button 
-            onClick={onAdvanceStage}
-            className="min-w-[180px] bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-            disabled={!canTransition}
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            الانتقال للتقييم المالي
-          </Button>
-        );
-      }
-
+    // التحقق من الصلاحية
+    if (!canTransition) {
       return (
-        <Button 
-          onClick={() => onNavigate(`/requests/${request.id}${boqStep.actionPath}`)}
-          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
-        >
-          <FileSpreadsheet className="w-4 h-4 ml-2" />
-          {boqStep.actionLabel}
-        </Button>
+        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
+          <AlertCircle className="h-4 w-4" />
+          <span>لا توجد صلاحية لتنفيذ هذا الإجراء</span>
+        </div>
       );
     }
 
-    // للتقييم المالي
-    if (currentStage === 'financial_eval' && financialStep) {
-      if (financialStep.isComplete) {
-        return (
-          <Button 
-            onClick={onAdvanceStage}
-            className="min-w-[180px] bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-            disabled={!canTransition}
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            الانتقال لاعتماد العرض
-          </Button>
-        );
-      }
-
+    // إذا كان الإجراء يحتوي على مسار (route)، نفتح الصفحة
+    if (activeAction.route) {
       return (
-        <Button 
-          onClick={() => onNavigate(financialStep.actionPath === '/quotations' ? `/quotations?requestId=${request.id}` : `/requests/${request.id}${financialStep.actionPath}`)}
-          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
-        >
-          <DollarSign className="w-4 h-4 ml-2" />
-          {financialStep.actionLabel}
-        </Button>
-      );
-    }
-
-    // لمرحلة التعاقد
-    if (currentStage === 'contracting' && contractingStep) {
-      if (contractingStep.isComplete) {
-        return (
+        <Link href={activeAction.route + (request?.id ? `?requestId=${request.id}` : '')}>
           <Button 
-            onClick={onAdvanceStage}
-            className="min-w-[180px] bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-            disabled={!canTransition}
+            className={`bg-gradient-to-r ${colorClasses[stageColor]} hover:opacity-90`}
+            disabled={isLoading}
           >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            الانتقال لمرحلة التنفيذ
-          </Button>
-        );
-      }
-
-      const actionPath = contractingStep.actionPath.includes('/request/')
-        ? `${contractingStep.actionPath}${request.id}`
-        : contractingStep.actionPath;
-
-      return (
-        <Link href={actionPath}>
-          <Button className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}>
-            <Handshake className="w-4 h-4 ml-2" />
-            {contractingStep.actionLabel}
+            {isLoading ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                جاري المعالجة...
+              </>
+            ) : (
+              <>
+                {activeAction.label}
+                <ArrowRight className="mr-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </Link>
       );
     }
 
-    // للزيارة الميدانية
-    if (stageInfo.actionType === 'navigate' && stageInfo.actionPath) {
-      const actionPath = stageInfo.actionPath.includes('/request/')
-        ? `${stageInfo.actionPath}${request.id}`
-        : `/requests/${request.id}${stageInfo.actionPath}`;
-      
-      return (
-        <Button 
-          onClick={() => onNavigate(actionPath)}
-          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
-        >
-          <Icon className="w-4 h-4 ml-2" />
-          {stageInfo.actionLabel}
-        </Button>
-      );
-    }
-
-    // للتقييم الفني - لا نعرض زر هنا لأن الخيارات في الشريط الجانبي
-    if (currentStage === 'technical_eval') {
-      return (
-        <div className={`text-sm ${textColorClasses[stageInfo.color]} flex items-center gap-2`}>
-          <AlertCircle className="w-4 h-4" />
-          اختر قرار التقييم من الشريط الجانبي
-        </div>
-      );
-    }
-
-    // لمرحلة التنفيذ - عرض زر للانتقال لصفحة المشروع
-    if (currentStage === 'execution') {
-      return (
-        <Button 
-          onClick={() => onNavigate(`/projects/${request.id}`)}
-          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
-        >
-          <FolderKanban className="w-4 h-4 ml-2" />
-          عرض المشروع
-        </Button>
-      );
-    }
-
-    // للمراحل الأخرى
-    if (stageInfo.actionType === 'advance' && canTransition) {
-      return (
-        <Button 
-          onClick={onAdvanceStage}
-          className={`min-w-[180px] bg-gradient-to-r ${colorClasses[stageInfo.color]}`}
-        >
-          <ArrowRight className="w-4 h-4 ml-2" />
-          {stageInfo.actionLabel}
-        </Button>
-      );
-    }
-
-    // إذا لم يكن لديه صلاحية
-    if (!canTransition && stageInfo.actionType === 'advance') {
-      return (
-        <div className="text-sm text-muted-foreground">
-          <p>الأدوار المسموح لها:</p>
-          <p className="text-xs">{allowedRoles.map(r => ROLE_LABELS[r] || r).join('، ')}</p>
-        </div>
-      );
-    }
-
-    return null;
+    // إذا لم يكن هناك مسار، نستخدم onAdvanceStage (للانتقال للمرحلة التالية)
+    return (
+      <Button 
+        onClick={onAdvanceStage}
+        className={`bg-gradient-to-r ${colorClasses[stageColor]} hover:opacity-90`}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            جاري المعالجة...
+          </>
+        ) : (
+          <>
+            {activeAction.label}
+            <ArrowRight className="mr-2 h-4 w-4" />
+          </>
+        )}
+      </Button>
+    );
   };
-
-  // حساب عدد الخطوات للمرحلة الحالية
-  const getStepIndicator = () => {
-    if (currentStage === 'boq_preparation' && boqStep) {
-      return (
-        <div className="flex items-center gap-1 mt-2">
-          {[1, 2].map((step) => (
-            <div
-              key={step}
-              className={`w-8 h-1.5 rounded-full transition-colors ${
-                step < boqStep.step 
-                  ? 'bg-green-500' 
-                  : step === boqStep.step 
-                    ? `bg-gradient-to-r ${colorClasses[stageInfo.color]}`
-                    : 'bg-gray-200'
-              }`}
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (currentStage === 'financial_eval' && financialStep) {
-      return (
-        <div className="flex items-center gap-1 mt-2">
-          {[1, 2, 3].map((step) => (
-            <div
-              key={step}
-              className={`w-6 h-1.5 rounded-full transition-colors ${
-                step < financialStep.step 
-                  ? 'bg-green-500' 
-                  : step === financialStep.step 
-                    ? `bg-gradient-to-r ${colorClasses[stageInfo.color]}`
-                    : 'bg-gray-200'
-              }`}
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (currentStage === 'contracting' && contractingStep) {
-      return (
-        <div className="flex items-center gap-1 mt-2">
-          {[1, 2, 3].map((step) => (
-            <div
-              key={step}
-              className={`w-6 h-1.5 rounded-full transition-colors ${
-                step < contractingStep.step 
-                  ? 'bg-green-500' 
-                  : step === contractingStep.step 
-                    ? `bg-gradient-to-r ${colorClasses[stageInfo.color]}`
-                    : 'bg-gray-200'
-              }`}
-            />
-          ))}
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  // الحصول على العنوان والوصف الحالي
-  const getCurrentInfo = () => {
-    // عرض اسم المرحلة الرئيسية مع الخطوة الفرعية
-    const mainStageLabel = STAGE_LABELS[currentStage] || stageInfo.title;
-    
-    if (currentStage === 'boq_preparation' && boqStep) {
-      return {
-        title: mainStageLabel,
-        subtitle: `${boqStep.label}`,
-        description: boqStep.description,
-      };
-    }
-    if (currentStage === 'financial_eval' && financialStep) {
-      return {
-        title: mainStageLabel,
-        subtitle: `${financialStep.label}`,
-        description: financialStep.description,
-      };
-    }
-    if (currentStage === 'contracting' && contractingStep) {
-      return {
-        title: mainStageLabel,
-        subtitle: `${contractingStep.label}`,
-        description: contractingStep.description,
-      };
-    }
-    return {
-      title: mainStageLabel,
-      subtitle: null,
-      description: stageInfo.description,
-    };
-  };
-
-  const currentInfo = getCurrentInfo();
 
   return (
-    <Card className={`border-0 shadow-sm overflow-hidden ${bgColorClasses[stageInfo.color]}`}>
-      {/* شريط التقدم */}
-      <div className={`h-1 bg-gradient-to-r ${colorClasses[stageInfo.color]}`} style={{ width: `${progress}%` }} />
-      
-      <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* المعلومات */}
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-xl bg-gradient-to-r ${colorClasses[stageInfo.color]} text-white`}>
-              <Icon className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={`font-bold ${textColorClasses[stageInfo.color]}`}>
-                  {currentInfo.title}
-                </h3>
-                {currentInfo.subtitle && (
-                  <span className={`text-sm ${textColorClasses[stageInfo.color]} opacity-80`}>
-                    • {currentInfo.subtitle}
-                  </span>
-                )}
-                <span className="text-xs bg-white/50 px-2 py-0.5 rounded-full">
-                  {progress}% مكتمل
-                </span>
+    <Card className={`border-2 ${bgColorClasses[stageColor]}`}>
+      <CardContent className="p-6">
+        {/* رأس البطاقة */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`p-2 rounded-lg bg-gradient-to-r ${colorClasses[stageColor]} text-white`}>
+                <Clock className="h-5 w-5" />
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {currentInfo.description}
-              </p>
-              
-              {/* مؤشر الخطوات */}
-              {getStepIndicator()}
+              <div>
+                <h3 className={`font-bold text-lg ${textColorClasses[stageColor]}`}>
+                  {STAGE_LABELS[currentStage] || currentStage}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  المرحلة الحالية
+                </p>
+              </div>
             </div>
           </div>
-
-          {/* زر الإجراء */}
-          <div className="flex items-center gap-3">
-            {renderActionButton()}
+          
+          {/* نسبة التقدم الإجمالية */}
+          <div className="text-left">
+            <div className={`text-2xl font-bold ${textColorClasses[stageColor]}`}>
+              {progress}%
+            </div>
+            <div className="text-xs text-gray-500">
+              التقدم الإجمالي
+            </div>
           </div>
         </div>
+
+        {/* شريط التقدم الإجمالي */}
+        <div className="mb-4">
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        {/* الإجراء النشط الحالي */}
+        {activeAction && (
+          <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-start gap-3">
+              <div className={`p-2 rounded-lg bg-gradient-to-r ${colorClasses[stageColor]} text-white`}>
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-gray-900 mb-1">
+                  {activeAction.label}
+                </h4>
+                <p className="text-sm text-gray-600">
+                  {activeAction.description}
+                </p>
+                {/* نسبة التقدم داخل المرحلة */}
+                {stageProgress > 0 && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>التقدم في المرحلة</span>
+                      <span>{stageProgress}%</span>
+                    </div>
+                    <Progress value={stageProgress} className="h-1" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* زر الإجراء */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {activeAction ? (
+              <span>الإجراء المطلوب: <strong>{activeAction.label}</strong></span>
+            ) : (
+              <span>جميع الإجراءات مكتملة في هذه المرحلة</span>
+            )}
+          </div>
+          {renderActionButton()}
+        </div>
+
+        {/* رسالة عدم وجود صلاحية */}
+        {!canTransition && activeAction && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800">
+                <p className="font-semibold mb-1">لا توجد صلاحية لتنفيذ هذا الإجراء</p>
+                <p className="text-xs">
+                  الأدوار المسموح لها: {STAGE_TRANSITION_PERMISSIONS[currentStage]?.map((role: string) => 
+                    role === 'super_admin' ? 'المدير العام' :
+                    role === 'system_admin' ? 'مدير النظام' :
+                    role === 'projects_office' ? 'مكتب المشاريع' :
+                    role === 'field_team' ? 'الفريق الميداني' :
+                    role === 'financial' ? 'الإدارة المالية' :
+                    role === 'project_manager' ? 'مدير المشروع' :
+                    role === 'quick_response' ? 'فريق الاستجابة السريعة' :
+                    role
+                  ).join('، ')}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
