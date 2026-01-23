@@ -1,12 +1,10 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
-import * as dbModule from "./db";
-const db = (dbModule as any).db || (dbModule as any).default;
+import { getDb } from "./db";
 import { actionSettings, type ActionSetting, type InsertActionSetting } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { STAGE_ACTION_CONFIG } from "../shared/stageActionConfig.js";
-const STAGE_ACTIONS = STAGE_ACTION_CONFIG;
 
 // Schema للإجراء
 const actionSettingSchema = z.object({
@@ -28,9 +26,9 @@ const actionSettingSchema = z.object({
 export const actionsRouter = router({
   // الحصول على جميع الإجراءات
   getAll: publicProcedure.query(async () => {
-    const actions = await db.query.actionSettings.findMany({
-      orderBy: (actions: any, { asc }: any) => [asc(actions.parentStage), asc(actions.order)],
-    });
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    const actions = await db.select().from(actionSettings).orderBy(actionSettings.parentStage, actionSettings.order);
     return actions;
   }),
 
@@ -38,10 +36,9 @@ export const actionsRouter = router({
   getByStage: publicProcedure
     .input(z.object({ stageCode: z.string() }))
     .query(async ({ input }: { input: any }) => {
-      const actions = await db.query.actionSettings.findMany({
-        where: eq(actionSettings.parentStage, input.stageCode),
-        orderBy: (actions: any, { asc }: any) => [asc(actions.order)],
-      });
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const actions = await db.select().from(actionSettings).where(eq(actionSettings.parentStage, input.stageCode)).orderBy(actionSettings.order);
       return actions;
     }),
 
@@ -49,16 +46,16 @@ export const actionsRouter = router({
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }: { input: any }) => {
-      const action = await db.query.actionSettings.findFirst({
-        where: eq(actionSettings.id, input.id),
-      });
-      if (!action) {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const actions = await db.select().from(actionSettings).where(eq(actionSettings.id, input.id)).limit(1);
+      if (!actions || actions.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "الإجراء غير موجود",
         });
       }
-      return action;
+      return actions[0];
     }),
 
   // إنشاء إجراء جديد
@@ -73,6 +70,8 @@ export const actionsRouter = router({
         });
       }
 
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const [newAction] = await db.insert(actionSettings).values(input);
       return { success: true, actionId: newAction.insertId };
     }),
@@ -94,6 +93,8 @@ export const actionsRouter = router({
         });
       }
 
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       await db
         .update(actionSettings)
         .set(input.data)
@@ -114,6 +115,8 @@ export const actionsRouter = router({
         });
       }
 
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       await db.delete(actionSettings).where(eq(actionSettings.id, input.id));
       return { success: true };
     }),
@@ -128,34 +131,35 @@ export const actionsRouter = router({
       });
     }
 
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
     // التحقق من وجود إجراءات مسبقاً
-    const existingActions = await db.query.actionSettings.findMany();
+    const existingActions = await db.select().from(actionSettings);
+    // إذا كانت هناك إجراءات موجودة، نحذفها أولاً للتهيئة من جديد
     if (existingActions.length > 0) {
-      return {
-        success: false,
-        message: "الإجراءات موجودة مسبقاً. لا حاجة للتهيئة.",
-      };
+      await db.delete(actionSettings);
     }
 
-    // تحويل STAGE_ACTIONS إلى صيغة قاعدة البيانات
+    // تحويل STAGE_ACTION_CONFIG إلى صيغة قاعدة البيانات
     const actionsToInsert: InsertActionSetting[] = [];
     
-    Object.entries(STAGE_ACTIONS).forEach(([stageCode, stageConfig]: [string, any]) => {
+    STAGE_ACTION_CONFIG.forEach((stageConfig: any) => {
       stageConfig.actions.forEach((action: any, index: number) => {
         actionsToInsert.push({
-          actionCode: action.id,
+          actionCode: action.key,
           actionLabel: action.label,
           actionDescription: action.description,
-          parentStage: stageCode,
+          parentStage: stageConfig.stage,
           order: index + 1,
           route: action.route || null,
           requiredRoles: action.requiredRoles,
           prerequisiteAction: action.prerequisite || null,
           nextAction: action.nextAction || null,
-          relationWithNext: "after", // افتراضي
+          relationWithNext: action.relation || "after",
           isActive: true,
-          icon: null, // يمكن إضافته لاحقاً
-          color: null, // يمكن إضافته لاحقاً
+          icon: null,
+          color: null,
         });
       });
     });
@@ -187,6 +191,9 @@ export const actionsRouter = router({
           message: "لا توجد صلاحية لإعادة ترتيب الإجراءات",
         });
       }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       // تحديث ترتيب كل إجراء
       for (let i = 0; i < input.actionIds.length; i++) {

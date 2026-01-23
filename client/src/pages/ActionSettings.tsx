@@ -239,19 +239,18 @@ export default function ActionSettings() {
               إدارة الإجراءات لكل مرحلة وتحديد العلاقات بينها
             </p>
           </div>
-          {actions && actions.length === 0 && (
-            <Button 
-              onClick={() => initializeMutation.mutate()}
-              disabled={initializeMutation.isPending}
-            >
-              {initializeMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-              ) : (
-                <RotateCcw className="h-4 w-4 ml-2" />
-              )}
-              تهيئة الإجراءات الافتراضية
-            </Button>
-          )}
+          <Button 
+            onClick={() => initializeMutation.mutate()}
+            disabled={initializeMutation.isPending}
+            variant="outline"
+          >
+            {initializeMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin ml-2" />
+            ) : (
+              <RotateCcw className="h-4 w-4 ml-2" />
+            )}
+            تهيئة الإجراءات الافتراضية
+          </Button>
         </div>
 
         {/* Legend */}

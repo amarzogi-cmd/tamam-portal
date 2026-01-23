@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { STAGE_LABELS, STAGE_TRANSITION_PERMISSIONS } from "@shared/constants";
-import { getCurrentActiveAction, getStageProgress, type ActionConfig } from "@shared/stageActionConfig";
+import { trpc } from "@/lib/trpc";
 
 interface SmartStatusBarProps {
   request: any;
@@ -63,6 +63,12 @@ export default function SmartStatusBar({
   const progress = calculateProgress(currentStage, requestTrack);
   const canTransition = user?.role && STAGE_TRANSITION_PERMISSIONS[currentStage]?.includes(user.role);
 
+  // جلب الإجراءات من قاعدة البيانات
+  const { data: allActions, isLoading: actionsLoading } = trpc.actions.getAll.useQuery();
+  const stageActions = allActions?.filter((action: any) => 
+    action.parentStage === currentStage && action.isActive
+  ).sort((a: any, b: any) => a.order - b.order) || [];
+
   // إضافة بيانات إضافية للطلب لاستخدامها في دوال checkCompletion
   const enrichedRequest = {
     ...request,
@@ -76,11 +82,71 @@ export default function SmartStatusBar({
     quickResponseReportId: request?.quickResponseReportId,
   };
 
-  // الحصول على الإجراء النشط الحالي
-  const activeAction = getCurrentActiveAction(currentStage, user?.role || '', enrichedRequest);
+  // الحصول على الإجراء النشط الحالي من قاعدة البيانات
+  const getActiveAction = () => {
+    if (!stageActions || stageActions.length === 0) return null;
+
+    // البحث عن أول إجراء غير مكتمل
+    for (const action of stageActions) {
+      // التحقق من الشروط المسبقة
+      if (action.prerequisiteAction) {
+        const prerequisiteAction = stageActions.find((a: any) => a.actionCode === action.prerequisiteAction);
+        if (prerequisiteAction && !checkActionCompletion(prerequisiteAction, enrichedRequest)) {
+          continue; // هذا الإجراء يحتاج إلى إجراء سابق غير مكتمل
+        }
+      }
+
+      // التحقق من إتمام الإجراء الحالي
+      if (!checkActionCompletion(action, enrichedRequest)) {
+        return action; // هذا هو الإجراء النشط
+      }
+    }
+
+    return null; // جميع الإجراءات مكتملة
+  };
+
+  // دالة للتحقق من إتمام الإجراء
+  const checkActionCompletion = (action: any, request: any): boolean => {
+    switch (action.actionCode) {
+      case 'schedule_field_visit':
+        return !!request.fieldVisitScheduledDate;
+      case 'submit_field_report':
+        return !!request.fieldVisitReportUrl;
+      case 'technical_decision':
+        return !!request.technicalEvalDecision;
+      case 'prepare_boq':
+        return request.boqItemsCount > 0;
+      case 'request_quotations':
+        return request.quotationsCount > 0;
+      case 'select_quotation':
+        return !!request.selectedQuotationId;
+      case 'create_contract':
+        return !!request.contractId;
+      case 'execute_contract':
+        return request.contractStatus === 'completed';
+      case 'submit_quick_response_report':
+        return !!request.quickResponseReportId;
+      case 'submit_final_report':
+        return !!request.finalReportId;
+      default:
+        return false;
+    }
+  };
+
+  const activeAction = getActiveAction();
   
   // حساب نسبة التقدم داخل المرحلة الحالية
-  const stageProgress = getStageProgress(currentStage, enrichedRequest);
+  const calculateStageProgress = (): number => {
+    if (!stageActions || stageActions.length === 0) return 0;
+    
+    const completedActions = stageActions.filter((action: any) => 
+      checkActionCompletion(action, enrichedRequest)
+    ).length;
+    
+    return Math.round((completedActions / stageActions.length) * 100);
+  };
+
+  const stageProgress = calculateStageProgress();
 
   // تحديد لون الشريط حسب المرحلة
   const getStageColor = (stage: string): string => {
@@ -145,6 +211,15 @@ export default function SmartStatusBar({
   };
 
   const renderActionButton = () => {
+    if (actionsLoading) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>جاري التحميل...</span>
+        </div>
+      );
+    }
+
     if (!activeAction) {
       return (
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -155,7 +230,10 @@ export default function SmartStatusBar({
     }
 
     // التحقق من الصلاحية
-    if (!canTransition) {
+    const actionRoles = activeAction.requiredRoles || [];
+    const hasPermission = actionRoles.length === 0 || actionRoles.includes(user?.role);
+
+    if (!hasPermission) {
       return (
         <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
           <AlertCircle className="h-4 w-4" />
@@ -179,7 +257,7 @@ export default function SmartStatusBar({
               </>
             ) : (
               <>
-                {activeAction.label}
+                {activeAction.actionLabel}
                 <ArrowRight className="mr-2 h-4 w-4" />
               </>
             )}
@@ -202,7 +280,7 @@ export default function SmartStatusBar({
           </>
         ) : (
           <>
-            {activeAction.label}
+            {activeAction.actionLabel}
             <ArrowRight className="mr-2 h-4 w-4" />
           </>
         )}
@@ -248,7 +326,7 @@ export default function SmartStatusBar({
         </div>
 
         {/* الإجراء النشط الحالي */}
-        {activeAction && (
+        {activeAction && !actionsLoading && (
           <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
             <div className="flex items-start gap-3">
               <div className={`p-2 rounded-lg bg-gradient-to-r ${colorClasses[stageColor]} text-white`}>
@@ -256,10 +334,10 @@ export default function SmartStatusBar({
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900 mb-1">
-                  {activeAction.label}
+                  {activeAction.actionLabel}
                 </h4>
                 <p className="text-sm text-gray-600">
-                  {activeAction.description}
+                  {activeAction.actionDescription}
                 </p>
                 {/* نسبة التقدم داخل المرحلة */}
                 {stageProgress > 0 && (
@@ -279,8 +357,10 @@ export default function SmartStatusBar({
         {/* زر الإجراء */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {activeAction ? (
-              <span>الإجراء المطلوب: <strong>{activeAction.label}</strong></span>
+            {activeAction && !actionsLoading ? (
+              <span>الإجراء المطلوب: <strong>{activeAction.actionLabel}</strong></span>
+            ) : actionsLoading ? (
+              <span>جاري التحميل...</span>
             ) : (
               <span>جميع الإجراءات مكتملة في هذه المرحلة</span>
             )}
@@ -289,27 +369,39 @@ export default function SmartStatusBar({
         </div>
 
         {/* رسالة عدم وجود صلاحية */}
-        {!canTransition && activeAction && (
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-amber-800">
-                <p className="font-semibold mb-1">لا توجد صلاحية لتنفيذ هذا الإجراء</p>
-                <p className="text-xs">
-                  الأدوار المسموح لها: {STAGE_TRANSITION_PERMISSIONS[currentStage]?.map((role: string) => 
-                    role === 'super_admin' ? 'المدير العام' :
-                    role === 'system_admin' ? 'مدير النظام' :
-                    role === 'projects_office' ? 'مكتب المشاريع' :
-                    role === 'field_team' ? 'الفريق الميداني' :
-                    role === 'financial' ? 'الإدارة المالية' :
-                    role === 'project_manager' ? 'مدير المشروع' :
-                    role === 'quick_response' ? 'فريق الاستجابة السريعة' :
-                    role
-                  ).join('، ')}
-                </p>
-              </div>
-            </div>
-          </div>
+        {activeAction && !actionsLoading && (
+          <>
+            {(() => {
+              const actionRoles = activeAction.requiredRoles || [];
+              const hasPermission = actionRoles.length === 0 || actionRoles.includes(user?.role);
+              
+              if (!hasPermission) {
+                return (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-amber-800">
+                        <p className="font-semibold mb-1">لا توجد صلاحية لتنفيذ هذا الإجراء</p>
+                        <p className="text-xs">
+                          الأدوار المسموح لها: {actionRoles.map((role: string) => 
+                            role === 'super_admin' ? 'المدير العام' :
+                            role === 'system_admin' ? 'مدير النظام' :
+                            role === 'projects_office' ? 'مكتب المشاريع' :
+                            role === 'field_team' ? 'الفريق الميداني' :
+                            role === 'financial' ? 'الإدارة المالية' :
+                            role === 'project_manager' ? 'مدير المشروع' :
+                            role === 'quick_response' ? 'فريق الاستجابة السريعة' :
+                            role
+                          ).join('، ')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </>
         )}
       </CardContent>
     </Card>
