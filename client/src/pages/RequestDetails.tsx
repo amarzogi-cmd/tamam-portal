@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import SmartStatusBar from "@/components/SmartStatusBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,9 +50,7 @@ import {
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
-
-import { RequestActionsPanel } from "@/components/RequestActionsPanel";
-// Force rebuild: 2026-01-22-06:00
+import { RequestProgressCard } from "@/components/RequestProgressCard";
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -578,6 +577,11 @@ export default function RequestDetails() {
           </Card>
         ) : null}
 
+        {/* بطاقة التقدم - للموظفين فقط */}
+        {user?.role !== "service_requester" && (
+          <RequestProgressCard stage={request.currentStage} checklist={stageChecklist} />
+        )}
+
         {/* شريط التقدم بالنسبة المئوية - لطالب الخدمة */}
         {user?.role === "service_requester" && (
           <Card className="border-0 shadow-sm">
@@ -608,6 +612,18 @@ export default function RequestDetails() {
             </CardContent>
           </Card>
         )}
+
+        {/* شريط الحالة الذكي */}
+        <SmartStatusBar
+          request={request}
+          user={user}
+          existingContract={existingContract}
+          quotations={quotations}
+          boqItems={boqItems}
+          onAdvanceStage={handleAdvanceStage}
+          onNavigate={navigate}
+          isLoading={updateStageMutation.isPending}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* التفاصيل الرئيسية */}
@@ -649,15 +665,11 @@ export default function RequestDetails() {
             </Card>
 
             {/* التبويبات */}
-            <Tabs defaultValue={user?.role === "service_requester" ? "comments" : "actions"} className="space-y-4">
+            <Tabs defaultValue={user?.role === "service_requester" ? "comments" : "history"} className="space-y-4">
               <TabsList className="flex-wrap h-auto gap-1">
-                {/* الإجراءات - للموظفين فقط */}
-                {user?.role !== "service_requester" && (
-                  <TabsTrigger value="actions">الإجراءات</TabsTrigger>
-                )}
                 {/* سجل الطلب - للموظفين فقط */}
                 {user?.role !== "service_requester" && (
-                  <TabsTrigger value="history">السجل الزمني</TabsTrigger>
+                  <TabsTrigger value="history">سجل الطلب</TabsTrigger>
                 )}
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
@@ -666,26 +678,6 @@ export default function RequestDetails() {
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
-
-              {/* تبويب الإجراءات - للموظفين فقط */}
-              {user?.role !== "service_requester" && (
-                <TabsContent value="actions">
-                  <RequestActionsPanel
-                    request={request}
-                    user={user}
-                    onAdvanceStage={handleAdvanceStage}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    onShowAssignDialog={() => setShowAssignDialog(true)}
-                    onShowScheduleDialog={() => setShowScheduleDialog(true)}
-                    onShowTechnicalEvalDialog={(decision) => {
-                      setSelectedDecision(decision);
-                      setShowTechnicalEvalDialog(true);
-                    }}
-                    isLoading={updateStageMutation.isPending || updateStatusMutation.isPending || technicalEvalMutation.isPending}
-                  />
-                </TabsContent>
-              )}
 
               {/* سجل الطلب - للموظفين فقط */}
               {user?.role !== "service_requester" && (
@@ -1249,14 +1241,38 @@ export default function RequestDetails() {
               </Card>
             )}
 
-            {/* معلومات الزيارة المجدولة والتقارير */}
+            {/* الإجراءات - للموظفين فقط */}
             {user?.role !== "service_requester" && (
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle>معلومات إضافية</CardTitle>
+                  <CardTitle>الإجراءات</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* عرض معلومات الزيارة المجدولة */}
+                  {/* أزرار إسناد المهمة وجدولة الزيارة */}
+                  {(user?.role === "projects_office" || user?.role === "super_admin" || user?.role === "system_admin") && (
+                  <>
+                    {(request.currentStage === "initial_review" || request.currentStage === "field_visit") && (
+                      <>
+                        <Button 
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
+                          onClick={() => setShowAssignDialog(true)}
+                        >
+                          <Users className="w-4 h-4 ml-2" />
+                          إسناد الزيارة الميدانية
+                        </Button>
+                        <Button 
+                          className="w-full bg-teal-600 hover:bg-teal-700 text-white" 
+                          onClick={() => setShowScheduleDialog(true)}
+                        >
+                          <CalendarDays className="w-4 h-4 ml-2" />
+                          جدولة الزيارة الميدانية
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+                
+                {/* عرض معلومات الزيارة المجدولة */}
                 {(request as any).fieldVisitScheduledDate && (
                   <div className="p-3 bg-teal-50 rounded-lg border border-teal-200">
                     <p className="text-sm font-medium text-teal-800 mb-2 flex items-center gap-2">
@@ -1288,6 +1304,47 @@ export default function RequestDetails() {
                   </div>
                 )}
                 
+                {/* أزرار النماذج الميدانية */}
+                  {(user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office") && (
+                  <>
+                    {(request.currentStage === "field_visit" || request.currentStage === "initial_review") && (
+                      <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+                        onClick={() => navigate(`/requests/${requestId}/field-inspection`)}
+                      >
+                        <ClipboardList className="w-4 h-4 ml-2" />
+                        إنشاء تقرير المعاينة الميدانية
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {/* زر تقرير الاستجابة السريعة - يظهر فقط في مسار الاستجابة السريعة */}
+                {(user?.role === "quick_response" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office" || user?.role === "field_team") && (
+                  <>
+                    {/* يظهر فقط إذا كان الطلب في مسار الاستجابة السريعة وفي مرحلة التنفيذ */}
+                    {request.requestTrack === "quick_response" && request.currentStage === "execution" && (
+                      <Button 
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
+                        onClick={() => navigate(`/requests/${requestId}/quick-response`)}
+                      >
+                        <Zap className="w-4 h-4 ml-2" />
+                        إنشاء تقرير الاستجابة السريعة
+                      </Button>
+                    )}
+                    {/* رسالة توضيحية إذا كان الطلب في مسار الاستجابة السريعة ولكن ليس في مرحلة التنفيذ */}
+                    {request.requestTrack === "quick_response" && request.currentStage !== "execution" && request.currentStage !== "closed" && (
+                      <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <p className="text-sm text-orange-700 flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          هذا الطلب في مسار الاستجابة السريعة
+                        </p>
+                        <p className="text-xs text-orange-600 mt-1">سيتم تفعيل زر التقرير عند الوصول لمرحلة التنفيذ</p>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {/* عرض التقارير الموجودة */}
                 {request.fieldReports && request.fieldReports.length > 0 && (
                   <div className="p-3 bg-blue-50 rounded-lg">
@@ -1317,26 +1374,208 @@ export default function RequestDetails() {
                   </div>
                 )}
 
+                <hr className="my-2" />
+
+                {/* أزرار الإجراءات حسب الصلاحيات */}
+                {(() => {
+                  const canTransition = user?.role && STAGE_TRANSITION_PERMISSIONS[request.currentStage]?.includes(user.role);
+                  const canApprove = user?.role && STATUS_CHANGE_PERMISSIONS.approve?.includes(user.role);
+                  const canReject = user?.role && STATUS_CHANGE_PERMISSIONS.reject?.includes(user.role);
+                  const allowedRolesForStage = STAGE_TRANSITION_PERMISSIONS[request.currentStage] || [];
+                  
+                  return (
+                    <>
+                      {/* زر اعتماد الطلب */}
+                      {canApprove ? (
+                        <Button 
+                          className="w-full gradient-primary text-white" 
+                          onClick={handleApprove}
+                          disabled={updateStatusMutation.isPending || request.status === "approved"}
+                        >
+                          <CheckCircle2 className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "اعتماد الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية اعتماد الطلب</p>
+                        </div>
+                      )}
+
+                      {/* زر تحويل المرحلة أو الإجراء المطلوب */}
+                      {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
+                        // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير دائماً (بغض النظر عن canTransition)
+                        request.currentStage === "field_visit" ? (
+                          canTransition ? (
+                            <Link href={`/field-inspection/${requestId}`}>
+                              <Button 
+                                variant="default" 
+                                className="w-full gradient-primary text-white"
+                              >
+                                <FileText className="w-4 h-4 ml-2" />
+                                رفع تقرير الزيارة الميدانية
+                              </Button>
+                            </Link>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك رفع التقرير</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
+                        ) : (
+                          // في المراحل الأخرى، عرض زر تحويل المرحلة أو رسالة عدم الصلاحية
+                          canTransition ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={handleAdvanceStage}
+                              disabled={updateStageMutation.isPending}
+                            >
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                              {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
+                            </Button>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
+                        )
+                      )}
+
+                      {/* الخيارات الأربعة للتقييم الفني */}
+                      {request.currentStage === "technical_eval" && canTransition && (
+                        <div className="space-y-4">
+                          {/* عنوان القسم */}
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+                            <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center">
+                              <ClipboardList className="w-4 h-4 ml-2" />
+                              قرار التقييم الفني
+                            </h4>
+                            <p className="text-xs text-blue-600">اختر أحد الخيارات التالية بناءً على نتائج الدراسة الفنية</p>
+                          </div>
+
+                          {/* الخيارات الإيجابية */}
+                          <div className="grid grid-cols-1 gap-3">
+                            {/* التحويل إلى مشروع */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('convert_to_project');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-green-500 rounded-lg text-white">
+                                  <FolderKanban className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-green-800">التحويل إلى مشروع</h5>
+                                  <p className="text-xs text-green-600 mt-1">للطلبات التي تحتاج تقييم مالي وعقود موردين</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-green-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
+
+                            {/* التحويل للاستجابة السريعة */}
+                            <button 
+                              className="group relative p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('quick_response');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-purple-500 rounded-lg text-white">
+                                  <Zap className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-purple-800">التحويل إلى الاستجابة السريعة</h5>
+                                  <p className="text-xs text-purple-600 mt-1">للحالات البسيطة التي يمكن تنفيذها مباشرة</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-purple-400 group-hover:translate-x-[-4px] transition-transform" />
+                              </div>
+                            </button>
+                          </div>
+
+                          {/* فاصل */}
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-white px-2 text-gray-400">أو</span>
+                            </div>
+                          </div>
+
+                          {/* الخيارات الأخرى */}
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* تعليق الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('suspend');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <PauseCircle className="w-5 h-5 text-amber-600" />
+                                <div>
+                                  <h5 className="font-bold text-amber-800 text-sm">تعليق الطلب</h5>
+                                  <p className="text-xs text-amber-600">مع ذكر المبررات</p>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* الاعتذار عن الطلب */}
+                            <button 
+                              className="group p-3 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50" 
+                              onClick={() => {
+                                setSelectedDecision('apologize');
+                                setShowTechnicalEvalDialog(true);
+                              }}
+                              disabled={technicalEvalMutation.isPending}
+                            >
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-5 h-5 text-red-600" />
+                                <div>
+                                  <h5 className="font-bold text-red-800 text-sm">الاعتذار</h5>
+                                  <p className="text-xs text-red-600">رفض الطلب نهائياً</p>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* زر رفض الطلب */}
+                      {canReject ? (
+                        <Button 
+                          variant="destructive" 
+                          className="w-full" 
+                          onClick={handleReject}
+                          disabled={updateStatusMutation.isPending || request.status === "rejected"}
+                        >
+                          <XCircle className="w-4 h-4 ml-2" />
+                          {updateStatusMutation.isPending ? "جاري..." : "رفض الطلب"}
+                        </Button>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-muted-foreground">ليس لديك صلاحية رفض الطلب</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 </CardContent>
               </Card>
             )}
-
-            {/* معلومات الحالة والتاريخ */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>معلومات الحالة</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">الحالة</p>
-                  <p className="font-medium">{STATUS_LABELS[request.status]}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">تاريخ التقديم</p>
-                  <p className="font-medium">{new Date(request.createdAt).toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
