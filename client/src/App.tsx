@@ -73,6 +73,7 @@ import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import FinancialDashboard from "./pages/FinancialDashboard";
 import FinancialReport from "./pages/FinancialReport";
 import StageSettings from "./pages/StageSettings";
+import ActionSettings from "./pages/ActionSettings";
 import AdminGuard from "./components/AdminGuard";
 
 // مكون لحماية المسارات الإدارية
@@ -184,6 +185,7 @@ function Router() {
       
       {/* إعدادات المراحل - إدارية */}
       <Route path="/stage-settings">{() => <AdminRoute component={StageSettings} />}</Route>
+      <Route path="/action-settings">{() => <AdminRoute component={ActionSettings} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

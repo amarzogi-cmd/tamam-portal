@@ -1538,7 +1538,64 @@ export const contractModificationLogs = mysqlTable("contract_modification_logs",
   modifiedAt: timestamp("modifiedAt").defaultNow().notNull(),
 });
 
+// ==================== إعدادات الإجراءات ====================
+
+// العلاقات بين الإجراءات
+export const actionRelationTypes = [
+  "before",      // يجب أن يكون قبله
+  "after",       // يجب أن يكون بعده
+  "concurrent",  // يتزامن معه
+  "independent"  // غير مرتبط
+] as const;
+
+// جدول إعدادات الإجراءات
+export const actionSettings = mysqlTable("action_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  
+  // معلومات الإجراء
+  actionCode: varchar("actionCode", { length: 100 }).notNull().unique(),
+  actionLabel: varchar("actionLabel", { length: 255 }).notNull(),
+  actionDescription: text("actionDescription"),
+  
+  // المرحلة المرتبطة
+  parentStage: varchar("parentStage", { length: 100 }).notNull(),
+  
+  // الترتيب داخل المرحلة
+  order: int("order").notNull().default(0),
+  
+  // المسار (Route)
+  route: varchar("route", { length: 255 }),
+  
+  // الصلاحيات المطلوبة (JSON array)
+  requiredRoles: json("requiredRoles").$type<string[]>(),
+  
+  // الإجراء السابق المطلوب (prerequisite)
+  prerequisiteAction: varchar("prerequisiteAction", { length: 100 }),
+  
+  // الإجراء التالي
+  nextAction: varchar("nextAction", { length: 100 }),
+  
+  // نوع العلاقة مع الإجراء التالي
+  relationWithNext: mysqlEnum("relationWithNext", actionRelationTypes).default("after"),
+  
+  // هل الإجراء نشط
+  isActive: boolean("isActive").default(true).notNull(),
+  
+  // أيقونة الإجراء (اسم الأيقونة من lucide-react)
+  icon: varchar("icon", { length: 50 }),
+  
+  // اللون المميز
+  color: varchar("color", { length: 50 }),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // تصدير الأنواع
+export type ActionSetting = typeof actionSettings.$inferSelect;
+export type InsertActionSetting = typeof actionSettings.$inferInsert;
+export type ActionRelationType = typeof actionRelationTypes[number];
+
 export type Handover = typeof handovers.$inferSelect;
 export type InsertHandover = typeof handovers.$inferInsert;
 export type HandoverType = typeof handoverTypes[number];
