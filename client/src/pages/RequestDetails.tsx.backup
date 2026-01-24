@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { FinancialApprovalDetails } from "@/components/FinancialApprovalDetails";
 import { 
   PROGRAM_LABELS, 
   STAGE_LABELS, 
@@ -49,6 +50,7 @@ import {
   TECHNICAL_EVAL_OPTION_LABELS,
 } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import { RequestProgressCard } from "@/components/RequestProgressCard";
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -430,6 +432,77 @@ export default function RequestDetails() {
   const activeSteps = isQuickResponse ? quickResponseSteps : stageSteps;
   const currentStageIndex = activeSteps.findIndex(s => s.key === request.currentStage);
 
+  // تحديد الإجراءات المكتملة والمتبقية لكل مرحلة
+  const getStageChecklist = () => {
+    const checklist: Array<{ id: string; label: string; completed: boolean; required: boolean }> = [];
+
+    switch (request.currentStage) {
+      case 'submitted':
+        checklist.push(
+          { id: '1', label: 'تم تقديم الطلب', completed: true, required: true },
+          { id: '2', label: 'بدء المراجعة الأولية', completed: false, required: true }
+        );
+        break;
+      case 'initial_review':
+        checklist.push(
+          { id: '1', label: 'مراجعة بيانات الطلب', completed: true, required: true },
+          { id: '2', label: 'جدولة الزيارة الميدانية', completed: !!request.fieldVisitScheduledDate, required: true }
+        );
+        break;
+      case 'field_visit':
+        const hasFieldVisit = !!request.fieldVisitScheduledDate;
+        const hasFieldReport = request.history?.some((h: any) => h.action === 'field_visit_completed');
+        checklist.push(
+          { id: '1', label: 'جدولة الزيارة الميدانية', completed: hasFieldVisit, required: true },
+          { id: '2', label: 'رفع تقرير الزيارة الميدانية', completed: hasFieldReport, required: true }
+        );
+        break;
+      case 'technical_eval':
+        const hasTechnicalDecision = !!request.technicalEvalDecision;
+        checklist.push(
+          { id: '1', label: 'مراجعة تقرير الزيارة', completed: true, required: true },
+          { id: '2', label: 'اتخاذ قرار التقييم الفني', completed: hasTechnicalDecision, required: true }
+        );
+        break;
+      case 'financial_eval':
+        const hasApprovedQuotation = request.history?.some((h: any) => h.action === 'quotation_approved');
+        checklist.push(
+          { id: '1', label: 'إعداد جدول الكميات', completed: true, required: true },
+          { id: '2', label: 'تقييم عروض الأسعار', completed: false, required: true },
+          { id: '3', label: 'اعتماد عرض السعر', completed: hasApprovedQuotation, required: true }
+        );
+        break;
+      case 'contracting':
+        const hasContract = !!existingContract;
+        checklist.push(
+          { id: '1', label: 'إنشاء العقد', completed: hasContract, required: true },
+          { id: '2', label: 'توقيع العقد', completed: false, required: true }
+        );
+        break;
+      case 'execution':
+        checklist.push(
+          { id: '1', label: 'بدء التنفيذ', completed: true, required: true },
+          { id: '2', label: 'متابعة التنفيذ', completed: false, required: true },
+          { id: '3', label: 'رفع التقرير الختامي', completed: false, required: true }
+        );
+        break;
+      case 'closed':
+        checklist.push(
+          { id: '1', label: 'إغلاق الطلب', completed: true, required: true },
+          { id: '2', label: 'قياس رضا المستفيد', completed: false, required: false }
+        );
+        break;
+      default:
+        checklist.push(
+          { id: '1', label: 'لا توجد إجراءات محددة', completed: false, required: false }
+        );
+    }
+
+    return checklist;
+  };
+
+  const stageChecklist = getStageChecklist();
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -446,7 +519,8 @@ export default function RequestDetails() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{request.requestNumber}</h1>
                 <p className="text-muted-foreground">
-                  {PROGRAM_LABELS[request.programType]} - {request.mosque?.name || "مسجد غير محدد"}
+                  {PROGRAM_LABELS[request.programType]}
+                  {request.mosque?.name && ` - ${request.mosque.name}`}
                   {isQuickResponse && <span className="mr-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">استجابة سريعة</span>}
                 </p>
               </div>
@@ -501,8 +575,15 @@ export default function RequestDetails() {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          /* شريط التقدم بالنسبة المئوية - لطالب الخدمة */
+        ) : null}
+
+        {/* بطاقة التقدم - للموظفين فقط */}
+        {user?.role !== "service_requester" && (
+          <RequestProgressCard stage={request.currentStage} checklist={stageChecklist} />
+        )}
+
+        {/* شريط التقدم بالنسبة المئوية - لطالب الخدمة */}
+        {user?.role === "service_requester" && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="text-center mb-4">
@@ -593,7 +674,7 @@ export default function RequestDetails() {
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
                 {/* التقييم المالي - للموظفين فقط */}
-                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
@@ -605,20 +686,38 @@ export default function RequestDetails() {
                     <CardContent className="p-4">
                       {request.history && request.history.length > 0 ? (
                         <div className="space-y-4">
-                          {request.history.map((item: any) => (
-                            <div key={item.id} className="flex gap-4">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <Clock className="w-5 h-5 text-primary" />
+                          {request.history.map((item: any) => {
+                            // تحسين عرض الأحداث - VERSION 2
+                            console.log('[RequestDetails] Processing history item:', item.action, item.fromStage, item.toStage);
+                            let displayAction = ACTION_LABELS[item.action] || item.action;
+                            let displayNotes = item.notes;
+                            
+                            // إذا كان الحدث "stage_updated" ويحتوي على fromStage/toStage، عرض المراحل بوضوح
+                            if (item.action === 'stage_updated' && (item.fromStage || item.toStage)) {
+                              console.log('[RequestDetails] Transforming stage_updated to readable format');
+                              const fromStageLabel = item.fromStage ? STAGE_LABELS[item.fromStage] || item.fromStage : 'غير محدد';
+                              const toStageLabel = item.toStage ? STAGE_LABELS[item.toStage] || item.toStage : 'غير محدد';
+                              displayAction = 'تحديث المرحلة';
+                              displayNotes = `من: ${fromStageLabel} ← إلى: ${toStageLabel}`;
+                            }
+                            
+                            return (
+                              <div key={item.id} className="flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <Clock className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium">{displayAction}</p>
+                                  {displayNotes && (
+                                    <p className="text-sm text-muted-foreground">{displayNotes}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {new Date(item.createdAt).toLocaleString("ar-SA")}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{ACTION_LABELS[item.action] || item.action}</p>
-                                <p className="text-sm text-muted-foreground">{item.notes}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(item.createdAt).toLocaleString("ar-SA")}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="text-center py-8">
@@ -756,9 +855,33 @@ export default function RequestDetails() {
               </TabsContent>
 
               {/* تبويب التقييم المالي - للموظفين فقط */}
-              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                 <TabsContent value="financial">
                   <div className="space-y-6">
+                    {/* تفاصيل الاعتماد المالي - يظهر فقط بعد الاعتماد */}
+                    {request.selectedQuotationId && quotations?.quotations && (() => {
+                      const selectedQuotation = quotations.quotations.find((q: any) => q.quotationNumber === request.selectedQuotationId);
+                      if (selectedQuotation) {
+                        return (
+                          <FinancialApprovalDetails
+                            quotationNumber={selectedQuotation.quotationNumber}
+                            supplierName={(selectedQuotation as any).supplier?.companyName || "غير محدد"}
+                            totalAmount={selectedQuotation.totalAmount}
+                            finalAmount={selectedQuotation.finalAmount || selectedQuotation.totalAmount}
+                            approvedAt={request.updatedAt?.toISOString()}
+                            approvedBy={user?.name}
+                            includesTax={selectedQuotation.includesTax || undefined}
+                            taxRate={selectedQuotation.taxRate || undefined}
+                            taxAmount={selectedQuotation.taxAmount || undefined}
+                            discountType={selectedQuotation.discountType || undefined}
+                            discountValue={selectedQuotation.discountValue || undefined}
+                            discountAmount={selectedQuotation.discountAmount || undefined}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* جدول الكميات */}
                     <Card className="border-0 shadow-sm">
                       <CardHeader>
@@ -1052,42 +1175,75 @@ export default function RequestDetails() {
 
           {/* الشريط الجانبي */}
           <div className="space-y-6">
-            {/* معلومات المسجد */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  المسجد
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">اسم المسجد</p>
-                    <p className="font-medium">{request.mosque?.name || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">المدينة</p>
-                    <p className="font-medium">{request.mosque?.city || "-"}</p>
-                  </div>
-                  <Link href={`/mosques/${request.mosqueId}`}>
-                    <Button variant="outline" className="w-full mt-2">
-                      عرض تفاصيل المسجد
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* الإجراءات - للموظفين فقط */}
-            {user?.role !== "service_requester" && (
+            {/* معلومات المسجد أو البرنامج */}
+            {request.programType === 'bunyan' ? (
+              // برنامج بنيان: عرض معلومات البرنامج
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle>الإجراءات</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    معلومات المشروع
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* أزرار إسناد المهمة وجدولة الزيارة */}
-                  {(user?.role === "projects_office" || user?.role === "super_admin" || user?.role === "system_admin") && (
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">اسم المشروع</p>
+                      <p className="font-medium">{(request.programData as any)?.projectName || "غير محدد"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">الموقع</p>
+                      <p className="font-medium">{(request.programData as any)?.projectLocation || "غير محدد"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">البرنامج</p>
+                      <p className="font-medium">{PROGRAM_LABELS[request.programType]}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">المساحة</p>
+                      <p className="font-medium">{(request.programData as any)?.projectArea ? `${(request.programData as any).projectArea} م²` : "غير محدد"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">السعة</p>
+                      <p className="font-medium">{(request.programData as any)?.projectCapacity ? `${(request.programData as any).projectCapacity} مصلي` : "غير محدد"}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              // البرامج الأخرى: عرض معلومات المسجد
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    المسجد
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">اسم المسجد</p>
+                      <p className="font-medium">{request.mosque?.name || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">المدينة</p>
+                      <p className="font-medium">{request.mosque?.city || "-"}</p>
+                    </div>
+                    {request.mosqueId && (
+                      <Link href={`/mosques/${request.mosqueId}`}>
+                        <Button variant="outline" className="w-full mt-2">
+                          عرض تفاصيل المسجد
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* بطاقة الإجراء الذكية - للموظفين فقط */}
+            {user?.role !== "service_requester" && (
+              <SmartStatusBar request={request} />
                   <>
                     {(request.currentStage === "initial_review" || request.currentStage === "field_visit") && (
                       <>
@@ -1239,25 +1395,48 @@ export default function RequestDetails() {
                         </div>
                       )}
 
-                      {/* زر تحويل المرحلة */}
+                      {/* زر تحويل المرحلة أو الإجراء المطلوب */}
                       {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
-                        canTransition ? (
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
-                            onClick={handleAdvanceStage}
-                            disabled={updateStageMutation.isPending}
-                          >
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                            {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
-                          </Button>
+                        // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير دائماً (بغض النظر عن canTransition)
+                        request.currentStage === "field_visit" ? (
+                          canTransition ? (
+                            <Link href={`/field-inspection/${requestId}`}>
+                              <Button 
+                                variant="default" 
+                                className="w-full gradient-primary text-white"
+                              >
+                                <FileText className="w-4 h-4 ml-2" />
+                                رفع تقرير الزيارة الميدانية
+                              </Button>
+                            </Link>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك رفع التقرير</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
                         ) : (
-                          <div className="p-3 bg-amber-50 rounded-lg">
-                            <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
-                            <p className="text-xs text-amber-600">
-                              الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
-                            </p>
-                          </div>
+                          // في المراحل الأخرى، عرض زر تحويل المرحلة أو رسالة عدم الصلاحية
+                          canTransition ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={handleAdvanceStage}
+                              disabled={updateStageMutation.isPending}
+                            >
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                              {updateStageMutation.isPending ? "جاري..." : "تحويل للمرحلة التالية"}
+                            </Button>
+                          ) : (
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك تحويل الطلب من هذه المرحلة</p>
+                              <p className="text-xs text-amber-600">
+                                الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                              </p>
+                            </div>
+                          )
                         )
                       )}
 

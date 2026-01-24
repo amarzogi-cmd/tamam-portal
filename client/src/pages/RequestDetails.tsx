@@ -1,5 +1,4 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import SmartStatusBar from "@/components/SmartStatusBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -614,7 +613,6 @@ export default function RequestDetails() {
         )}
 
         {/* شريط الحالة الذكي */}
-        <SmartStatusBar
           request={request}
           user={user}
           existingContract={existingContract}
