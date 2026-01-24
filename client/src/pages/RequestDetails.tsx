@@ -38,6 +38,7 @@ import {
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { FinancialApprovalDetails } from "@/components/FinancialApprovalDetails";
+import { RequestActionCard } from "@/components/RequestActionCard";
 import { 
   PROGRAM_LABELS, 
   STAGE_LABELS, 
@@ -613,14 +614,10 @@ export default function RequestDetails() {
         )}
 
         {/* شريط الحالة الذكي */}
+        <RequestActionCard 
+          requestId={request.id}
+          currentStage={request.currentStage}
           request={request}
-          user={user}
-          existingContract={existingContract}
-          quotations={quotations}
-          boqItems={boqItems}
-          onAdvanceStage={handleAdvanceStage}
-          onNavigate={navigate}
-          isLoading={updateStageMutation.isPending}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
