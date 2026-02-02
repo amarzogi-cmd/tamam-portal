@@ -18,6 +18,7 @@ import { handoversRouter } from "./routers/handovers";
 import { stageSettingsRouter } from "./routers/stageSettings";
 import { actionsRouter } from "./actions";
 import { permissionsRouter } from "./permissions";
+import { usersRouter } from "./routers/users";
 
 export const appRouter = router({
   system: systemRouter,
@@ -67,6 +68,9 @@ export const appRouter = router({
   
   // نظام الصلاحيات
   permissions: permissionsRouter,
+  
+  // إدارة المستخدمين
+  users: usersRouter,
 });
 
 export type AppRouter = typeof appRouter;

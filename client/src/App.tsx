@@ -77,6 +77,7 @@ import ActionSettings from "./pages/ActionSettings";
 import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
+import UsersManagement from "./pages/UsersManagement";
 import AdminGuard from "./components/AdminGuard";
 
 // مكون لحماية المسارات الإدارية
@@ -193,6 +194,7 @@ function Router() {
       {/* إدارة الأدوار والصلاحيات - إدارية */}
       <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
+      <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       
       {/* صفحة 404 */}
