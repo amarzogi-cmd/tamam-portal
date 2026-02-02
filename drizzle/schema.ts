@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext, date } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, mediumtext, date, unique } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 // ==================== الأدوار والحالات ====================
@@ -1627,3 +1627,105 @@ export type RequestStatus = typeof requestStatuses[number];
 export type MosqueStatus = typeof mosqueStatuses[number];
 export type MosqueOwnership = typeof mosqueOwnership[number];
 export type UserStatus = typeof userStatuses[number];
+
+
+// ==================== نظام الصلاحيات المتكامل ====================
+
+// الوحدات الرئيسية (Modules)
+export const modules = mysqlTable("modules", {
+  id: varchar("id", { length: 50 }).primaryKey(),
+  nameAr: varchar("name_ar", { length: 100 }).notNull(),
+  nameEn: varchar("name_en", { length: 100 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }),
+  displayOrder: int("display_order"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// الصلاحيات التفصيلية (Permissions)
+export const permissions = mysqlTable("permissions", {
+  id: varchar("id", { length: 100 }).primaryKey(), // مثل: requests.view
+  moduleId: varchar("module_id", { length: 50 }).notNull().references(() => modules.id),
+  action: varchar("action", { length: 50 }).notNull(), // view, create, edit, delete, approve, export, print
+  nameAr: varchar("name_ar", { length: 100 }).notNull(),
+  nameEn: varchar("name_en", { length: 100 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// المسميات المرنة (Roles)
+export const roles = mysqlTable("roles", {
+  id: varchar("id", { length: 50 }).primaryKey(),
+  nameAr: varchar("name_ar", { length: 100 }).notNull(),
+  nameEn: varchar("name_en", { length: 100 }).notNull(),
+  description: text("description"),
+  isSystem: boolean("is_system").default(false).notNull(), // true للأدوار الافتراضية
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+// صلاحيات المسميات (Role Permissions)
+export const rolePermissions = mysqlTable("role_permissions", {
+  id: int("id").primaryKey().autoincrement(),
+  roleId: varchar("role_id", { length: 50 }).notNull().references(() => roles.id, { onDelete: "cascade" }),
+  permissionId: varchar("permission_id", { length: 100 }).notNull().references(() => permissions.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueRolePermission: unique("unique_role_permission").on(table.roleId, table.permissionId),
+}));
+
+// ربط المستخدمين بالمسميات (User Roles)
+export const userRolesTable = mysqlTable("user_roles", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: varchar("role_id", { length: 50 }).notNull().references(() => roles.id, { onDelete: "cascade" }),
+  assignedBy: int("assigned_by").references(() => users.id),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+}, (table) => ({
+  uniqueUserRole: unique("unique_user_role").on(table.userId, table.roleId),
+}));
+
+// الصلاحيات الفردية (User Permissions)
+export const userPermissions = mysqlTable("user_permissions", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  permissionId: varchar("permission_id", { length: 100 }).notNull().references(() => permissions.id, { onDelete: "cascade" }),
+  granted: boolean("granted").notNull(), // true = منح، false = سحب
+  grantedBy: int("granted_by").notNull().references(() => users.id),
+  reason: text("reason"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// سجل التدقيق للصلاحيات (Permissions Audit Log)
+export const permissionsAuditLog = mysqlTable("permissions_audit_log", {
+  id: int("id").primaryKey().autoincrement(),
+  actionType: varchar("action_type", { length: 50 }).notNull(), // grant_permission, revoke_permission, assign_role, remove_role
+  targetUserId: int("target_user_id").notNull().references(() => users.id),
+  targetRoleId: varchar("target_role_id", { length: 50 }).references(() => roles.id),
+  permissionId: varchar("permission_id", { length: 100 }).references(() => permissions.id),
+  performedBy: int("performed_by").notNull().references(() => users.id),
+  reason: text("reason"),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// تصدير الأنواع
+export type Module = typeof modules.$inferSelect;
+export type InsertModule = typeof modules.$inferInsert;
+export type Permission = typeof permissions.$inferSelect;
+export type InsertPermission = typeof permissions.$inferInsert;
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = typeof roles.$inferInsert;
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = typeof rolePermissions.$inferInsert;
+export type UserRoleAssignment = typeof userRolesTable.$inferSelect;
+export type InsertUserRoleAssignment = typeof userRolesTable.$inferInsert;
+export type UserPermission = typeof userPermissions.$inferSelect;
+export type InsertUserPermission = typeof userPermissions.$inferInsert;
+export type PermissionsAuditLog = typeof permissionsAuditLog.$inferSelect;
+export type InsertPermissionsAuditLog = typeof permissionsAuditLog.$inferInsert;
