@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import {
   Building2,
   Search,
@@ -191,10 +192,12 @@ export default function SuppliersManagement() {
             <p className="text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setShowAddSupplierDialog(true)}>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة مورد
-            </Button>
+            <PermissionGuard permission="suppliers.create">
+              <Button onClick={() => setShowAddSupplierDialog(true)}>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة مورد
+              </Button>
+            </PermissionGuard>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 ml-2" />
               تحديث

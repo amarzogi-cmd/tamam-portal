@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 // حالات الاعتماد
 const APPROVAL_STATUS = {
@@ -135,12 +136,14 @@ export default function Mosques() {
             <h1 className="text-2xl font-bold text-foreground">المساجد</h1>
             <p className="text-muted-foreground">إدارة المساجد المسجلة في النظام</p>
           </div>
-          <Link href="/mosques/new">
-            <Button className="gradient-primary text-white">
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة مسجد
-            </Button>
-          </Link>
+          <PermissionGuard permission="mosques.create">
+            <Link href="/mosques/new">
+              <Button className="gradient-primary text-white">
+                <Plus className="w-4 h-4 ml-2" />
+                إضافة مسجد
+              </Button>
+            </Link>
+          </PermissionGuard>
         </div>
 
         {/* بطاقات الإحصائيات */}

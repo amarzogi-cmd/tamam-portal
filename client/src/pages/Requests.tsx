@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 // تم استبدال programIcons بمكون ProgramIcon
 
@@ -69,12 +70,14 @@ export default function Requests() {
             <h1 className="text-2xl font-bold text-foreground">إدارة الطلبات</h1>
             <p className="text-muted-foreground">عرض ومتابعة جميع الطلبات</p>
           </div>
-          <Link href="/service-request">
-            <Button className="gradient-primary text-white">
-              <Plus className="w-4 h-4 ml-2" />
-              طلب جديد
-            </Button>
-          </Link>
+          <PermissionGuard permission="requests.create">
+            <Link href="/service-request">
+              <Button className="gradient-primary text-white">
+                <Plus className="w-4 h-4 ml-2" />
+                طلب جديد
+              </Button>
+            </Link>
+          </PermissionGuard>
         </div>
 
         {/* بطاقات الإحصائيات */}
