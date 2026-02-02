@@ -5,7 +5,7 @@ import {
   permissions,
   roles,
   rolePermissions,
-  userRolesTable,
+  userRoleAssignments,
   userPermissions,
   permissionsAuditLog,
   users
@@ -26,12 +26,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // 1. جمع صلاحيات جميع الأدوار المسندة للمستخدم
   const userRolesData = await db
-    .select({ roleId: userRolesTable.roleId })
-    .from(userRolesTable)
+    .select({ roleId: userRoleAssignments.roleId })
+    .from(userRoleAssignments)
     .where(
       and(
-        eq(userRolesTable.userId, userId),
-        sql`(${userRolesTable.expiresAt} IS NULL OR ${userRolesTable.expiresAt} > NOW())`
+        eq(userRoleAssignments.userId, userId),
+        sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
       )
     );
 
@@ -343,15 +343,15 @@ export const permissionsRouter = router({
 
       return await db
         .select({
-          id: userRolesTable.id,
-          roleId: userRolesTable.roleId,
+          id: userRoleAssignments.id,
+          roleId: userRoleAssignments.roleId,
           roleName: roles.nameAr,
-          assignedAt: userRolesTable.assignedAt,
-          expiresAt: userRolesTable.expiresAt
+          assignedAt: userRoleAssignments.assignedAt,
+          expiresAt: userRoleAssignments.expiresAt
         })
-        .from(userRolesTable)
-        .innerJoin(roles, eq(userRolesTable.roleId, roles.id))
-        .where(eq(userRolesTable.userId, input.userId));
+        .from(userRoleAssignments)
+        .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+        .where(eq(userRoleAssignments.userId, input.userId));
     }),
 
   /**
@@ -391,7 +391,7 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      await db.insert(userRolesTable).values({
+      await db.insert(userRoleAssignments).values({
         userId: input.userId,
         roleId: input.roleId,
         assignedBy: ctx.user.id,
@@ -420,10 +420,10 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      await db.delete(userRolesTable).where(
+      await db.delete(userRoleAssignments).where(
         and(
-          eq(userRolesTable.userId, input.userId),
-          eq(userRolesTable.roleId, input.roleId)
+          eq(userRoleAssignments.userId, input.userId),
+          eq(userRoleAssignments.roleId, input.roleId)
         )
       );
 

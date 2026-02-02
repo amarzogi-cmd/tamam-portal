@@ -74,6 +74,8 @@ import FinancialDashboard from "./pages/FinancialDashboard";
 import FinancialReport from "./pages/FinancialReport";
 import StageSettings from "./pages/StageSettings";
 import ActionSettings from "./pages/ActionSettings";
+import Roles from "./pages/Roles";
+import RoleEdit from "./pages/RoleEdit";
 import AdminGuard from "./components/AdminGuard";
 
 // مكون لحماية المسارات الإدارية
@@ -186,6 +188,10 @@ function Router() {
       {/* إعدادات المراحل - إدارية */}
       <Route path="/stage-settings">{() => <AdminRoute component={StageSettings} />}</Route>
       <Route path="/action-settings">{() => <AdminRoute component={ActionSettings} />}</Route>
+      
+      {/* إدارة الأدوار والصلاحيات - إدارية */}
+      <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
+      <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

@@ -1677,7 +1677,7 @@ export const rolePermissions = mysqlTable("role_permissions", {
 }));
 
 // ربط المستخدمين بالمسميات (User Roles)
-export const userRolesTable = mysqlTable("user_roles", {
+export const userRoleAssignments = mysqlTable("user_roles", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   roleId: varchar("role_id", { length: 50 }).notNull().references(() => roles.id, { onDelete: "cascade" }),
@@ -1723,8 +1723,8 @@ export type Role = typeof roles.$inferSelect;
 export type InsertRole = typeof roles.$inferInsert;
 export type RolePermission = typeof rolePermissions.$inferSelect;
 export type InsertRolePermission = typeof rolePermissions.$inferInsert;
-export type UserRoleAssignment = typeof userRolesTable.$inferSelect;
-export type InsertUserRoleAssignment = typeof userRolesTable.$inferInsert;
+export type UserRoleAssignment = typeof userRoleAssignments.$inferSelect;
+export type InsertUserRoleAssignment = typeof userRoleAssignments.$inferInsert;
 export type UserPermission = typeof userPermissions.$inferSelect;
 export type InsertUserPermission = typeof userPermissions.$inferInsert;
 export type PermissionsAuditLog = typeof permissionsAuditLog.$inferSelect;
