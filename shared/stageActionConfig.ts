@@ -56,6 +56,20 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
     stage: 'initial_review',
     actions: [
       {
+        key: 'review_and_approve',
+        label: 'مراجعة واعتماد الطلب',
+        description: 'مراجعة بيانات الطلب والمستندات واعتماده للانتقال للزيارة الميدانية',
+        requiredRoles: ['super_admin', 'system_admin', 'projects_office'],
+        relation: 'independent',
+      },
+    ],
+  },
+
+  // ==================== 3. الزيارة الميدانية ====================
+  {
+    stage: 'field_visit',
+    actions: [
+      {
         key: 'assign_field_team',
         label: 'إسناد الفريق الميداني',
         description: 'إسناد الطلب لفريق الزيارة الميدانية',
@@ -70,23 +84,28 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         route: '/field-visits/schedule',
         requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'field_team'],
         prerequisite: 'assign_field_team',
+        nextAction: 'execute_field_visit',
         relation: 'after',
         checkCompletion: (request) => !!request.fieldVisitScheduledDate,
       },
-    ],
-  },
-
-  // ==================== 3. الزيارة الميدانية ====================
-  {
-    stage: 'field_visit',
-    actions: [
+      {
+        key: 'execute_field_visit',
+        label: 'تنفيذ الزيارة الميدانية',
+        description: 'تنفيذ الزيارة الميدانية للمسجد',
+        requiredRoles: ['super_admin', 'system_admin', 'field_team'],
+        prerequisite: 'schedule_field_visit',
+        nextAction: 'submit_field_report',
+        relation: 'after',
+      },
       {
         key: 'submit_field_report',
         label: 'رفع تقرير الزيارة الميدانية',
         description: 'رفع تقرير المعاينة الميدانية بعد تنفيذ الزيارة',
         route: '/field-visits/report',
         requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'field_team'],
-        relation: 'independent',
+        prerequisite: 'execute_field_visit',
+        relation: 'after',
+        checkCompletion: (request) => !!request.fieldInspectionReportId,
       },
     ],
   },

@@ -30,7 +30,7 @@ import MosqueServiceRequest from "./pages/MosqueServiceRequest";
 import MyRequests from "./pages/MyRequests";
 
 // صفحات المستخدمين
-import Users from "./pages/Users";
+import UsersManagement from "./pages/UsersManagement";
 import UserDetails from "./pages/UserDetails";
 
 // صفحات المشاريع
@@ -77,7 +77,6 @@ import ActionSettings from "./pages/ActionSettings";
 import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
-import UsersManagement from "./pages/UsersManagement";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import AdminGuard from "./components/AdminGuard";
 
@@ -124,7 +123,7 @@ function Router() {
       {/* <Route path="/requester/requests/:id/old" component={RequestDetailsOld} /> */}
       
       {/* المستخدمون - إدارية */}
-      <Route path="/users">{() => <AdminRoute component={Users} />}</Route>
+      <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
       
       {/* المشاريع - إدارية */}
