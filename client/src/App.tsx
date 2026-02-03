@@ -54,6 +54,8 @@ import OrganizationSettings from "./pages/OrganizationSettings";
 import ContractForm from "./pages/ContractForm";
 import ContractPreview from "./pages/ContractPreview";
 import FieldInspectionForm from "./pages/FieldInspectionForm";
+import FieldVisitSchedule from "./pages/FieldVisitSchedule";
+import FieldVisitExecute from "./pages/FieldVisitExecute";
 import QuickResponseReportForm from "./pages/QuickResponseReportForm";
 import BOQ from "./pages/BOQ";
 import Quotations from "./pages/Quotations";
@@ -119,6 +121,9 @@ function Router() {
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
+      <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
+      <Route path="/field-visits/execute/:requestId">{() => <AdminRoute component={FieldVisitExecute} />}</Route>
+      <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id" component={RequestDetails} />
       {/* <Route path="/requester/requests/:id/old" component={RequestDetailsOld} /> */}
       
@@ -194,7 +199,6 @@ function Router() {
       {/* إدارة الأدوار والصلاحيات - إدارية */}
       <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
-      <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       

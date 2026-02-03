@@ -1716,6 +1716,37 @@ export const permissionsAuditLog = mysqlTable("permissions_audit_log", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// جدول الزيارات الميدانية
+export const fieldVisits = mysqlTable("field_visits", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  // بيانات الجدولة
+  scheduledDate: timestamp("scheduledDate"),
+  scheduledTime: varchar("scheduledTime", { length: 10 }),
+  teamMembers: text("teamMembers"),
+  scheduleNotes: text("scheduleNotes"),
+  scheduledBy: int("scheduledBy").references(() => users.id),
+  scheduledAt: timestamp("scheduledAt"),
+  // بيانات التنفيذ
+  executionDate: timestamp("executionDate"),
+  executionTime: varchar("executionTime", { length: 10 }),
+  attendees: text("attendees"),
+  executionNotes: text("executionNotes"),
+  executedBy: int("executedBy").references(() => users.id),
+  executedAt: timestamp("executedAt"),
+  // بيانات التقرير
+  reportSubmitted: boolean("reportSubmitted").default(false),
+  reportSubmittedBy: int("reportSubmittedBy").references(() => users.id),
+  reportSubmittedAt: timestamp("reportSubmittedAt"),
+  // الحالة العامة
+  status: mysqlEnum("status", ["scheduled", "executed", "reported", "completed"]).default("scheduled"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FieldVisit = typeof fieldVisits.$inferSelect;
+export type InsertFieldVisit = typeof fieldVisits.$inferInsert;
+
 // تصدير الأنواع
 export type Module = typeof modules.$inferSelect;
 export type InsertModule = typeof modules.$inferInsert;

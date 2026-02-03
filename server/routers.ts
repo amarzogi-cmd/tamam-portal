@@ -19,6 +19,7 @@ import { stageSettingsRouter } from "./routers/stageSettings";
 import { actionsRouter } from "./actions";
 import { permissionsRouter } from "./permissions";
 import { usersRouter } from "./routers/users";
+import { fieldVisitsRouter } from "./routers/fieldVisits";
 
 export const appRouter = router({
   system: systemRouter,
@@ -71,6 +72,9 @@ export const appRouter = router({
   
   // إدارة المستخدمين
   users: usersRouter,
+  
+  // الزيارات الميدانية
+  fieldVisits: fieldVisitsRouter,
 });
 
 export type AppRouter = typeof appRouter;

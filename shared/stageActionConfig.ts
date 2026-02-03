@@ -92,10 +92,12 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         key: 'execute_field_visit',
         label: 'تنفيذ الزيارة الميدانية',
         description: 'تنفيذ الزيارة الميدانية للمسجد',
+        route: '/field-visits/execute',
         requiredRoles: ['super_admin', 'system_admin', 'field_team'],
         prerequisite: 'schedule_field_visit',
         nextAction: 'submit_field_report',
         relation: 'after',
+        checkCompletion: (request) => !!request.fieldVisitExecutedDate,
       },
       {
         key: 'submit_field_report',

@@ -1036,7 +1036,7 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
     iconColor: "text-green-600",
     actionButton: {
       label: "جدولة الزيارة الميدانية",
-      nextStage: "field_visit", // يبقى في نفس المرحلة حتى يتم إسناد الزيارة
+      redirectUrl: "/field-visits/schedule/:requestId",
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office", "field_team"],
   },
