@@ -36,6 +36,12 @@ export default function RequestDetailsNew() {
   const history = request?.history || [];
   const utils = trpc.useUtils();
 
+  // Fetch field visit data for field_visit stage
+  const { data: fieldVisit } = trpc.fieldVisits.getVisit.useQuery(
+    { requestId },
+    { enabled: request?.currentStage === 'field_visit' }
+  );
+
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -135,10 +141,59 @@ export default function RequestDetailsNew() {
   }
 
   // Get active action
-  const activeAction = getActiveAction(request.currentStage, user?.role, {
+  let activeAction = getActiveAction(request.currentStage, user?.role, {
     assignedTo: request.assignedTo,
     userId: user?.id,
   });
+
+  // Override active action for field_visit stage based on field visit status
+  if (request.currentStage === 'field_visit' && activeAction) {
+    if (!fieldVisit?.scheduledDate) {
+      // لم يتم الجدولة بعد
+      activeAction = {
+        ...activeAction,
+        title: 'جدولة الزيارة الميدانية',
+        description: 'تحديد موعد الزيارة الميدانية',
+        actionButton: {
+          label: 'جدولة الزيارة الميدانية',
+          redirectUrl: '/field-visits/schedule/:requestId',
+        },
+      };
+    } else if (!fieldVisit?.executionDate) {
+      // تم الجدولة لكن لم يتم التنفيذ
+      activeAction = {
+        ...activeAction,
+        title: 'تنفيذ الزيارة الميدانية',
+        description: 'تأكيد تنفيذ الزيارة الميدانية',
+        actionButton: {
+          label: 'تنفيذ الزيارة',
+          redirectUrl: '/field-visits/execute/:requestId',
+        },
+      };
+    } else if (!fieldVisit?.reportSubmitted) {
+      // تم التنفيذ لكن لم يتم رفع التقرير
+      activeAction = {
+        ...activeAction,
+        title: 'رفع تقرير الزيارة الميدانية',
+        description: 'رفع تقرير المعاينة الميدانية',
+        actionButton: {
+          label: 'رفع التقرير',
+          redirectUrl: '/field-visits/report/:requestId',
+        },
+      };
+    } else {
+      // تم إكمال جميع الإجراءات، يمكن الانتقال للمرحلة التالية
+      activeAction = {
+        ...activeAction,
+        title: 'الانتقال للمرحلة التالية',
+        description: 'تم إكمال جميع إجراءات الزيارة الميدانية',
+        actionButton: {
+          label: 'الانتقال للتقييم الفني',
+          redirectUrl: undefined, // سيستخدم handleStageTransition الافتراضي
+        },
+      };
+    }
+  }
 
   const completedSteps = getCompletedSteps(request.currentStage);
   const progress = getProgressPercentage(request.currentStage);
@@ -249,6 +304,120 @@ export default function RequestDetailsNew() {
                 ] : []
               }
             />
+            
+            {/* مؤشرات إجراءات الزيارة الميدانية */}
+            {request.currentStage === 'field_visit' && (
+              <div className="mt-6 p-4 bg-card rounded-lg border">
+                <h3 className="text-lg font-semibold mb-4">حالة إجراءات الزيارة الميدانية</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* جدولة الزيارة */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    fieldVisit?.scheduledDate 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {fieldVisit?.scheduledDate ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      )}
+                      <h4 className={`font-semibold ${
+                        fieldVisit?.scheduledDate ? 'text-green-800' : 'text-gray-600'
+                      }`}>جدولة الزيارة</h4>
+                    </div>
+                    <p className={`text-sm ${
+                      fieldVisit?.scheduledDate ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                      {fieldVisit?.scheduledDate 
+                        ? `مجدولة: ${new Date(fieldVisit?.scheduledDate).toLocaleDateString('ar-SA')}`
+                        : 'معلقة'
+                      }
+                    </p>
+                  </div>
+
+                  {/* تنفيذ الزيارة */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    fieldVisit?.executionDate
+                      ? 'bg-green-50 border-green-200'
+                      : fieldVisit?.scheduledDate
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {fieldVisit?.executionDate ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : fieldVisit?.scheduledDate ? (
+                        <Clock className="w-5 h-5 text-amber-600" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      )}
+                      <h4 className={`font-semibold ${
+                        fieldVisit?.executionDate
+                          ? 'text-green-800'
+                          : fieldVisit?.scheduledDate
+                          ? 'text-amber-800'
+                          : 'text-gray-600'
+                      }`}>تنفيذ الزيارة</h4>
+                    </div>
+                    <p className={`text-sm ${
+                      fieldVisit?.executionDate
+                        ? 'text-green-600'
+                        : fieldVisit?.scheduledDate
+                        ? 'text-amber-600'
+                        : 'text-gray-500'
+                    }`}>
+                      {fieldVisit?.executionDate
+                        ? `منفذة: ${new Date(fieldVisit?.executionDate).toLocaleDateString('ar-SA')}`
+                        : fieldVisit?.scheduledDate
+                        ? 'قيد التنفيذ'
+                        : 'معلقة'
+                      }
+                    </p>
+                  </div>
+
+                  {/* رفع التقرير */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    fieldVisit?.reportSubmitted
+                      ? 'bg-green-50 border-green-200'
+                      : fieldVisit?.executionDate
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {fieldVisit?.reportSubmitted ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : fieldVisit?.executionDate ? (
+                        <Clock className="w-5 h-5 text-amber-600" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      )}
+                      <h4 className={`font-semibold ${
+                        fieldVisit?.reportSubmitted
+                          ? 'text-green-800'
+                          : fieldVisit?.executionDate
+                          ? 'text-amber-800'
+                          : 'text-gray-600'
+                      }`}>رفع التقرير</h4>
+                    </div>
+                    <p className={`text-sm ${
+                      fieldVisit?.reportSubmitted
+                        ? 'text-green-600'
+                        : fieldVisit?.executionDate
+                        ? 'text-amber-600'
+                        : 'text-gray-500'
+                    }`}>
+                      {fieldVisit?.reportSubmitted
+                        ? 'مكتمل'
+                        : fieldVisit?.executionDate
+                        ? 'قيد الرفع'
+                        : 'معلق'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* خيارات التقييم الفني */}
             {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (
