@@ -61,4 +61,14 @@ export const usersRouter = router({
       await db.update(users).set(updateData as any).where(eq(users.id, id));
       return { success: true };
     }),
+
+  // Delete user
+  delete: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+      await db.delete(users).where(eq(users.id, input.userId));
+      return { success: true };
+    }),
 });

@@ -8,7 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 // الصفحات العامة
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+// import Register from "./pages/Register"; // تم إخفاؤه - اقتصار على الحساب الرئيسي
 
 // لوحات التحكم
 import Dashboard from "./pages/Dashboard";
@@ -94,7 +94,7 @@ function Router() {
       {/* الصفحات العامة */}
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+      {/* <Route path="/register" component={Register} /> */} {/* تم إخفاؤه - اقتصار على الحساب الرئيسي */}
       <Route path="/track" component={TrackRequest} />
       <Route path="/service-request" component={MosqueServiceRequest} />
       

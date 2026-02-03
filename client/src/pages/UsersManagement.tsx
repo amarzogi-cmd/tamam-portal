@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Shield, UserCheck, UserX, Edit } from "lucide-react";
+import { Search, MoreVertical, Shield, UserCheck, UserX, Edit, Trash2 } from "lucide-react";
 
 
 export default function UsersManagement() {
@@ -35,6 +35,17 @@ export default function UsersManagement() {
   const toggleStatus = trpc.users.toggleStatus.useMutation({
     onSuccess: () => {
       alert("تم تحديث حالة المستخدم بنجاح");
+      refetch();
+    },
+    onError: (error: any) => {
+      alert(`خطأ: ${error.message}`);
+    },
+  });
+
+  // Delete user mutation
+  const deleteUser = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      alert("تم حذف المستخدم بنجاح");
       refetch();
     },
     onError: (error: any) => {
@@ -97,6 +108,12 @@ export default function UsersManagement() {
     toggleStatus.mutate({ userId, status: newStatus });
   };
 
+  const handleDelete = (userId: number, userName: string) => {
+    if (confirm(`هل أنت متأكد من حذف المستخدم "${userName}"؟`)) {
+      deleteUser.mutate({ userId });
+    }
+  };
+
   const UserTable = ({ users: tableUsers }: { users: typeof staffUsers }) => (
     <Table>
       <TableHeader>
@@ -119,7 +136,11 @@ export default function UsersManagement() {
         ) : (
           tableUsers.map((user: any) => (
             <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.name}</TableCell>
+              <TableCell className="font-medium">
+                <Link href={`/users/${user.id}`} className="hover:text-primary hover:underline cursor-pointer">
+                  {user.name}
+                </Link>
+              </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>{getRoleBadge(user.role)}</TableCell>
               <TableCell>{getStatusBadge(user.status)}</TableCell>
@@ -152,14 +173,21 @@ export default function UsersManagement() {
                       {user.status === "active" ? (
                         <>
                           <UserX className="ml-2 h-4 w-4" />
-                          تعطيل الحساب
+                          إيقاف
                         </>
                       ) : (
                         <>
                           <UserCheck className="ml-2 h-4 w-4" />
-                          تفعيل الحساب
+                          تنشيط
                         </>
                       )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(user.id, user.name)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="ml-2 h-4 w-4" />
+                      حذف
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

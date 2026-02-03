@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, User, Mail, Phone, Shield, Calendar, MapPin, FileText, Loader2, Building2, Plus, Minus } from "lucide-react";
+import { ArrowRight, User, Mail, Phone, Shield, Calendar, MapPin, FileText, Loader2, Building2, Plus, Minus, Edit, Trash2, UserCheck, UserX } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { ROLE_LABELS } from "@shared/constants";
 import { trpc } from "@/lib/trpc";
@@ -75,6 +75,28 @@ export default function UserDetails() {
     },
   });
 
+  // mutation لتغيير حالة المستخدم
+  const toggleStatus = trpc.users.toggleStatus.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة المستخدم بنجاح");
+      utils.auth.getUserById.invalidate({ userId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // mutation لحذف المستخدم
+  const deleteUser = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف المستخدم بنجاح");
+      window.location.href = "/users";
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleGrantExemption = () => {
     grantExemptionMutation.mutate({
       userId,
@@ -89,6 +111,17 @@ export default function UserDetails() {
         userId,
         exemptions: 1,
       });
+    }
+  };
+
+  const handleToggleStatus = () => {
+    const newStatus = user?.status === "active" ? "suspended" : "active";
+    toggleStatus.mutate({ userId, status: newStatus });
+  };
+
+  const handleDelete = () => {
+    if (confirm(`هل أنت متأكد من حذف المستخدم "${user?.name}"؟`)) {
+      deleteUser.mutate({ userId });
     }
   };
 
@@ -134,16 +167,57 @@ export default function UserDetails() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* العنوان */}
-        <div className="flex items-center gap-4">
-          <Link href="/users">
-            <Button variant="ghost" size="icon">
-              <ArrowRight className="w-5 h-5" />
+        {/* العنوان والأزرار */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/users">
+              <Button variant="ghost" size="icon">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">تفاصيل المستخدم</h1>
+              <p className="text-muted-foreground">عرض وإدارة بيانات المستخدم</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href={`/users/${userId}/permissions`}>
+              <Button variant="outline">
+                <Shield className="w-4 h-4 ml-2" />
+                إدارة الصلاحيات
+              </Button>
+            </Link>
+            <Link href={`/users/${userId}/edit`}>
+              <Button variant="outline">
+                <Edit className="w-4 h-4 ml-2" />
+                تعديل
+              </Button>
+            </Link>
+            <Button 
+              variant="outline"
+              onClick={handleToggleStatus}
+              disabled={toggleStatus.isPending}
+            >
+              {user?.status === "active" ? (
+                <>
+                  <UserX className="w-4 h-4 ml-2" />
+                  إيقاف
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-4 h-4 ml-2" />
+                  تنشيط
+                </>
+              )}
             </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">تفاصيل المستخدم</h1>
-            <p className="text-muted-foreground">عرض وإدارة بيانات المستخدم</p>
+            <Button 
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteUser.isPending}
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف
+            </Button>
           </div>
         </div>
 

@@ -132,7 +132,8 @@ export default function Login() {
                 </Button>
               </form>
 
-              {activeTab === "requester" && (
+              {/* تم إخفاء رابط التسجيل - اقتصار على الحساب الرئيسي */}
+              {/* {activeTab === "requester" && (
                 <div className="mt-6 text-center">
                   <p className="text-sm text-muted-foreground">
                     ليس لديك حساب؟{" "}
@@ -141,7 +142,7 @@ export default function Login() {
                     </Link>
                   </p>
                 </div>
-              )}
+              )} */}
 
               {activeTab === "employee" && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-lg">
