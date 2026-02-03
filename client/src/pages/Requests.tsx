@@ -201,6 +201,7 @@ export default function Requests() {
                       <TableHead className="text-right">البرنامج</TableHead>
                       <TableHead className="text-right">المسجد</TableHead>
                       <TableHead className="text-right">المرحلة</TableHead>
+                      <TableHead className="text-right">المسؤول الحالي</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-right">التاريخ</TableHead>
                       <TableHead className="text-right">الإجراءات</TableHead>
@@ -227,6 +228,11 @@ export default function Requests() {
                           </span>
                         </TableCell>
                         <TableCell>{STAGE_LABELS[request.currentStage]}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium text-foreground">{request.currentResponsibleDepartment || "مكتب المشاريع"}</div>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <span className={`badge ${statusColors[request.status]}`}>
                             {STATUS_LABELS[request.status]}

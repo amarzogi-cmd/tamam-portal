@@ -511,9 +511,32 @@ export const requestsRouter = router({
         }
       }
 
+      // تحديد المسؤول الحالي والإدارة حسب المرحلة الجديدة
+      let currentResponsible = ctx.user.id;
+      let currentResponsibleDepartment = "مكتب المشاريع";
+      
+      // تحديد الإدارة المسؤولة حسب المرحلة
+      const stageDepartmentMap: Record<string, string> = {
+        submitted: "مكتب المشاريع",
+        initial_review: "مكتب المشاريع",
+        field_visit: "الفريق الميداني",
+        technical_eval: "مكتب المشاريع",
+        boq_preparation: "مكتب المشاريع",
+        financial_eval: "الإدارة المالية",
+        quotation_approval: "الإدارة المالية",
+        contracting: "مكتب المشاريع",
+        execution: requestTrack === 'quick_response' ? "فريق الاستجابة السريعة" : "مدير المشروع",
+        handover: "مكتب المشاريع",
+        closed: "مكتب المشاريع",
+      };
+      
+      currentResponsibleDepartment = stageDepartmentMap[input.newStage] || "مكتب المشاريع";
+
       await db.update(mosqueRequests).set({
         currentStage: input.newStage,
         status: input.newStage === "closed" ? "completed" : "in_progress",
+        currentResponsible: currentResponsible,
+        currentResponsibleDepartment: currentResponsibleDepartment,
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إضافة سجل في تاريخ الطلب

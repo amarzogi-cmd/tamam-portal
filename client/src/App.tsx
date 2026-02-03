@@ -78,6 +78,7 @@ import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
 import UsersManagement from "./pages/UsersManagement";
+import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import AdminGuard from "./components/AdminGuard";
 
 // مكون لحماية المسارات الإدارية
@@ -196,6 +197,7 @@ function Router() {
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
       <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
+      <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

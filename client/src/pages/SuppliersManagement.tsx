@@ -583,28 +583,32 @@ export default function SuppliersManagement() {
           <DialogFooter className="gap-2">
             {selectedSupplier?.approvalStatus === "pending" && (
               <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowRejectDialog(true);
-                  }}
-                  className="text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <XCircle className="h-4 w-4 ml-2" />
-                  رفض
-                </Button>
-                <Button
-                  onClick={handleApprove}
-                  disabled={approveMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {approveMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 ml-2" />
-                  )}
-                  اعتماد المورد
-                </Button>
+                <PermissionGuard permission="suppliers.reject">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRejectDialog(true);
+                    }}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4 ml-2" />
+                    رفض
+                  </Button>
+                </PermissionGuard>
+                <PermissionGuard permission="suppliers.approve">
+                  <Button
+                    onClick={handleApprove}
+                    disabled={approveMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {approveMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 ml-2" />
+                    )}
+                    اعتماد المورد
+                  </Button>
+                </PermissionGuard>
               </>
             )}
             <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>

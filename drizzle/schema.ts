@@ -223,6 +223,8 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   status: mysqlEnum("status", requestStatuses).default("pending").notNull(),
   priority: mysqlEnum("priority", ["urgent", "medium", "normal"]).default("normal"),
   assignedTo: int("assignedTo").references(() => users.id),
+  currentResponsible: int("currentResponsible").references(() => users.id), // المسؤول الحالي عن الطلب
+  currentResponsibleDepartment: varchar("currentResponsibleDepartment", { length: 100 }), // الإدارة المسؤولة الحالية
   
   // بيانات الزيارة الميدانية
   fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id), // الموظف المسند إليه الزيارة

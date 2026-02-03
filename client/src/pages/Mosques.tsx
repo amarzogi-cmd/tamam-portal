@@ -103,8 +103,7 @@ export default function Mosques() {
     },
   });
 
-  // التحقق من صلاحيات الاعتماد
-  const canApprove = user?.role && ["super_admin", "system_admin", "projects_office"].includes(user.role);
+  // التحقق من صلاحيات الاعتماد - استبدل بـ PermissionGuard
 
   // استخراج المدن الفريدة
   const cities = Array.from(new Set(mosques.map((m: { city: string }) => m.city).filter(Boolean))) as string[];
@@ -163,7 +162,7 @@ export default function Mosques() {
           </Card>
 
           {/* بطاقة المساجد قيد المراجعة */}
-          {canApprove && (
+          <PermissionGuard permission="mosques.approve">
             <Card className={`border-0 shadow-sm ${pendingCount > 0 ? 'ring-2 ring-yellow-400' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -187,7 +186,7 @@ export default function Mosques() {
                 )}
               </CardContent>
             </Card>
-          )}
+          </PermissionGuard>
 
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
@@ -242,7 +241,7 @@ export default function Mosques() {
                   ))}
                 </SelectContent>
               </Select>
-              {canApprove && (
+              <PermissionGuard permission="mosques.approve">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="حالة الاعتماد" />
@@ -254,7 +253,7 @@ export default function Mosques() {
                     <SelectItem value="rejected">مرفوض</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
+              </PermissionGuard>
             </div>
           </CardContent>
         </Card>
@@ -276,7 +275,9 @@ export default function Mosques() {
                       <TableHead className="text-right">المدينة</TableHead>
                       <TableHead className="text-right">المحافظة</TableHead>
                       <TableHead className="text-right">عدد المصلين</TableHead>
-                      {canApprove && <TableHead className="text-right">الحالة</TableHead>}
+                      <PermissionGuard permission="mosques.approve">
+                        <TableHead className="text-right">الحالة</TableHead>
+                      </PermissionGuard>
                       <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -307,39 +308,43 @@ export default function Mosques() {
                               </div>
                             ) : "-"}
                           </TableCell>
-                          {canApprove && (
+                          <PermissionGuard permission="mosques.approve">
                             <TableCell>
                               <Badge className={`${status.color} flex items-center gap-1 w-fit`}>
                                 <StatusIcon className="w-3 h-3" />
                                 {status.label}
                               </Badge>
                             </TableCell>
-                          )}
+                          </PermissionGuard>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {/* أزرار الاعتماد والرفض للمساجد قيد المراجعة */}
-                              {canApprove && mosque.approvalStatus === "pending" && (
+                              {mosque.approvalStatus === "pending" && (
                                 <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-green-600 border-green-300 hover:bg-green-50"
-                                    onClick={() => handleApprove(mosque.id)}
-                                    disabled={approveMutation.isPending}
-                                  >
-                                    <CheckCircle className="w-4 h-4 ml-1" />
-                                    اعتماد
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-red-600 border-red-300 hover:bg-red-50"
-                                    onClick={() => openRejectDialog(mosque.id)}
-                                    disabled={rejectMutation.isPending}
-                                  >
-                                    <XCircle className="w-4 h-4 ml-1" />
-                                    رفض
-                                  </Button>
+                                  <PermissionGuard permission="mosques.approve">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-600 border-green-300 hover:bg-green-50"
+                                      onClick={() => handleApprove(mosque.id)}
+                                      disabled={approveMutation.isPending}
+                                    >
+                                      <CheckCircle className="w-4 h-4 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                  </PermissionGuard>
+                                  <PermissionGuard permission="mosques.reject">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-red-600 border-red-300 hover:bg-red-50"
+                                      onClick={() => openRejectDialog(mosque.id)}
+                                      disabled={rejectMutation.isPending}
+                                    >
+                                      <XCircle className="w-4 h-4 ml-1" />
+                                      رفض
+                                    </Button>
+                                  </PermissionGuard>
                                 </>
                               )}
                               <DropdownMenu>
