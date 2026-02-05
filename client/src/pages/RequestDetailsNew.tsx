@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ActiveActionCard } from "@/components/ActiveActionCard";
 import { InfoDrawer } from "@/components/InfoDrawer";
 import { ProgressStepper } from "@/components/ProgressStepper";
+import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
 import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
@@ -25,6 +26,7 @@ export default function RequestDetailsNew() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   
   // States for technical evaluation
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
@@ -159,19 +161,8 @@ export default function RequestDetailsNew() {
           redirectUrl: '/field-visits/schedule/:requestId',
         },
       };
-    } else if (!fieldVisit?.executionDate) {
-      // تم الجدولة لكن لم يتم التنفيذ
-      activeAction = {
-        ...activeAction,
-        title: 'تنفيذ الزيارة الميدانية',
-        description: 'تأكيد تنفيذ الزيارة الميدانية',
-        actionButton: {
-          label: 'تنفيذ الزيارة',
-          redirectUrl: '/field-visits/execute/:requestId',
-        },
-      };
     } else if (!fieldVisit?.reportSubmitted) {
-      // تم التنفيذ لكن لم يتم رفع التقرير
+      // تم الجدولة، الآن يجب رفع التقرير
       activeAction = {
         ...activeAction,
         title: 'رفع تقرير الزيارة الميدانية',
@@ -223,6 +214,14 @@ export default function RequestDetailsNew() {
 
             {/* Tabs */}
             <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setDetailsModalOpen(true)}
+              >
+                <FileText className="w-4 h-4 ml-2" />
+                عرض التفاصيل الكاملة
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -309,7 +308,7 @@ export default function RequestDetailsNew() {
             {request.currentStage === 'field_visit' && (
               <div className="mt-6 p-4 bg-card rounded-lg border">
                 <h3 className="text-lg font-semibold mb-4">حالة إجراءات الزيارة الميدانية</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* جدولة الزيارة */}
                   <div className={`p-4 rounded-lg border-2 ${
                     fieldVisit?.scheduledDate 
@@ -336,45 +335,6 @@ export default function RequestDetailsNew() {
                     </p>
                   </div>
 
-                  {/* تنفيذ الزيارة */}
-                  <div className={`p-4 rounded-lg border-2 ${
-                    fieldVisit?.executionDate
-                      ? 'bg-green-50 border-green-200'
-                      : fieldVisit?.scheduledDate
-                      ? 'bg-amber-50 border-amber-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      {fieldVisit?.executionDate ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : fieldVisit?.scheduledDate ? (
-                        <Clock className="w-5 h-5 text-amber-600" />
-                      ) : (
-                        <Clock className="w-5 h-5 text-gray-400" />
-                      )}
-                      <h4 className={`font-semibold ${
-                        fieldVisit?.executionDate
-                          ? 'text-green-800'
-                          : fieldVisit?.scheduledDate
-                          ? 'text-amber-800'
-                          : 'text-gray-600'
-                      }`}>تنفيذ الزيارة</h4>
-                    </div>
-                    <p className={`text-sm ${
-                      fieldVisit?.executionDate
-                        ? 'text-green-600'
-                        : fieldVisit?.scheduledDate
-                        ? 'text-amber-600'
-                        : 'text-gray-500'
-                    }`}>
-                      {fieldVisit?.executionDate
-                        ? `منفذة: ${new Date(fieldVisit?.executionDate).toLocaleDateString('ar-SA')}`
-                        : fieldVisit?.scheduledDate
-                        ? 'قيد التنفيذ'
-                        : 'معلقة'
-                      }
-                    </p>
-                  </div>
 
                   {/* رفع التقرير */}
                   <div className={`p-4 rounded-lg border-2 ${
@@ -652,6 +612,13 @@ export default function RequestDetailsNew() {
           </div>
         </div>
       )}
+
+      {/* Request Details Modal */}
+      <RequestDetailsModal
+        requestId={requestId}
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+      />
     </div>
   );
 }
