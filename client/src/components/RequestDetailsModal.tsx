@@ -94,29 +94,29 @@ export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDe
         <ScrollArea className="h-[calc(90vh-120px)]">
           <div className="px-6 py-4 space-y-6">
             {/* معلومات المسجد */}
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-teal-100/50 dark:from-teal-950/30 dark:to-teal-900/20 dark:border-teal-800">
+              <CardHeader className="bg-teal-600 dark:bg-teal-700 text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Building2 className="h-5 w-5" />
                   معلومات المسجد
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">اسم المسجد</p>
-                    <p className="font-medium">{request.mosque?.name || 'غير محدد'}</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">اسم المسجد</p>
+                    <p className="font-bold text-teal-700 dark:text-teal-300">{request.mosque?.name || 'غير محدد'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">رقم الطلب</p>
-                    <p className="font-medium font-mono">{request.requestNumber}</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">رقم الطلب</p>
+                    <p className="font-bold text-teal-700 dark:text-teal-300 font-mono">{request.requestNumber}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">المدينة</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">المدينة</p>
                     <p className="font-medium">{request.mosque?.city || 'غير محدد'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">الحي</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">الحي</p>
                     <p className="font-medium">{request.mosque?.district || 'غير محدد'}</p>
                   </div>
                 </div>
@@ -124,29 +124,29 @@ export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDe
             </Card>
 
             {/* معلومات مقدم الطلب */}
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 dark:border-amber-800">
+              <CardHeader className="bg-amber-600 dark:bg-amber-700 text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <User className="h-5 w-5" />
                   معلومات مقدم الطلب
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">الاسم</p>
-                    <p className="font-medium">{request.requester?.name || 'غير محدد'}</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">الاسم</p>
+                    <p className="font-bold text-amber-700 dark:text-amber-300">{request.requester?.name || 'غير محدد'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">البريد الإلكتروني</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">البريد الإلكتروني</p>
                     <p className="font-medium">{request.requester?.email || 'غير محدد'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">رقم الجوال</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">رقم الجوال</p>
                     <p className="font-medium">{request.requester?.phone || 'غير محدد'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">تاريخ التقديم</p>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <p className="text-sm text-muted-foreground mb-1">تاريخ التقديم</p>
                     <p className="font-medium">
                       {request.createdAt 
                         ? format(new Date(request.createdAt), 'dd MMMM yyyy', { locale: ar })

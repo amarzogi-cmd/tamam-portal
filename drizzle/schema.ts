@@ -281,6 +281,7 @@ export const requestComments = mysqlTable("request_comments", {
   userId: int("userId").notNull().references(() => users.id),
   comment: text("comment").notNull(),
   isInternal: boolean("isInternal").default(false), // تعليق داخلي للموظفين فقط
+  isRead: boolean("isRead").default(false), // هل تم قراءة التعليق
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

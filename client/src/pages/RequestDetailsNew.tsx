@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ActiveActionCard } from "@/components/ActiveActionCard";
-import { InfoDrawer } from "@/components/InfoDrawer";
+import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
@@ -26,6 +26,13 @@ export default function RequestDetailsNew() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+
+  // Mark comments as read mutation
+  const markAsReadMutation = trpc.requests.markCommentsAsRead.useMutation({
+    onSuccess: () => {
+      utils.requests.getUnreadCommentsCount.invalidate({ requestId });
+    },
+  });
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   
   // States for technical evaluation
@@ -37,6 +44,10 @@ export default function RequestDetailsNew() {
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
   const utils = trpc.useUtils();
+
+  // Fetch unread comments count
+  const { data: unreadData } = trpc.requests.getUnreadCommentsCount.useQuery({ requestId });
+  const unreadCount = unreadData?.count || 0;
 
   // Fetch field visit data for field_visit stage
   const { data: fieldVisit } = trpc.fieldVisits.getVisit.useQuery(
@@ -226,6 +237,7 @@ export default function RequestDetailsNew() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setProjectInfoOpen(true)}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/20"
               >
                 <Building2 className="w-4 h-4 ml-2" />
                 معلومات المشروع
@@ -234,6 +246,7 @@ export default function RequestDetailsNew() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setTimelineOpen(true)}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/20"
               >
                 <Clock className="w-4 h-4 ml-2" />
                 السجل الزمني
@@ -242,6 +255,7 @@ export default function RequestDetailsNew() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setAttachmentsOpen(true)}
+                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/20"
               >
                 <Paperclip className="w-4 h-4 ml-2" />
                 المرفقات
@@ -249,10 +263,19 @@ export default function RequestDetailsNew() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCommentsOpen(true)}
+                onClick={() => {
+                  setCommentsOpen(true);
+                  markAsReadMutation.mutate({ requestId });
+                }}
+                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/20 relative"
               >
                 <MessageSquare className="w-4 h-4 ml-2" />
                 التعليقات
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
               </Button>
             </div>
           </div>
@@ -459,47 +482,51 @@ export default function RequestDetailsNew() {
         )}
       </div>
 
-      {/* Drawers */}
-      <InfoDrawer
+      {/* Colored Dialogs */}
+      <ColoredDialog
         open={projectInfoOpen}
         onOpenChange={setProjectInfoOpen}
         title="معلومات المشروع"
+        color="blue"
+        icon={<Building2 className="w-6 h-6" />}
       >
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">المسجد</p>
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">المسجد</p>
             <p className="text-lg font-semibold">{request.mosque?.name || "غير محدد"}</p>
           </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">الموقع</p>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">الموقع</p>
             <p className="text-lg">{request.mosque?.city || "غير محدد"}</p>
           </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">البرنامج</p>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">البرنامج</p>
             <p className="text-lg">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
           </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">تاريخ التقديم</p>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">تاريخ التقديم</p>
             <p className="text-lg">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
           </div>
         </div>
-      </InfoDrawer>
+      </ColoredDialog>
 
-      <InfoDrawer
+      <ColoredDialog
         open={timelineOpen}
         onOpenChange={setTimelineOpen}
         title="السجل الزمني"
+        color="green"
+        icon={<Clock className="w-6 h-6" />}
       >
         <div className="space-y-4">
           {history && history.length > 0 ? (
             history.map((item: any, index: number) => (
-              <div key={index} className="border-r-2 border-primary pr-4 pb-4">
-                <p className="font-semibold">{item.action}</p>
-                <p className="text-sm text-muted-foreground">
+              <div key={index} className="bg-white dark:bg-gray-800 border-r-4 border-green-500 pr-4 p-4 rounded-lg shadow-sm">
+                <p className="font-semibold text-green-700 dark:text-green-300">{item.action}</p>
+                <p className="text-sm text-muted-foreground mt-1">
                   {new Date(item.createdAt).toLocaleString("ar-SA")}
                 </p>
                 {item.comment && (
-                  <p className="text-sm mt-2 text-muted-foreground">"{item.comment}"</p>
+                  <p className="text-sm mt-2 text-muted-foreground bg-green-50 dark:bg-green-950/20 p-2 rounded">"{item.comment}"</p>
                 )}
               </div>
             ))
@@ -507,35 +534,65 @@ export default function RequestDetailsNew() {
             <p className="text-muted-foreground text-center py-8">لا توجد أحداث بعد</p>
           )}
         </div>
-      </InfoDrawer>
+      </ColoredDialog>
 
-      <InfoDrawer
+      <ColoredDialog
         open={attachmentsOpen}
         onOpenChange={setAttachmentsOpen}
         title="المرفقات"
+        color="orange"
+        icon={<Paperclip className="w-6 h-6" />}
       >
         <div className="space-y-4">
-          <p className="text-muted-foreground text-center py-8">لا توجد مرفقات بعد</p>
-          <Button className="w-full">
+          {request?.attachments && request.attachments.length > 0 ? (
+            request.attachments.map((attachment: any, index: number) => (
+              <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 border-orange-500">
+                <p className="font-semibold text-orange-700 dark:text-orange-300">{attachment.fileName}</p>
+                <p className="text-sm text-muted-foreground mt-1">{attachment.fileType}</p>
+                <Button variant="outline" size="sm" className="mt-2" asChild>
+                  <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
+                    عرض المرفق
+                  </a>
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">لا توجد مرفقات بعد</p>
+          )}
+          <Button className="w-full bg-orange-600 hover:bg-orange-700">
             <Paperclip className="w-4 h-4 ml-2" />
             إضافة مرفق جديد
           </Button>
         </div>
-      </InfoDrawer>
+      </ColoredDialog>
 
-      <InfoDrawer
+      <ColoredDialog
         open={commentsOpen}
         onOpenChange={setCommentsOpen}
         title="التعليقات"
+        color="purple"
+        icon={<MessageSquare className="w-6 h-6" />}
       >
         <div className="space-y-4">
-          <p className="text-muted-foreground text-center py-8">لا توجد تعليقات بعد</p>
-          <Button className="w-full">
+          {request?.comments && request.comments.length > 0 ? (
+            request.comments.map((comment: any, index: number) => (
+              <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 border-purple-500">
+                <div className="flex items-start justify-between mb-2">
+                  <p className="font-semibold text-purple-700 dark:text-purple-300">{comment.userName}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString("ar-SA")}</p>
+                </div>
+                <p className="text-sm">{comment.content}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">لا توجد تعليقات بعد</p>
+          )}
+          <Button className="w-full bg-purple-600 hover:bg-purple-700">
             <MessageSquare className="w-4 h-4 ml-2" />
             إضافة تعليق جديد
           </Button>
         </div>
-      </InfoDrawer>
+      </ColoredDialog>
 
       {/* Technical Evaluation Dialog */}
       {showTechnicalEvalDialog && selectedDecision && (

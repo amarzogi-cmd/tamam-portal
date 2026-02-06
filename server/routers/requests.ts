@@ -208,6 +208,7 @@ export const requestsRouter = router({
         id: requestComments.id,
         comment: requestComments.comment,
         isInternal: requestComments.isInternal,
+        isRead: requestComments.isRead,
         createdAt: requestComments.createdAt,
         userName: users.name,
         userId: users.id,
@@ -1378,5 +1379,38 @@ export const requestsRouter = router({
       });
 
       return { success: true, message: "تم الاعتماد المالي بنجاح وتم الانتقال لمرحلة التعاقد" };
+    }),
+
+  // حساب عدد التعليقات غير المقروءة
+  getUnreadCommentsCount: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(requestComments)
+        .where(
+          and(
+            eq(requestComments.requestId, input.requestId),
+            eq(requestComments.isRead, false)
+          )
+        );
+
+      return { count: result[0]?.count || 0 };
+    }),
+
+  // تحديث التعليقات كمقروءة
+  markCommentsAsRead: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.update(requestComments)
+        .set({ isRead: true })
+        .where(eq(requestComments.requestId, input.requestId));
+
+      return { success: true };
     }),
 });
