@@ -575,8 +575,6 @@ export const requestsRouter = router({
           startedAt: new Date(),
           dueAt: dueDate,
           assignedTo: ctx.user.id,
-          isDelayed: false,
-          delayDays: 0,
         });
       }
 

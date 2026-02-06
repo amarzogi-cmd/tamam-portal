@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Calendar, Clock, Users, ArrowRight } from "lucide-react";
 
@@ -16,9 +17,12 @@ export default function FieldVisitSchedule() {
   const [formData, setFormData] = useState({
     visitDate: "",
     visitTime: "",
-    teamMembers: "",
+    assignedUserId: "",
     notes: "",
   });
+  
+  // جلب قائمة المستخدمين الموظفين
+  const { data: staffUsers } = trpc.users.getStaffUsers.useQuery();
 
   // جلب بيانات الطلب
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
@@ -46,12 +50,17 @@ export default function FieldVisitSchedule() {
       toast.error("يرجى تحديد تاريخ ووقت الزيارة");
       return;
     }
+    
+    if (!formData.assignedUserId) {
+      toast.error("يرجى اختيار موظف لإسناد المهمة");
+      return;
+    }
 
     scheduleMutation.mutate({
       requestId: Number(requestId),
       visitDate: formData.visitDate,
       visitTime: formData.visitTime,
-      teamMembers: formData.teamMembers,
+      assignedUserId: Number(formData.assignedUserId),
       notes: formData.notes,
     });
   };
@@ -119,20 +128,35 @@ export default function FieldVisitSchedule() {
               />
             </div>
 
-            {/* أعضاء الفريق */}
+            {/* إسناد المهمة */}
             <div className="space-y-2">
-              <Label htmlFor="teamMembers" className="flex items-center gap-2">
+              <Label htmlFor="assignedUser" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                أعضاء الفريق الميداني
+                إسناد المهمة إلى *
               </Label>
-              <Input
-                id="teamMembers"
-                placeholder="أسماء أعضاء الفريق (مفصولة بفاصلة)"
-                value={formData.teamMembers}
-                onChange={(e) => setFormData({ ...formData, teamMembers: e.target.value })}
-              />
+              <Select
+                value={formData.assignedUserId}
+                onValueChange={(value) => setFormData({ ...formData, assignedUserId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر موظف من القائمة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staffUsers && staffUsers.length > 0 ? (
+                    staffUsers.map((user: any) => (
+                      <SelectItem key={user.id} value={String(user.id)}>
+                        {user.name} ({user.email})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      لا يوجد موظفين متاحين
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               <p className="text-sm text-muted-foreground">
-                مثال: محمد أحمد، خالد سعيد، فهد عبدالله
+                سيتم إسناد مهمة الزيارة الميدانية للموظف المختار
               </p>
             </div>
 

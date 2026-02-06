@@ -75,6 +75,7 @@ const getMenuItems = (role: string) => {
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: "الطلبات", path: "/requests" },
+      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
       { icon: Calculator, label: "جداول الكميات", path: "/boq" },
       { icon: Truck, label: "الموردين", path: "/suppliers" },
@@ -93,6 +94,7 @@ const getMenuItems = (role: string) => {
   if (role === "field_team") {
     items.push(
       { icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" },
+      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
       { icon: FileText, label: "طلباتي", path: "/my-requests" },
     );
   }

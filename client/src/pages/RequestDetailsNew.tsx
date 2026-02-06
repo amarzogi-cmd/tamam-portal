@@ -26,6 +26,12 @@ export default function RequestDetailsNew() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  
+  // States for add dialogs
+  const [addCommentOpen, setAddCommentOpen] = useState(false);
+  const [addAttachmentOpen, setAddAttachmentOpen] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Mark comments as read mutation
   const markAsReadMutation = trpc.requests.markCommentsAsRead.useMutation({
@@ -85,6 +91,8 @@ export default function RequestDetailsNew() {
       toast.error(error.message || "حدث خطأ أثناء رفع المرفق");
     },
   });
+  
+  const uploadAttachmentMutation = trpc.storage.uploadRequestAttachment.useMutation();
 
   const technicalEvalMutation = trpc.requests.technicalEvalDecision.useMutation({
     onSuccess: (data) => {
@@ -317,11 +325,11 @@ export default function RequestDetailsNew() {
                 request.currentStage !== 'technical_eval' ? [
                   {
                     label: "إضافة تعليق",
-                    onClick: () => setCommentsOpen(true),
+                    onClick: () => setAddCommentOpen(true),
                   },
                   {
                     label: "رفع مرفق",
-                    onClick: () => setAttachmentsOpen(true),
+                    onClick: () => setAddAttachmentOpen(true),
                   },
                 ] : []
               }
@@ -581,7 +589,7 @@ export default function RequestDetailsNew() {
                   <p className="font-semibold text-purple-700 dark:text-purple-300">{comment.userName}</p>
                   <p className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString("ar-SA")}</p>
                 </div>
-                <p className="text-sm">{comment.content}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{comment.comment}</p>
               </div>
             ))
           ) : (
@@ -676,6 +684,116 @@ export default function RequestDetailsNew() {
         open={detailsModalOpen}
         onOpenChange={setDetailsModalOpen}
       />
+      
+      {/* Add Comment Dialog */}
+      <ColoredDialog
+        open={addCommentOpen}
+        onOpenChange={setAddCommentOpen}
+        title="إضافة تعليق جديد"
+        color="purple"
+        icon={<MessageSquare className="w-6 h-6" />}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">التعليق</label>
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="اكتب تعليقك هنا..."
+              rows={5}
+              className="w-full"
+            />
+          </div>
+          <Button
+            onClick={() => {
+              if (!newComment.trim()) {
+                toast.error("يرجى كتابة التعليق");
+                return;
+              }
+              addCommentMutation.mutate(
+                { requestId, comment: newComment, isInternal: false },
+                {
+                  onSuccess: () => {
+                    setNewComment("");
+                    setAddCommentOpen(false);
+                    toast.success("تم إضافة التعليق بنجاح");
+                  },
+                }
+              );
+            }}
+            disabled={addCommentMutation.isPending}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            <MessageSquare className="w-4 h-4 ml-2" />
+            {addCommentMutation.isPending ? "جاري الإضافة..." : "إضافة التعليق"}
+          </Button>
+        </div>
+      </ColoredDialog>
+      
+      {/* Add Attachment Dialog */}
+      <ColoredDialog
+        open={addAttachmentOpen}
+        onOpenChange={setAddAttachmentOpen}
+        title="رفع مرفق جديد"
+        color="orange"
+        icon={<Paperclip className="w-6 h-6" />}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">اختر ملف</label>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="w-full p-2 border rounded-md"
+            />
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground mt-2">
+                الملف المختار: {selectedFile.name}
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={async () => {
+              if (!selectedFile) {
+                toast.error("يرجى اختيار ملف");
+                return;
+              }
+              
+              // Convert file to base64
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64String = (reader.result as string).split(',')[1]; // Remove data:mime;base64, prefix
+                uploadAttachmentMutation.mutate(
+                  {
+                    requestId,
+                    fileName: selectedFile.name,
+                    fileData: base64String,
+                    mimeType: selectedFile.type,
+                    category: "other" as const,
+                  },
+                  {
+                    onSuccess: () => {
+                      setSelectedFile(null);
+                      setAddAttachmentOpen(false);
+                      utils.requests.getById.invalidate({ id: requestId });
+                      toast.success("تم رفع المرفق بنجاح");
+                    },
+                    onError: (error) => {
+                      toast.error(error.message || "حدث خطأ أثناء رفع الملف");
+                    },
+                  }
+                );
+              };
+              reader.readAsDataURL(selectedFile);
+            }}
+            disabled={uploadAttachmentMutation.isPending}
+            className="w-full bg-orange-600 hover:bg-orange-700"
+          >
+            <Paperclip className="w-4 h-4 ml-2" />
+            {uploadAttachmentMutation.isPending ? "جاري الرفع..." : "رفع المرفق"}
+          </Button>
+        </div>
+      </ColoredDialog>
     </div>
   );
 }

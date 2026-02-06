@@ -214,10 +214,10 @@ export default function UsersManagement() {
     <div className="container mx-auto py-8">
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
-          <Link href="/">
+          <Link href="/dashboard">
             <Button variant="ghost" size="sm">
               <ArrowRight className="w-4 h-4 ml-2" />
-              رجوع
+              رجوع إلى لوحة التحكم
             </Button>
           </Link>
         </div>

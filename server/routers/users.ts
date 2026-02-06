@@ -71,4 +71,25 @@ export const usersRouter = router({
       await db.delete(users).where(eq(users.id, input.userId));
       return { success: true };
     }),
+  
+  // Get staff users (employees only, excluding service requesters)
+  getStaffUsers: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database connection failed");
+    
+    // جلب جميع المستخدمين ما عدا طالبي الخدمة
+    const staffUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        status: users.status,
+      })
+      .from(users)
+      .where(eq(users.status, "active"));
+    
+    // فلترة لاستبعاد service_requester
+    return staffUsers.filter(user => user.role !== "service_requester");
+  }),
 });

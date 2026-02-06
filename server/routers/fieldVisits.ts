@@ -13,12 +13,13 @@ export const fieldVisitsRouter = router({
         requestId: z.number(),
         visitDate: z.string(),
         visitTime: z.string(),
+        assignedUserId: z.number().optional(),
         teamMembers: z.string().optional(),
         notes: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { requestId, visitDate, visitTime, teamMembers, notes } = input;
+      const { requestId, visitDate, visitTime, assignedUserId, teamMembers, notes } = input;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
 
@@ -32,6 +33,7 @@ export const fieldVisitsRouter = router({
           .set({
             scheduledDate: new Date(visitDate),
             scheduledTime: visitTime,
+            assignedTo: assignedUserId || null,
             teamMembers: teamMembers || null,
             scheduleNotes: notes || null,
             scheduledBy: ctx.user.id,
@@ -49,6 +51,7 @@ export const fieldVisitsRouter = router({
         requestId,
         scheduledDate: new Date(visitDate),
         scheduledTime: visitTime,
+        assignedTo: assignedUserId || null,
         teamMembers: teamMembers || null,
         scheduleNotes: notes || null,
         scheduledBy: ctx.user.id,
