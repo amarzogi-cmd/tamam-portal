@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, MoreVertical, Shield, UserCheck, UserX, Edit, Trash2 } from "lucide-react";
+import { Search, MoreVertical, Shield, UserCheck, UserX, Edit, Trash2, ArrowRight } from "lucide-react";
 
 
 export default function UsersManagement() {
@@ -213,6 +213,14 @@ export default function UsersManagement() {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-8">
+        <div className="flex items-center gap-4 mb-4">
+          <Link href="/">
+            <Button variant="ghost" size="sm">
+              <ArrowRight className="w-4 h-4 ml-2" />
+              رجوع
+            </Button>
+          </Link>
+        </div>
         <h1 className="text-3xl font-bold mb-2">إدارة المستخدمين</h1>
         <p className="text-muted-foreground">
           إدارة حسابات المستخدمين وصلاحياتهم

@@ -234,28 +234,28 @@ export default function RequestDetailsNew() {
                 عرض التفاصيل الكاملة
               </Button>
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={() => setProjectInfoOpen(true)}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/20"
+                className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 <Building2 className="w-4 h-4 ml-2" />
                 معلومات المشروع
               </Button>
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={() => setTimelineOpen(true)}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/20"
+                className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700"
               >
                 <Clock className="w-4 h-4 ml-2" />
                 السجل الزمني
               </Button>
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={() => setAttachmentsOpen(true)}
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/20"
+                className="bg-orange-600 hover:bg-orange-700 text-white dark:bg-orange-600 dark:hover:bg-orange-700"
               >
                 <Paperclip className="w-4 h-4 ml-2" />
                 المرفقات
@@ -267,7 +267,7 @@ export default function RequestDetailsNew() {
                   setCommentsOpen(true);
                   markAsReadMutation.mutate({ requestId });
                 }}
-                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/20 relative"
+                className="bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 relative"
               >
                 <MessageSquare className="w-4 h-4 ml-2" />
                 التعليقات

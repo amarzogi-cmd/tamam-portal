@@ -29,6 +29,7 @@ interface RequestDetailsModalProps {
 
 export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDetailsModalProps) {
   const [newComment, setNewComment] = useState("");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   // Fetch request details
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
@@ -38,10 +39,17 @@ export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDe
 
   // Add comment mutation
   const addCommentMutation = trpc.requests.addComment.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       setNewComment("");
       // Invalidate request query to refetch
       trpc.useUtils().requests.getById.invalidate({ id: requestId });
+      // Show success message
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      alert(data.message || "تم إضافة التعليق بنجاح");
+    },
+    onError: (error) => {
+      alert("خطأ: " + (error.message || "فشل إضافة التعليق"));
     },
   });
 
@@ -296,8 +304,8 @@ export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDe
                               </div>
                             </div>
                           </div>
-                            <p className="text-sm leading-relaxed pr-10">
-                            {comment.comment}
+                          <p className="text-sm leading-relaxed pr-10 mt-2 whitespace-pre-wrap">
+                            {comment.comment || 'لا يوجد محتوى'}
                           </p>
                         </div>
                       ))}
