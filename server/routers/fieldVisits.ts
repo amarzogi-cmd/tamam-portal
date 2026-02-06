@@ -1,7 +1,7 @@
-import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { z } from "zod";
 import { getDb } from "../db";
-import { fieldVisits } from "../../drizzle/schema";
+import { fieldVisits, requestComments } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -43,6 +43,16 @@ export const fieldVisitsRouter = router({
           })
           .where(eq(fieldVisits.id, existingVisits[0].id));
 
+        // إضافة التعليق إلى request_comments إذا كان موجوداً
+        if (notes && notes.trim()) {
+          await db.insert(requestComments).values({
+            requestId,
+            userId: ctx.user.id,
+            comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
+            isRead: false,
+          });
+        }
+
         return { success: true, visitId: existingVisits[0].id };
       }
 
@@ -58,6 +68,16 @@ export const fieldVisitsRouter = router({
         scheduledAt: new Date(),
         status: "scheduled",
       });
+
+      // إضافة التعليق إلى request_comments إذا كان موجوداً
+      if (notes && notes.trim()) {
+        await db.insert(requestComments).values({
+          requestId,
+          userId: ctx.user.id,
+          comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
+          isRead: false,
+        });
+      }
 
       return { success: true, visitId: result[0].insertId };
     }),
