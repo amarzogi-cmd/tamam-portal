@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
 import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
 
 export default function RequestDetailsNew() {
@@ -26,6 +27,7 @@ export default function RequestDetailsNew() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [boqOpen, setBoqOpen] = useState(false);
   
   // States for add dialogs
   const [addCommentOpen, setAddCommentOpen] = useState(false);
@@ -267,6 +269,15 @@ export default function RequestDetailsNew() {
               >
                 <Paperclip className="w-4 h-4 ml-2" />
                 المرفقات
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setBoqOpen(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white dark:bg-teal-600 dark:hover:bg-teal-700"
+              >
+                <Calculator className="w-4 h-4 ml-2" />
+                جداول الكميات
               </Button>
               <Button
                 variant="ghost"
@@ -793,6 +804,16 @@ export default function RequestDetailsNew() {
             {uploadAttachmentMutation.isPending ? "جاري الرفع..." : "رفع المرفق"}
           </Button>
         </div>
+      </ColoredDialog>
+
+      {/* نافذة جداول الكميات */}
+      <ColoredDialog
+        open={boqOpen}
+        onOpenChange={setBoqOpen}
+        title="جداول الكميات"
+        color="teal"
+      >
+        <BoqTab requestId={requestId} />
       </ColoredDialog>
     </div>
   );
