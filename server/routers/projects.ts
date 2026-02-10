@@ -322,11 +322,10 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // جلب أو إنشاء المشروع المرتبط بالطلب
+      // البحث عن مشروع مرتبط بالطلب (إن وُجد)
       let projectId = input.projectId;
       
       if (!projectId) {
-        // البحث عن مشروع مرتبط بالطلب
         const [existingProject] = await db
           .select()
           .from(projects)
@@ -335,17 +334,8 @@ export const projectsRouter = router({
         
         if (existingProject) {
           projectId = existingProject.id;
-        } else {
-          // إنشاء مشروع جديد للطلب
-          const projectNumber = generateProjectNumber();
-          const [newProject] = await db.insert(projects).values({
-            projectNumber,
-            requestId: input.requestId,
-            name: `مشروع طلب #${input.requestId}`,
-            status: "planning",
-          });
-          projectId = newProject.insertId;
         }
+        // لا نُنشئ مشروعاً تلقائياً - يجب أن يتم التحويل صراحة
       }
 
       const totalPrice = input.unitPrice ? input.quantity * input.unitPrice : null;
@@ -921,4 +911,20 @@ export const projectsRouter = router({
 
     return stats;
   }),
+
+  // جلب المشروع المرتبط بطلب
+  getByRequestId: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const project = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.requestId, input.requestId))
+        .limit(1);
+
+      return project[0] || null;
+    }),
 });

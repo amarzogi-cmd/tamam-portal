@@ -63,6 +63,12 @@ export default function RequestDetailsNew() {
     { enabled: request?.currentStage === 'field_visit' }
   );
 
+  // Fetch project data if request is converted to project
+  const { data: linkedProject } = trpc.projects.getByRequestId.useQuery(
+    { requestId },
+    { enabled: !!requestId }
+  );
+
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -225,7 +231,17 @@ export default function RequestDetailsNew() {
               <div className="flex items-center gap-3">
                 <ProgramIcon program={request.programType} className="w-10 h-10" />
                 <div>
-                  <h1 className="text-2xl font-bold">{request.requestNumber}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold">{request.requestNumber}</h1>
+                    {linkedProject && (
+                      <Link href={`/projects/${linkedProject.id}`}>
+                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                          <Building2 className="w-4 h-4 ml-1" />
+                          محول إلى مشروع ({linkedProject.projectNumber})
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {request.mosque?.name || "مسجد غير محدد"} • {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}
                   </p>

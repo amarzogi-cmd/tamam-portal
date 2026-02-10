@@ -77,7 +77,8 @@ const getMenuItems = (role: string) => {
       { icon: FileText, label: "الطلبات", path: "/requests" },
       { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-      { icon: Calculator, label: "جداول الكميات", path: "/boq" },
+      // تم نقل جداول الكميات إلى داخل صفحة الطلب
+      // { icon: Calculator, label: "جداول الكميات", path: "/boq" },
       { icon: Truck, label: "الموردين", path: "/suppliers" },
       { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
@@ -110,7 +111,8 @@ const getMenuItems = (role: string) => {
   // للإدارة المالية
   if (role === "financial") {
     items.push(
-      { icon: Calculator, label: "جداول الكميات", path: "/boq" },
+      // تم نقل جداول الكميات إلى داخل صفحة الطلب
+      // { icon: Calculator, label: "جداول الكميات", path: "/boq" },
       { icon: Truck, label: "الموردين", path: "/suppliers" },
       { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
