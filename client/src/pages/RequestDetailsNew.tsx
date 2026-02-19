@@ -513,6 +513,18 @@ export default function RequestDetailsNew() {
                 </button>
               </div>
             )}
+            
+            {/* قسم جدول الكميات */}
+            {request.currentStage === 'boq_preparation' && (
+              <div className="mt-6 bg-teal-50 dark:bg-teal-950/20 p-6 rounded-lg border-2 border-teal-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <Calculator className="w-6 h-6 text-teal-600" />
+                  <h4 className="font-bold text-teal-800 text-lg">جدول الكميات (BOQ)</h4>
+                </div>
+                <p className="text-sm text-teal-600 mb-4">إدارة جداول الكميات المرتبطة بهذا الطلب</p>
+                <BoqTab requestId={requestId} />
+              </div>
+            )}
           </div>
         )}
       </div>
