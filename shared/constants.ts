@@ -1131,3 +1131,22 @@ export const WORKFLOW_STEPS = [
   { id: "execution", label: "التنفيذ", order: 8 },
   { id: "closed", label: "الإغلاق", order: 9 },
 ] as const;
+
+// مسار الاستجابة السريعة (Fast Response Workflow)
+// يتخطى المراحل غير الضرورية للاستجابة السريعة
+export const FAST_RESPONSE_WORKFLOW = [
+  { id: "submitted", label: "تقديم الطلب", order: 1 },
+  { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+  { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
+  { id: "technical_eval", label: "التقييم الفني", order: 4 },
+  { id: "execution", label: "التنفيذ", order: 5 },
+  { id: "closed", label: "الإغلاق", order: 6 },
+] as const;
+
+// دالة لاختيار Workflow المناسب حسب نوع الطلب
+export function getWorkflowForRequest(requestTrack: 'standard' | 'quick_response' | 'rejected') {
+  if (requestTrack === 'quick_response') {
+    return FAST_RESPONSE_WORKFLOW;
+  }
+  return WORKFLOW_STEPS;
+}

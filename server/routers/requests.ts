@@ -451,8 +451,12 @@ export const requestsRouter = router({
         });
       }
 
-      // التحقق من الشروط المسبقة للانتقال (إذا لم يتم تجاوزها)
-      if (!input.skipPrerequisites) {
+      // التحقق من الشروط المسبقة للانتقال
+      // ملاحظة: لا يمكن تجاوز الشروط الحرجة (المراجعة الأولية، الزيارة الميدانية) حتى مع skipPrerequisites
+      const criticalStages = ['initial_review', 'field_visit'];
+      const isCriticalTransition = criticalStages.includes(input.newStage);
+      
+      if (!input.skipPrerequisites || isCriticalTransition) {
         const prerequisites = getPrerequisites(oldStage, input.newStage, requestTrack);
         const missingPrerequisites: string[] = [];
 
