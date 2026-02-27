@@ -23,25 +23,34 @@ export default function LandingPage() {
 
       {/* الأزرار الرئيسية */}
       <div className="grid md:grid-cols-2 gap-8 w-full max-w-4xl">
-        {/* زر طلب خدمة */}
-        <Link href="/register">
-          <Card className="p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer bg-white/95 hover:bg-white border-0">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 bg-teal-500 rounded-full flex items-center justify-center">
-                <FileText className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">طلب خدمة</h2>
-              <p className="text-gray-600">
-                سجل حساب جديد وقدم طلب خدمة لمسجدك من خلال البرامج المتاحة
-              </p>
+        {/* بطاقة طلب خدمة - مع زر تسجيل الدخول للمستفيدين */}
+        <Card className="p-8 hover:shadow-2xl transition-all duration-300 bg-white/95 hover:bg-white border-0">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-20 h-20 bg-teal-500 rounded-full flex items-center justify-center">
+              <FileText className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">طلب خدمة</h2>
+            <p className="text-gray-600">
+              سجل حساب جديد وقدم طلب خدمة لمسجدك من خلال البرامج المتاحة
+            </p>
+            <Link href="/register" className="w-full">
               <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white text-lg py-6">
                 تسجيل حساب جديد
               </Button>
+            </Link>
+            {/* زر تسجيل الدخول للمستفيدين - مرتبط ببطاقة طلب الخدمة */}
+            <div className="w-full border-t border-gray-200 pt-3">
+              <p className="text-sm text-gray-500 mb-2">لديك حساب بالفعل؟</p>
+              <Link href="/login" className="w-full">
+                <Button variant="outline" className="w-full border-teal-500 text-teal-600 hover:bg-teal-50">
+                  تسجيل دخول المستفيدين
+                </Button>
+              </Link>
             </div>
-          </Card>
-        </Link>
+          </div>
+        </Card>
 
-        {/* زر دخول الموظفين */}
+        {/* بطاقة دخول الموظفين */}
         <Link href="/admin/login">
           <Card className="p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer bg-white/95 hover:bg-white border-0">
             <div className="flex flex-col items-center text-center space-y-4">
@@ -57,16 +66,6 @@ export default function LandingPage() {
               </Button>
             </div>
           </Card>
-        </Link>
-      </div>
-
-      {/* رابط تسجيل دخول المستفيدين */}
-      <div className="mt-8 text-center">
-        <p className="text-white/90 mb-2">لديك حساب بالفعل؟</p>
-        <Link href="/login">
-          <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/30">
-            تسجيل دخول المستفيدين
-          </Button>
         </Link>
       </div>
     </div>

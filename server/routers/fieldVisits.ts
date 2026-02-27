@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { fieldVisits, requestComments } from "../../drizzle/schema";
+import { fieldVisits, requestComments, users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -176,7 +176,14 @@ export const fieldVisitsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
 
       const visits = await db.select().from(fieldVisits).where(eq(fieldVisits.requestId, requestId)).limit(1);
-
-      return visits.length > 0 ? visits[0] : null;
+      if (visits.length === 0) return null;
+      const visit = visits[0];
+      // جلب اسم المسؤول المعين للزيارة
+      let assignedUserName: string | null = null;
+      if (visit.assignedTo) {
+        const [assignedUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, visit.assignedTo));
+        assignedUserName = assignedUser?.name || null;
+      }
+      return { ...visit, assignedUserName };
     }),
 });

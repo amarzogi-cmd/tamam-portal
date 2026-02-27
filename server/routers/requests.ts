@@ -17,12 +17,16 @@ import {
   quantitySchedules,
   quotations,
   projects,
+  projectPhases,
+  projectNumberSequence,
   stageSettings,
   requestStageTracking,
   contractsEnhanced,
   requestNumberSequence,
+  fieldVisits,
 } from "../../drizzle/schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
   STAGE_TRANSITION_PERMISSIONS, 
@@ -975,6 +979,7 @@ export const requestsRouter = router({
       decision: z.enum(['apologize', 'suspend', 'quick_response', 'convert_to_project']),
       justification: z.string().optional(),
       notes: z.string().optional(),
+      projectName: z.string().optional(), // اسم المشروع عند التحويل
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1093,6 +1098,45 @@ export const requestsRouter = router({
           });
         }
       } else if (input.decision === 'convert_to_project') {
+        // إنشاء المشروع تلقائياً مع اسم المشروع المدخل
+        const existingProject = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+        if (existingProject.length === 0) {
+          // توليد رقم مشروع جديد
+          const currentYear = new Date().getFullYear();
+          const [existingSeq] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
+          let sequence: number;
+          if (existingSeq) {
+            sequence = existingSeq.lastSequence + 1;
+            await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
+          } else {
+            sequence = 1;
+            await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
+          }
+          const projectNumber = `PRJ-${currentYear}-${String(sequence).padStart(4, '0')}`;
+          const projectNameToUse = input.projectName || input.notes || `مشروع مسجد ${request[0].requestNumber}`;
+          const [newProject] = await db.insert(projects).values({
+            projectNumber,
+            requestId: input.requestId,
+            name: projectNameToUse,
+            status: 'planning',
+          });
+          // إنشاء المراحل الافتراضية
+          const defaultPhases = [
+            { phaseName: 'التخطيط والتصميم', phaseOrder: 1 },
+            { phaseName: 'التعاقد', phaseOrder: 2 },
+            { phaseName: 'التنفيذ', phaseOrder: 3 },
+            { phaseName: 'المراجعة والاستلام', phaseOrder: 4 },
+            { phaseName: 'الإغلاق', phaseOrder: 5 },
+          ];
+          for (const phase of defaultPhases) {
+            await db.insert(projectPhases).values({
+              projectId: newProject.insertId,
+              phaseName: phase.phaseName,
+              phaseOrder: phase.phaseOrder,
+              status: phase.phaseOrder === 1 ? 'in_progress' : 'pending',
+            });
+          }
+        }
         // إشعار الإدارة المالية ومكتب المشاريع
         const financialTeam = await db.select({ id: users.id })
           .from(users)
@@ -1239,38 +1283,46 @@ export const requestsRouter = router({
       }
 
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متادة" });
 
-      // إذا كان المستخدم من الفريق الميداني، يرى فقط الزيارات المسندة إليه
-      const assignedToFilter = ctx.user.role === 'field_team' 
-        ? ctx.user.id 
-        : input.assignedTo;
-
-      const conditions = [sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`];
+      // قراءة من جدول fieldVisits المنفصل (المصدر الصحيح للجدولة)
+      const conditions: any[] = [sql`${fieldVisits.scheduledDate} IS NOT NULL`];
       
-      if (assignedToFilter) {
-        conditions.push(eq(mosqueRequests.fieldVisitAssignedTo, assignedToFilter));
+      if (ctx.user.role === 'field_team') {
+        // مستخدم الفريق الميداني: يرى الزيارات المسندة إليه أو غير المسندة (للعلم بالزيارات المتاحة)
+        conditions.push(
+          or(
+            eq(fieldVisits.assignedTo, ctx.user.id),
+            sql`${fieldVisits.assignedTo} IS NULL`
+          )!
+        );
+      } else if (input.assignedTo) {
+        // فلترة بموظف محدد للمديرين
+        conditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
       }
-
+      const assignedUser = alias(users, 'assignedUser');
       const visits = await db.select({
         id: mosqueRequests.id,
         requestNumber: mosqueRequests.requestNumber,
         programType: mosqueRequests.programType,
         currentStage: mosqueRequests.currentStage,
-        scheduledDate: mosqueRequests.fieldVisitScheduledDate,
-        scheduledTime: mosqueRequests.fieldVisitScheduledTime,
-        notes: mosqueRequests.fieldVisitNotes,
-        assignedToId: mosqueRequests.fieldVisitAssignedTo,
+        scheduledDate: fieldVisits.scheduledDate,
+        scheduledTime: fieldVisits.scheduledTime,
+        notes: fieldVisits.scheduleNotes,
+        assignedToId: fieldVisits.assignedTo,
+        fieldVisitId: fieldVisits.id,
+        fieldVisitStatus: fieldVisits.status,
         mosqueId: mosqueRequests.mosqueId,
         mosqueName: mosques.name,
         mosqueCity: mosques.city,
-        assignedToName: users.name,
+        assignedToName: assignedUser.name,
       })
-        .from(mosqueRequests)
+        .from(fieldVisits)
+        .innerJoin(mosqueRequests, eq(fieldVisits.requestId, mosqueRequests.id))
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-        .leftJoin(users, eq(mosqueRequests.fieldVisitAssignedTo, users.id))
+        .leftJoin(assignedUser, eq(fieldVisits.assignedTo, assignedUser.id))
         .where(and(...conditions))
-        .orderBy(mosqueRequests.fieldVisitScheduledDate);
+        .orderBy(fieldVisits.scheduledDate);
 
       return visits;
     }),
@@ -1510,5 +1562,84 @@ export const requestsRouter = router({
         .where(eq(mosqueRequests.id, input.requestId));
       
       return { success: true };
+    }),
+
+  // الرجوع للمرحلة السابقة (لتصحيح الأخطاء)
+  revertStage: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      reason: z.string().min(5, "يجب ذكر سبب الرجوع (خمسة أحرف على الأقل)"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // فقط المدراء يمكنهم الرجوع
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرجوع للمرحلة السابقة" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      const currentStage = request[0].currentStage;
+      
+      // المراحل التي لا يمكن الرجوع منها
+      const nonRevertableStages = ['submitted', 'closed'];
+      if (nonRevertableStages.includes(currentStage)) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: `لا يمكن الرجوع من مرحلة "${STAGE_LABELS[currentStage] || currentStage}"` 
+        });
+      }
+
+      // تحديد المرحلة السابقة من سجل التاريخ
+      const history = await db.select()
+        .from(requestHistory)
+        .where(and(
+          eq(requestHistory.requestId, input.requestId),
+          sql`${requestHistory.fromStage} IS NOT NULL AND ${requestHistory.toStage} = ${currentStage}`
+        ))
+        .orderBy(desc(requestHistory.createdAt))
+        .limit(1);
+
+      let previousStage: string;
+      if (history.length > 0 && history[0].fromStage) {
+        previousStage = history[0].fromStage;
+      } else {
+        // المرحلة السابقة الافتراضية من قائمة المراحل
+        const stageOrder = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
+        const currentIndex = stageOrder.indexOf(currentStage);
+        if (currentIndex <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا توجد مرحلة سابقة للرجوع إليها" });
+        }
+        previousStage = stageOrder[currentIndex - 1];
+      }
+
+      // تحديث الطلب
+      await db.update(mosqueRequests).set({
+        currentStage: previousStage as any,
+        status: 'in_progress',
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إضافة سجل في تاريخ الطلب
+      const prevStageName = STAGE_LABELS[previousStage] || previousStage;
+      const currStageName = STAGE_LABELS[currentStage] || currentStage;
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: currentStage,
+        toStage: previousStage,
+        action: 'stage_reverted',
+        notes: `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}". السبب: ${input.reason}`,
+      });
+
+      return { 
+        success: true, 
+        message: `تم الرجوع إلى مرحلة "${prevStageName}" بنجاح`,
+        previousStage,
+      };
     }),
 });

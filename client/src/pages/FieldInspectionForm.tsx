@@ -82,6 +82,27 @@ export default function FieldInspectionForm() {
     { enabled: requestId > 0 }
   );
 
+  // جلب بيانات الزيارة المجدولة للحصول على اسم المسؤول
+  const { data: fieldVisitData } = trpc.fieldVisits.getVisit.useQuery(
+    { requestId },
+    { enabled: requestId > 0 }
+  );
+
+  // ملء اسم المسؤول تلقائياً عند تحميل بيانات الزيارة
+  useEffect(() => {
+    if (fieldVisitData && !formData.teamMember1) {
+      // استخدام اسم المسؤول المعين من قاعدة البيانات
+      const assignedName = (fieldVisitData as any).assignedUserName;
+      if (assignedName) {
+        setFormData(prev => ({ ...prev, teamMember1: assignedName }));
+      } else if (fieldVisitData.assignedTo === user?.id && user?.name) {
+        // إذا كان المستخدم الحالي هو المسؤول
+        setFormData(prev => ({ ...prev, teamMember1: user.name || '' }));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldVisitData, user?.id]);
+
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
 

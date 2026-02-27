@@ -999,6 +999,7 @@ export interface ActionButton {
   label: string;
   nextStage?: string;
   redirectUrl?: string;
+  openModal?: string; // فتح نافذة منبثقة بدلاً من التنقل لصفحة جديدة
 }
 
 export interface ActionConfig {
@@ -1058,9 +1059,8 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
     icon: "FileSpreadsheet",
     iconColor: "text-orange-600",
     actionButton: {
-      label: "إعداد جدول الكميات",
-      nextStage: "financial_eval",
-      redirectUrl: "/boq/:requestId", // فتح صفحة إعداد جدول الكميات
+      label: "فتح جدول الكميات",
+      openModal: "boq", // فتح نافذة منبثقة بدلاً من صفحة منفصلة
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office"],
   },

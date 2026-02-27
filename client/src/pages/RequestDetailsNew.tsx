@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,10 @@ export default function RequestDetailsNew() {
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  const [projectName, setProjectName] = useState("");
+  // States for revert stage
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
+  const [revertReason, setRevertReason] = useState("");
 
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
@@ -132,6 +137,18 @@ export default function RequestDetailsNew() {
       setShowTechnicalEvalDialog(false);
       setSelectedDecision(null);
       setJustification("");
+      setProjectName("");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  const revertStageMutation = trpc.requests.revertStage.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowRevertDialog(false);
+      setRevertReason("");
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
@@ -142,6 +159,12 @@ export default function RequestDetailsNew() {
   // Handler for stage transition
   const handleStageTransition = () => {
     if (!request || !activeAction) return;
+    
+    // إذا كان هناك openModal أو كان المسار يحتوي على /boq، افتح نافذة منبثقة
+    if ((activeAction.actionButton as any)?.openModal === 'boq' || activeAction.actionButton?.redirectUrl?.includes('/boq')) {
+      setBoqOpen(true);
+      return;
+    }
     
     // إذا كان هناك redirectUrl، انتقل إلى الصفحة المحددة
     if (activeAction.actionButton?.redirectUrl) {
@@ -325,6 +348,20 @@ export default function RequestDetailsNew() {
                     </span>
                   )}
                 </Button>
+                {/* زر الرجوع للمرحلة السابقة - للمدراء فقط */}
+                {['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '') &&
+                  !['submitted', 'closed'].includes(request.currentStage) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRevertDialog(true)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-500 dark:hover:bg-amber-600"
+                    title="الرجوع للمرحلة السابقة"
+                  >
+                    <RotateCcw className="w-4 h-4 ml-2" />
+                    رجوع للمرحلة السابقة
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -784,6 +821,21 @@ export default function RequestDetailsNew() {
               </div>
             )}
 
+            {/* حقل اسم المشروع (مطلوب عند التحويل لمشروع) */}
+            {selectedDecision === 'convert_to_project' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  اسم المشروع <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="أدخل اسماً واضحاً للمشروع..."
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
+              </div>
+            )}
             {/* ملاحظات إضافية (اختياري) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
               <div className="mb-4">
@@ -810,15 +862,21 @@ export default function RequestDetailsNew() {
               </Button>
               <Button
                 onClick={() => {
+                  if (selectedDecision === 'convert_to_project' && !projectName.trim()) {
+                    toast.error("يجب إدخال اسم المشروع");
+                    return;
+                  }
                   technicalEvalMutation.mutate({
                     requestId,
                     decision: selectedDecision as any,
+                    projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
                     justification: justification || undefined,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
-                  ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim())
+                  ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
+                  (selectedDecision === 'convert_to_project' && !projectName.trim())
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
@@ -960,6 +1018,65 @@ export default function RequestDetailsNew() {
       >
         <BoqTab requestId={requestId} />
       </ColoredDialog>
+
+      {/* نافذة الرجوع للمرحلة السابقة */}
+      {showRevertDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <RotateCcw className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">الرجوع للمرحلة السابقة</h3>
+                <p className="text-sm text-muted-foreground">تصحيح خطأ في المرحلة الحالية</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                ⚠️ سيتم الرجوع من المرحلة الحالية إلى المرحلة السابقة. هذا الإجراء يُسجَّل في سجل الطلب.
+              </p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                سبب الرجوع <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={revertReason}
+                onChange={(e) => setRevertReason(e.target.value)}
+                placeholder="اذكر سبب الرجوع للمرحلة السابقة..."
+                rows={3}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRevertDialog(false);
+                  setRevertReason("");
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!revertReason.trim() || revertReason.trim().length < 5) {
+                    toast.error("يجب ذكر سبب الرجوع (5 أحرف على الأقل)");
+                    return;
+                  }
+                  revertStageMutation.mutate({ requestId, reason: revertReason });
+                }}
+                disabled={revertStageMutation.isPending}
+                className="bg-amber-500 hover:bg-amber-600 text-white"
+              >
+                <RotateCcw className="w-4 h-4 ml-2" />
+                {revertStageMutation.isPending ? 'جاري...' : 'تأكيد الرجوع'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
