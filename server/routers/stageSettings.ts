@@ -163,6 +163,8 @@ export const stageSettingsRouter = router({
       escalationLevel2Days: z.number().min(0).optional(),
       isActive: z.boolean().optional(),
       description: z.string().optional(),
+      notificationTitle: z.string().optional(),
+      notificationMessage: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من الصلاحيات (المدير العام أو مدير النظام فقط)

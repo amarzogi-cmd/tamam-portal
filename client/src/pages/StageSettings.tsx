@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -41,6 +42,8 @@ interface StageSettingForm {
   escalationLevel2Days: number;
   isActive: boolean;
   description: string;
+  notificationTitle: string;
+  notificationMessage: string;
 }
 
 interface SubStage {
@@ -111,6 +114,8 @@ export default function StageSettings() {
       escalationLevel2Days: stage.escalationLevel2Days || 3,
       isActive: stage.isActive ?? true,
       description: stage.description || "",
+      notificationTitle: stage.notificationTitle || "",
+      notificationMessage: stage.notificationMessage || "",
     });
   };
 
@@ -325,6 +330,33 @@ export default function StageSettings() {
                               value={formData.escalationLevel2Days}
                               onChange={(e) => setFormData({ ...formData, escalationLevel2Days: parseInt(e.target.value) || 0 })}
                             />
+                          </div>
+                        </div>
+                        {/* تخصيص رسالة الإشعار لطالب الخدمة */}
+                        <div className="border-t pt-4 mt-4">
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            تخصيص إشعار طالب الخدمة
+                          </h4>
+                          <p className="text-xs text-muted-foreground mb-3">يمكنك استخدام المتغيرات: <code className="bg-muted px-1 rounded">{'{requestNumber}'}</code> و <code className="bg-muted px-1 rounded">{'{stageName}'}</code></p>
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <Label>عنوان الإشعار (اتركه فارغاً للافتراضي)</Label>
+                              <Input
+                                value={formData.notificationTitle}
+                                onChange={(e) => setFormData({ ...formData, notificationTitle: e.target.value })}
+                                placeholder="مثال: تحديث مرحلة طلبك"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>نص الإشعار (اتركه فارغاً للافتراضي)</Label>
+                              <Textarea
+                                value={formData.notificationMessage}
+                                onChange={(e) => setFormData({ ...formData, notificationMessage: e.target.value })}
+                                placeholder="مثال: تم تحويل طلبك رقم {requestNumber} إلى مرحلة {stageName}."
+                                rows={3}
+                              />
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">

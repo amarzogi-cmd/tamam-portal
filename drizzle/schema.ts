@@ -1107,6 +1107,8 @@ export const stageSettings = mysqlTable("stage_settings", {
   description: text("description"), // وصف المرحلة
   requiredConditions: text("requiredConditions"), // الشروط المطلوبة للانتقال لهذه المرحلة (JSON)
   availableActions: text("availableActions"), // الإجراءات المتاحة في هذه المرحلة (JSON)
+  notificationTitle: varchar("notificationTitle", { length: 200 }), // عنوان الإشعار لطالب الخدمة عند الانتقال لهذه المرحلة
+  notificationMessage: text("notificationMessage"), // نص الإشعار لطالب الخدمة عند الانتقال لهذه المرحلة
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

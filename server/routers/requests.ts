@@ -637,9 +637,21 @@ export const requestsRouter = router({
           message: `يسعدنا إعلامك باكتمال مشروع طلبك رقم ${request[0].requestNumber} وإغلاقه رسمياً. شكراً لثقتك بمنارة.`,
         },
       };
-      const stageMsg = stageNotificationMessages[input.newStage] || {
+      // استخدام الرسالة المخصصة من قاعدة البيانات إن وجدت، وإلا الرسالة الافتراضية
+      const defaultMsg = stageNotificationMessages[input.newStage] || {
         title: "تحديث مرحلة الطلب",
         message: `تم تحويل طلبك رقم ${request[0].requestNumber} إلى مرحلة ${newStageName}`,
+      };
+      // جلب إعدادات المرحلة للتحقق من وجود رسالة مخصصة
+      const [stageSettingForNotif] = await db.select().from(stageSettings)
+        .where(eq(stageSettings.stageCode, input.newStage)).limit(1);
+      const stageMsg = {
+        title: stageSettingForNotif?.notificationTitle || defaultMsg.title,
+        message: stageSettingForNotif?.notificationMessage 
+          ? stageSettingForNotif.notificationMessage
+              .replace('{requestNumber}', request[0].requestNumber || '')
+              .replace('{stageName}', newStageName)
+          : defaultMsg.message,
       };
       await db.insert(notifications).values({
         userId: request[0].userId,

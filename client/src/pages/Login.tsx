@@ -15,9 +15,14 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("تم تسجيل الدخول بنجاح");
-      setLocation("/dashboard");
+      // توجيه المستفيد لصفحته الخاصة، والموظفين للوحة التحكم
+      if (data.user?.role === "service_requester") {
+        setLocation("/requester");
+      } else {
+        setLocation("/dashboard");
+      }
     },
     onError: (error) => {
       toast.error(error.message || "فشل تسجيل الدخول");

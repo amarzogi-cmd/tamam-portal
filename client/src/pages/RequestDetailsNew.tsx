@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -219,8 +219,11 @@ export default function RequestDetailsNew() {
     );
   }
 
-  // Get active action
-  let activeAction = getActiveAction(request.currentStage, user?.role, {
+  // تحديد ما إذا كان المستخدم مستفيداً
+  const isRequester = user?.role === 'service_requester';
+
+  // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد
+  let activeAction = isRequester ? null : getActiveAction(request.currentStage, user?.role, {
     assignedTo: request.assignedTo,
     userId: user?.id,
   });
@@ -302,6 +305,24 @@ export default function RequestDetailsNew() {
               </div>
             </div>
 
+            {/* زر تصدير PDF - يظهر للجميع */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = `/api/request/${requestId}/pdf`;
+                  link.download = `request-${request.requestNumber}.pdf`;
+                  link.click();
+                }}
+                className="bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+              >
+                <Download className="w-4 h-4 ml-2" />
+                تصدير PDF
+              </Button>
+            </div>
+
             {/* Tabs - تظهر فقط للموظفين */}
             {user?.role !== 'service_requester' && (
               <div className="flex gap-2 flex-wrap">
@@ -370,6 +391,30 @@ export default function RequestDetailsNew() {
 
       {/* Main Content */}
       <div className="container py-8">
+        {/* بانر المشروع - يظهر عند وجود مشروع مرتبط */}
+        {linkedProject && (
+          <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">مشروع مرتبط بهذا الطلب</p>
+                  <p className="font-bold text-emerald-800 dark:text-emerald-200">{linkedProject.name || 'مشروع غير محدد'}</p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-mono">{linkedProject.projectNumber}</p>
+                </div>
+              </div>
+              <Link href={`/projects/${linkedProject.id}`}>
+                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50">
+                  <Building2 className="w-4 h-4 ml-2" />
+                  عرض صفحة المشروع
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Progress Stepper */}
         <ProgressStepper
           steps={workflow.map((s) => ({ ...s, label: s.label }))}
