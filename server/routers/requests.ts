@@ -1401,17 +1401,32 @@ export const requestsRouter = router({
       return { count: result[0]?.count || 0 };
     }),
 
-  // تحديث التعليقات كمقروءة
+    // تحديث التعليقات كمقروءة
   markCommentsAsRead: protectedProcedure
     .input(z.object({ requestId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
-
       await db.update(requestComments)
         .set({ isRead: true })
         .where(eq(requestComments.requestId, input.requestId));
+      return { success: true };
+    }),
 
+  // تحديث حالة إتمام المراجعة الأولية
+  updateReviewCompleted: protectedProcedure
+    .input(z.object({ 
+      requestId: z.number(),
+      reviewCompleted: z.boolean()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      
+      await db.update(mosqueRequests)
+        .set({ reviewCompleted: input.reviewCompleted })
+        .where(eq(mosqueRequests.id, input.requestId));
+      
       return { success: true };
     }),
 });

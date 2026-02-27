@@ -11,7 +11,7 @@ import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
@@ -99,6 +99,16 @@ export default function RequestDetailsNew() {
       toast.error(error.message || "حدث خطأ أثناء رفع المرفق");
     },
   });
+
+  const updateReviewCompletedMutation = trpc.requests.updateReviewCompleted.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: requestId });
+      toast.success("تم تحديث حالة المراجعة بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث حالة المراجعة");
+    },
+  });
   
   const uploadAttachmentMutation = trpc.storage.uploadRequestAttachment.useMutation();
 
@@ -137,11 +147,14 @@ export default function RequestDetailsNew() {
     updateStageMutation.mutate({ requestId, newStage: nextStage as any });
   };
 
+  // Get workflow based on request track
+  const workflow = request ? getWorkflowForRequest(request.requestTrack || 'standard') : WORKFLOW_STEPS;
+
   // Get next stage
   const getNextStage = (currentStage: string) => {
-    const currentIndex = WORKFLOW_STEPS.findIndex((s) => s.id === currentStage);
-    if (currentIndex === -1 || currentIndex === WORKFLOW_STEPS.length - 1) return null;
-    return WORKFLOW_STEPS[currentIndex + 1].id;
+    const currentIndex = workflow.findIndex((s) => s.id === currentStage);
+    if (currentIndex === -1 || currentIndex === workflow.length - 1) return null;
+    return workflow[currentIndex + 1].id;
   };
 
   if (isLoading) {
@@ -321,7 +334,7 @@ export default function RequestDetailsNew() {
       <div className="container py-8">
         {/* Progress Stepper */}
         <ProgressStepper
-          steps={WORKFLOW_STEPS.map((s) => ({ ...s, label: s.label }))}
+          steps={workflow.map((s) => ({ ...s, label: s.label }))}
           currentStep={request.currentStage}
           completedSteps={completedSteps}
         />
@@ -335,8 +348,8 @@ export default function RequestDetailsNew() {
               icon={activeAction.icon as any}
               iconColor={activeAction.iconColor}
               progress={{
-                current: WORKFLOW_STEPS.findIndex((s) => s.id === request.currentStage) + 1,
-                total: WORKFLOW_STEPS.length,
+                current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
+                total: workflow.length,
                 percentage: progress,
               }}
               actionButton={
@@ -361,6 +374,35 @@ export default function RequestDetailsNew() {
                 ] : []
               }
             />
+            
+            {/* قسم المراجعة الأولية */}
+            {request.currentStage === 'initial_review' && (
+              <div className="mt-6 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border-2 border-blue-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                  <h4 className="font-bold text-blue-800 text-lg">المراجعة الأولية</h4>
+                </div>
+                <p className="text-sm text-blue-600 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
+                <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                  <input
+                    type="checkbox"
+                    id="review-completed"
+                    checked={request.reviewCompleted || false}
+                    onChange={(e) => {
+                      updateReviewCompletedMutation.mutate({
+                        requestId,
+                        reviewCompleted: e.target.checked
+                      });
+                    }}
+                    disabled={updateReviewCompletedMutation.isPending}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <label htmlFor="review-completed" className="text-sm font-medium cursor-pointer">
+                    إتمام المراجعة الأولية
+                  </label>
+                </div>
+              </div>
+            )}
             
             {/* مؤشرات إجراءات الزيارة الميدانية */}
             {request.currentStage === 'field_visit' && (
