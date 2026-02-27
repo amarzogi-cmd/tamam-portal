@@ -13,9 +13,15 @@ import { toast } from "sonner";
 export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState("requester");
+  const [activeTab, setActiveTab] = useState<"requester" | "employee">("requester");
+  
+  // بيانات المستفيد (تسجيل دخول بالجوال)
+  const [phoneRequester, setPhoneRequester] = useState("");
+  const [passwordRequester, setPasswordRequester] = useState("");
+  
+  // بيانات الموظف (تسجيل دخول بالبريد)
+  const [emailEmployee, setEmailEmployee] = useState("");
+  const [passwordEmployee, setPasswordEmployee] = useState("");
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
@@ -34,7 +40,23 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate({ email, password });
+    
+    if (activeTab === "requester") {
+      // التحقق من صحة رقم الجوال
+      if (!/^05[0-9]{8}$/.test(phoneRequester)) {
+        toast.error("رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX (10 أرقام)");
+        return;
+      }
+      loginMutation.mutate({ 
+        phone: phoneRequester, 
+        password: passwordRequester 
+      });
+    } else {
+      loginMutation.mutate({ 
+        email: emailEmployee, 
+        password: passwordEmployee 
+      });
+    }
   };
 
   return (
@@ -61,7 +83,7 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "requester" | "employee")} className="mb-6">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="requester" className="flex items-center gap-2">
                     <User className="w-4 h-4" />
@@ -75,46 +97,100 @@ export default function Login() {
               </Tabs>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="example@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="text-left"
-                    dir="ltr"
-                  />
-                </div>
+                {activeTab === "requester" ? (
+                  <>
+                    {/* تسجيل دخول المستفيد - بالجوال */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phone-requester">رقم الجوال</Label>
+                      <Input
+                        id="phone-requester"
+                        type="tel"
+                        placeholder="05xxxxxxxx"
+                        value={phoneRequester}
+                        onChange={(e) => setPhoneRequester(e.target.value)}
+                        required
+                        pattern="05[0-9]{8}"
+                        maxLength={10}
+                        className="text-left"
+                        dir="ltr"
+                      />
+                      {phoneRequester && !/^05[0-9]{8}$/.test(phoneRequester) && (
+                        <p className="text-xs text-destructive">يجب أن يكون الرقم بصيغة 05XXXXXXXX (10 أرقام)</p>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">كلمة المرور</Label>
-                    <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                      نسيت كلمة المرور؟
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pl-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password-requester">كلمة المرور</Label>
+                        <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                          نسيت كلمة المرور؟
+                        </Link>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="password-requester"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={passwordRequester}
+                          onChange={(e) => setPasswordRequester(e.target.value)}
+                          required
+                          className="pl-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* تسجيل دخول الموظف - بالبريد */}
+                    <div className="space-y-2">
+                      <Label htmlFor="email-employee">البريد الإلكتروني</Label>
+                      <Input
+                        id="email-employee"
+                        type="email"
+                        placeholder="example@email.com"
+                        value={emailEmployee}
+                        onChange={(e) => setEmailEmployee(e.target.value)}
+                        required
+                        className="text-left"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password-employee">كلمة المرور</Label>
+                        <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                          نسيت كلمة المرور؟
+                        </Link>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="password-employee"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={passwordEmployee}
+                          onChange={(e) => setPasswordEmployee(e.target.value)}
+                          required
+                          className="pl-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <Button
                   type="submit"
@@ -132,8 +208,7 @@ export default function Login() {
                 </Button>
               </form>
 
-              {/* تم إخفاء رابط التسجيل - اقتصار على الحساب الرئيسي */}
-              {/* {activeTab === "requester" && (
+              {activeTab === "requester" && (
                 <div className="mt-6 text-center">
                   <p className="text-sm text-muted-foreground">
                     ليس لديك حساب؟{" "}
@@ -142,7 +217,7 @@ export default function Login() {
                     </Link>
                   </p>
                 </div>
-              )} */}
+              )}
 
               {activeTab === "employee" && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-lg">
@@ -162,8 +237,6 @@ export default function Login() {
           </p>
         </div>
       </div>
-
-
     </div>
   );
 }

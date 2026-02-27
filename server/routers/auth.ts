@@ -33,7 +33,7 @@ const registerSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
   password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
   name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^05[0-9]{8}$/, "رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX"),
   nationalId: z.string().optional(),
   city: z.string().optional(),
   requesterType: z.string().optional(),
@@ -42,8 +42,11 @@ const registerSchema = z.object({
 
 // مخطط التحقق من بيانات تسجيل الدخول
 const loginSchema = z.object({
-  email: z.string().email("البريد الإلكتروني غير صالح"),
+  email: z.string().email("البريد الإلكتروني غير صالح").optional(),
+  phone: z.string().regex(/^05[0-9]{8}$/, "رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX").optional(),
   password: z.string().min(1, "كلمة المرور مطلوبة"),
+}).refine((data) => data.email || data.phone, {
+  message: "يجب إدخال البريد الإلكتروني أو رقم الجوال",
 });
 
 // مخطط إنشاء موظف جديد
@@ -76,10 +79,15 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من عدم وجود المستخدم
-      const existingUser = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-      if (existingUser.length > 0) {
+      // التحقق من عدم وجود المستخدم (بالبريد أو الجوال)
+      const existingUserByEmail = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      if (existingUserByEmail.length > 0) {
         throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مسجل مسبقاً" });
+      }
+      
+      const existingUserByPhone = await db.select().from(users).where(eq(users.phone, input.phone)).limit(1);
+      if (existingUserByPhone.length > 0) {
+        throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال مسجل مسبقاً" });
       }
 
       // إنشاء salt وتشفير كلمة المرور
@@ -91,7 +99,7 @@ export const authRouter = router({
         email: input.email,
         passwordHash: `${salt}:${passwordHash}`,
         name: input.name,
-        phone: input.phone || null,
+        phone: input.phone,
         nationalId: input.nationalId || null,
         city: input.city || null,
         requesterType: input.requesterType || null,
@@ -120,10 +128,13 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // البحث عن المستخدم
-      const userResult = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      // البحث عن المستخدم (بالبريد أو الجوال)
+      const userResult = input.email 
+        ? await db.select().from(users).where(eq(users.email, input.email)).limit(1)
+        : await db.select().from(users).where(eq(users.phone, input.phone!)).limit(1);
       if (userResult.length === 0) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        const identifier = input.email ? "البريد الإلكتروني" : "رقم الجوال";
+        throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
 
       const user = userResult[0];
@@ -141,14 +152,16 @@ export const authRouter = router({
 
       // التحقق من كلمة المرور
       if (!user.passwordHash) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        const identifier = input.email ? "البريد الإلكتروني" : "رقم الجوال";
+        throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
 
       const [salt, storedHash] = user.passwordHash.split(":");
       const inputHash = hashPassword(input.password, salt);
 
       if (inputHash !== storedHash) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+        const identifier = input.email ? "البريد الإلكتروني" : "رقم الجوال";
+        throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
 
       // تحديث آخر تسجيل دخول

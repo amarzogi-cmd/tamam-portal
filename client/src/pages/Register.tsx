@@ -81,6 +81,12 @@ export default function Register() {
       return;
     }
 
+    // التحقق من صحة رقم الجوال
+    if (!/^05[0-9]{8}$/.test(formData.phone)) {
+      toast.error("رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX (10 أرقام)");
+      return;
+    }
+
     // التحقق من المرفق عند اختيار إمام أو مؤذن
     if (["imam", "muezzin"].includes(formData.requesterType) && !formData.proofFile) {
       toast.error("يجب رفع مرفق يثبت الصفة");
@@ -97,7 +103,7 @@ export default function Register() {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      phone: formData.phone || undefined,
+      phone: formData.phone,
       nationalId: formData.nationalId || undefined,
       city: formData.city || undefined,
       requesterType: formData.requesterType === "other" ? formData.otherType : formData.requesterType || undefined,
@@ -191,16 +197,22 @@ export default function Register() {
                 {/* رقم الجوال ورقم الهوية */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">رقم الجوال</Label>
+                    <Label htmlFor="phone">رقم الجوال <span className="text-destructive">*</span></Label>
                     <Input
                       id="phone"
                       type="tel"
                       placeholder="05xxxxxxxx"
                       value={formData.phone}
                       onChange={(e) => handleChange("phone", e.target.value)}
+                      required
+                      pattern="05[0-9]{8}"
+                      maxLength={10}
                       className="text-left"
                       dir="ltr"
                     />
+                    {formData.phone && !/^05[0-9]{8}$/.test(formData.phone) && (
+                      <p className="text-xs text-destructive">يجب أن يكون الرقم بصيغة 05XXXXXXXX (10 أرقام)</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationalId">رقم الهوية</Label>

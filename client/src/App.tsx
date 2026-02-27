@@ -8,7 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 // الصفحات العامة
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-// import Register from "./pages/Register"; // تم إخفاؤه - اقتصار على الحساب الرئيسي
+import Register from "./pages/Register";
 
 // لوحات التحكم
 import Dashboard from "./pages/Dashboard";
@@ -81,6 +81,7 @@ import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import AdminGuard from "./components/AdminGuard";
+import DebugUser from "./pages/DebugUser";
 
 // مكون لحماية المسارات الإدارية
 const AdminRoute = ({ component: Component }: { component: React.ComponentType }) => (
@@ -95,9 +96,10 @@ function Router() {
       {/* الصفحات العامة */}
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      {/* <Route path="/register" component={Register} /> */} {/* تم إخفاؤه - اقتصار على الحساب الرئيسي */}
+      <Route path="/register" component={Register} />
       <Route path="/track" component={TrackRequest} />
       <Route path="/service-request" component={MosqueServiceRequest} />
+      <Route path="/debug-user" component={DebugUser} />
       
       {/* لوحات التحكم */}
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
