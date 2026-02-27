@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,11 +74,12 @@ interface ClauseValue {
 }
 
 export default function ContractForm() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const params = useParams();
+  const search = useSearch();
   
   // قراءة requestId من query parameters
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const searchParams = new URLSearchParams(search || '');
   const requestIdFromQuery = searchParams.get('requestId');
   const requestId = requestIdFromQuery ? parseInt(requestIdFromQuery) : 
                    (params.requestId ? parseInt(params.requestId) : undefined);

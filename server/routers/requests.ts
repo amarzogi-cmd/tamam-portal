@@ -19,6 +19,7 @@ import {
   projects,
   stageSettings,
   requestStageTracking,
+  contractsEnhanced,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -501,6 +502,21 @@ export const requestsRouter = router({
                 inArray(quotations.status, ['accepted', 'approved'])
               )).limit(1);
             isMet = acceptedQuotes.length > 0;
+          }
+          // التحقق من وجود عقد موقع/معتمد
+          else if (prereq.type === 'contract_signed') {
+            const signedContracts = await db.select({ id: contractsEnhanced.id }).from(contractsEnhanced)
+              .where(and(
+                eq(contractsEnhanced.requestId, input.requestId),
+                inArray(contractsEnhanced.status, ['approved', 'active'])
+              )).limit(1);
+            isMet = signedContracts.length > 0;
+          }
+          // التحقق من وجود تقرير نهائي
+          else if (prereq.type === 'final_report') {
+            const reports = await db.select({ id: finalReports.id }).from(finalReports)
+              .where(eq(finalReports.requestId, input.requestId)).limit(1);
+            isMet = reports.length > 0;
           }
 
           if (!isMet) {

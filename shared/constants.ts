@@ -270,6 +270,7 @@ export const STAGE_LABELS: Record<string, string> = {
   technical_eval: 'التقييم الفني',
   boq_preparation: 'إعداد جدول الكميات',
   financial_eval: 'التقييم المالي',
+  financial_eval_and_approval: 'التقييم المالي واعتماد العرض',
   quotation_approval: 'اعتماد العرض',
   contracting: 'التعاقد',
   execution: 'التنفيذ',
@@ -577,6 +578,9 @@ export const STAGE_TRANSITION_PERMISSIONS: Record<string, string[]> = {
   
   // من التقييم المالي إلى اعتماد العرض
   financial_eval: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  
+  // من التقييم المالي واعتماد العرض إلى التعاقد (المرحلة الموحدة)
+  financial_eval_and_approval: ['super_admin', 'system_admin', 'projects_office', 'financial'],
   
   // من اعتماد العرض إلى التعاقد
   quotation_approval: ['super_admin', 'system_admin', 'financial'],
@@ -1070,6 +1074,17 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
       redirectUrl: "/quotations",
     },
     allowedRoles: ["super_admin", "system_admin", "financial"],
+  },
+  financial_eval_and_approval: {
+    title: "التقييم المالي واعتماد العرض",
+    description: "راجع عروض الأسعار المقدمة من الموردين واعتمد العرض المناسب من صفحة عروض الأسعار، ثم اضغط 'الانتقال للتعاقد' للمتابعة.",
+    icon: "DollarSign",
+    iconColor: "text-emerald-600",
+    actionButton: {
+      label: "الانتقال إلى مرحلة التعاقد",
+      nextStage: "contracting",
+    },
+    allowedRoles: ["super_admin", "system_admin", "financial", "projects_office"],
   },
   quotation_approval: {
     title: "اعتماد عرض السعر",

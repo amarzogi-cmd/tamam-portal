@@ -11,7 +11,7 @@ import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
@@ -68,6 +68,13 @@ export default function RequestDetailsNew() {
     { requestId },
     { enabled: !!requestId }
   );
+
+  // Fetch contract linked to this request (for contracting stage)
+  const { data: linkedContract } = trpc.contracts.getByRequestId.useQuery(
+    { requestId },
+    { enabled: request?.currentStage === 'contracting' }
+  );
+  const hasApprovedContract = (linkedContract as any)?.status === 'approved' || (linkedContract as any)?.status === 'active';
 
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
@@ -358,6 +365,21 @@ export default function RequestDetailsNew() {
                       label: activeAction.actionButton.label,
                       onClick: handleStageTransition,
                       disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
+                    }
+                  : undefined
+              }
+              secondaryButton={
+                request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction
+                  ? {
+                      label: "إدارة عروض الأسعار",
+                      onClick: () => setLocation('/quotations'),
+                      variant: 'outline' as const,
+                    }
+                  : request.currentStage === 'contracting' && hasApprovedContract && canTransitionStage(user?.role || '', 'contracting')
+                  ? {
+                      label: "الانتقال إلى مرحلة التنفيذ",
+                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
+                      variant: 'default' as const,
                     }
                   : undefined
               }

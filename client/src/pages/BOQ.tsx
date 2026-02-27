@@ -207,9 +207,7 @@ export default function BOQ() {
   };
 
   const handleDeleteItem = (id: number) => {
-    if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
-      deleteItemMutation.mutate({ id });
-    }
+    deleteItemMutation.mutate({ id });
   };
 
   const openEditDialog = (item: any) => {
@@ -557,13 +555,11 @@ export default function BOQ() {
                   <Button
                     size="lg"
                     onClick={() => {
-                      if (confirm("هل أنت متأكد من إنهاء إعداد جدول الكميات والانتقال للمرحلة التالية؟")) {
                         completeBOQMutation.mutate({
                           requestId: parseInt(selectedRequestId),
                           newStage: "financial_eval_and_approval",
                           notes: "تم إنهاء إعداد جدول الكميات",
                         });
-                      }
                     }}
                     disabled={completeBOQMutation.isPending}
                     className="gap-2"
