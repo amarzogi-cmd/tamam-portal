@@ -38,6 +38,8 @@ export function useAuth(options?: UseAuthOptions) {
     } finally {
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
+      // توجيه المستخدم إلى الصفحة الرئيسية بعد تسجيل الخروج
+      window.location.href = "/";
     }
   }, [logoutMutation, utils]);
 
