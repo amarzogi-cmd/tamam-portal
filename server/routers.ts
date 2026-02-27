@@ -21,6 +21,7 @@ import { permissionsRouter } from "./permissions";
 import { usersRouter } from "./routers/users";
 import { fieldVisitsRouter } from "./routers/fieldVisits";
 import { finalReportsRouter } from "./routers/finalReports";
+import { analyticsRouter } from "./routers/analytics";
 
 export const appRouter = router({
   system: systemRouter,
@@ -79,6 +80,9 @@ export const appRouter = router({
 
   // التقارير الختامية
   finalReports: finalReportsRouter,
+
+  // الإحصاءات والتحليلات
+  analytics: analyticsRouter,
 });
 
 export type AppRouter = typeof appRouter;

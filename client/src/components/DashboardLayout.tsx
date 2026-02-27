@@ -145,6 +145,7 @@ const getMenuItems = (role: string) => {
   // للمدراء فقط
   if (["super_admin", "system_admin"].includes(role)) {
     items.push(
+      { icon: BarChart3, label: "لوحة مؤشرات الأداء", path: "/kpi-dashboard" },
       { icon: Handshake, label: "الشركاء", path: "/partners" },
       { icon: Palette, label: "الهوية البصرية", path: "/branding" },
       { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },

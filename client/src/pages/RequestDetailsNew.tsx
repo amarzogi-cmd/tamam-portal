@@ -76,6 +76,13 @@ export default function RequestDetailsNew() {
   );
   const hasApprovedContract = (linkedContract as any)?.status === 'approved' || (linkedContract as any)?.status === 'active';
 
+  // Fetch final report for this request
+  const { data: finalReports } = trpc.finalReports.getByRequestId.useQuery(
+    { requestId },
+    { enabled: !!requestId }
+  );
+  const latestFinalReport = finalReports?.[0] || null;
+
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -587,6 +594,53 @@ export default function RequestDetailsNew() {
                     </div>
                   </div>
                 </button>
+              </div>
+            )}
+            
+            {/* قسم التقرير الختامي - يظهر في مرحلة الاستلام والمغلق */}
+            {(request.currentStage === 'handover' || request.currentStage === 'closed') && (
+              <div className="mt-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg border-2 border-emerald-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <FileText className="w-6 h-6 text-emerald-600" />
+                  <h4 className="font-bold text-emerald-800 text-lg">التقرير الختامي</h4>
+                </div>
+                {latestFinalReport ? (
+                  <div className="space-y-3">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-emerald-200">
+                      <p className="text-sm text-emerald-700 font-medium mb-1">ملخص المشروع</p>
+                      <p className="text-gray-700 text-sm line-clamp-3">{latestFinalReport.summary}</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="w-4 h-4" />
+                        <span>تاريخ التقرير: {new Date(latestFinalReport.createdAt).toLocaleDateString('ar-SA')}</span>
+                      </div>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => setLocation(`/final-report/${latestFinalReport.id}`)}
+                      >
+                        <FileText className="w-4 h-4 ml-1" />
+                        عرض التقرير الكامل
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-emerald-600 text-sm mb-3">لم يتم رفع التقرير الختامي بعد</p>
+                    {request.currentStage === 'handover' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+                        onClick={() => setLocation(`/final-report/new?requestId=${requestId}`)}
+                      >
+                        رفع التقرير الختامي
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             

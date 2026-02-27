@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, desc } from "drizzle-orm";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { finalReports, mosqueRequests, projects } from "../../drizzle/schema";
+import { finalReports, mosqueRequests, projects, mosques, users } from "../../drizzle/schema";
 
 export const finalReportsRouter = router({
   // إنشاء تقرير ختامي جديد
@@ -80,6 +80,52 @@ export const finalReportsRouter = router({
       return await db.select().from(finalReports)
         .where(eq(finalReports.requestId, input.requestId))
         .orderBy(desc(finalReports.createdAt));
+    }),
+
+  // جلب تقرير ختامي بالمعرف مع تفاصيل كاملة
+  getWithDetails: protectedProcedure
+    .input(z.object({ reportId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const reportResult = await db.select().from(finalReports)
+        .where(eq(finalReports.id, input.reportId)).limit(1);
+      if (reportResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "التقرير غير موجود" });
+      }
+      const report = reportResult[0];
+
+      // جلب بيانات الطلب
+      const requestResult = await db.select().from(mosqueRequests)
+        .where(eq(mosqueRequests.id, report.requestId)).limit(1);
+      const request = requestResult[0] || null;
+
+      // جلب بيانات المسجد
+      let mosque = null;
+      if (request?.mosqueId) {
+        const mosqueResult = await db.select().from(mosques)
+          .where(eq(mosques.id, request.mosqueId)).limit(1);
+        mosque = mosqueResult[0] || null;
+      }
+
+      // جلب بيانات المشروع
+      let project = null;
+      if (report.projectId) {
+        const projectResult = await db.select().from(projects)
+          .where(eq(projects.id, report.projectId)).limit(1);
+        project = projectResult[0] || null;
+      }
+
+      // جلب بيانات المُعِد
+      const preparedByResult = await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      }).from(users).where(eq(users.id, report.preparedBy)).limit(1);
+      const preparedBy = preparedByResult[0] || null;
+
+      return { report, request, mosque, project, preparedBy };
     }),
 
   // جلب جميع التقارير الختامية

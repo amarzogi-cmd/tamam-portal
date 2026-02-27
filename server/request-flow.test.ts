@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
  */
 
 describe("Request Flow - Complete Journey", () => {
-  it("يجب أن يمر الطلب بجميع المراحل بنجاح", async () => {
+  it("يجب أن يمر الطلب بجميع المراحل بنجاح", async () => {  // eslint-disable-line
     const db = await getDb();
     
     // الحصول على مستخدم مدير

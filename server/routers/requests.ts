@@ -570,11 +570,53 @@ export const requestsRouter = router({
         notes: input.notes || `تم تحويل الطلب إلى مرحلة ${newStageName}`,
       });
 
-      // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request[0].userId,
+      // إرسال إشعار مخصص لمقدم الطلب بناءً على المرحلة الجديدة
+      const stageNotificationMessages: Record<string, { title: string; message: string }> = {
+        initial_review: {
+          title: "✅ تم استلام طلبك",
+          message: `تم استلام طلبك رقم ${request[0].requestNumber} وهو قيد المراجعة الأولية. سنتواصل معك قريباً.`,
+        },
+        field_visit: {
+          title: "📋 جدولة زيارة ميدانية",
+          message: `تم الموافقة على طلبك رقم ${request[0].requestNumber} وسيتم جدولة زيارة ميدانية لمسجدك قريباً.`,
+        },
+        technical_eval: {
+          title: "🔍 التقييم الفني جارٍ",
+          message: `اكتملت الزيارة الميدانية لطلبك رقم ${request[0].requestNumber} وجارٍ الآن التقييم الفني.`,
+        },
+        boq_preparation: {
+          title: "📊 إعداد جدول الكميات",
+          message: `تم اعتماد التقييم الفني لطلبك رقم ${request[0].requestNumber} وجارٍ إعداد جدول الكميات.`,
+        },
+        financial_eval_and_approval: {
+          title: "💰 تقييم العروض المالية",
+          message: `اكتمل جدول الكميات لطلبك رقم ${request[0].requestNumber} وجارٍ تقييم عروض الأسعار واعتمادها.`,
+        },
+        contracting: {
+          title: "📝 مرحلة التعاقد",
+          message: `تم اعتماد عرض السعر لطلبك رقم ${request[0].requestNumber} وجارٍ الآن إعداد العقد مع المقاول.`,
+        },
+        execution: {
+          title: "🏗️ بدء التنفيذ",
+          message: `تم توقيع العقد لطلبك رقم ${request[0].requestNumber} وبدأت أعمال التنفيذ في مسجدك. يمكنك متابعة التقدم من بوابتك.`,
+        },
+        handover: {
+          title: "🎉 اكتمال التنفيذ",
+          message: `اكتملت أعمال التنفيذ في مسجدك للطلب رقم ${request[0].requestNumber} وجارٍ الاستلام الرسمي.`,
+        },
+        closed: {
+          title: "✨ تم إغلاق الطلب بنجاح",
+          message: `يسعدنا إعلامك باكتمال مشروع طلبك رقم ${request[0].requestNumber} وإغلاقه رسمياً. شكراً لثقتك بمنارة.`,
+        },
+      };
+      const stageMsg = stageNotificationMessages[input.newStage] || {
         title: "تحديث مرحلة الطلب",
         message: `تم تحويل طلبك رقم ${request[0].requestNumber} إلى مرحلة ${newStageName}`,
+      };
+      await db.insert(notifications).values({
+        userId: request[0].userId,
+        title: stageMsg.title,
+        message: stageMsg.message,
         type: "request_update",
         relatedType: "request",
         relatedId: input.requestId,
