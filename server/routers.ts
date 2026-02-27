@@ -20,6 +20,7 @@ import { actionsRouter } from "./actions";
 import { permissionsRouter } from "./permissions";
 import { usersRouter } from "./routers/users";
 import { fieldVisitsRouter } from "./routers/fieldVisits";
+import { finalReportsRouter } from "./routers/finalReports";
 
 export const appRouter = router({
   system: systemRouter,
@@ -75,6 +76,9 @@ export const appRouter = router({
   
   // الزيارات الميدانية
   fieldVisits: fieldVisitsRouter,
+
+  // التقارير الختامية
+  finalReports: finalReportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

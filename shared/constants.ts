@@ -1111,13 +1111,25 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
   },
   execution: {
     title: "متابعة تنفيذ المشروع",
-    description: "تابع تقدم تنفيذ المشروع وتأكد من سير العمل وفقاً للعقد والجدول الزمني المحدد.",
+    description: "تابع تقدم تنفيذ المشروع وتأكد من سير العمل وفقاً للعقد والجدول الزمني المحدد. بعد اكتمال التنفيذ، اضغط 'الانتقال إلى الاستلام' لرفع التقرير الختامي.",
     icon: "Hammer",
     iconColor: "text-amber-600",
     actionButton: {
       label: "عرض تفاصيل المشروع",
       nextStage: "execution", // يبقى في نفس المرحلة
       redirectUrl: "/projects/:projectId", // فتح صفحة تفاصيل المشروع
+    },
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
+  },
+  handover: {
+    title: "مرحلة الاستلام والتسليم",
+    description: "قم برفع التقرير الختامي للمشروع وتوثيق استلام الأعمال المنجزة قبل الإغلاق الرسمي.",
+    icon: "ClipboardCheck",
+    iconColor: "text-purple-600",
+    actionButton: {
+      label: "رفع التقرير الختامي",
+      nextStage: "handover",
+      redirectUrl: "/final-report/new?requestId=:requestId",
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
   },
@@ -1144,7 +1156,8 @@ export const WORKFLOW_STEPS = [
   { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 6 },
   { id: "contracting", label: "التعاقد", order: 7 },
   { id: "execution", label: "التنفيذ", order: 8 },
-  { id: "closed", label: "الإغلاق", order: 9 },
+  { id: "handover", label: "الاستلام والتسليم", order: 9 },
+  { id: "closed", label: "الإغلاق", order: 10 },
 ] as const;
 
 // مسار الاستجابة السريعة (Fast Response Workflow)

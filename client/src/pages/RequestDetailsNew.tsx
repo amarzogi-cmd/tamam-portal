@@ -381,6 +381,18 @@ export default function RequestDetailsNew() {
                       onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                       variant: 'default' as const,
                     }
+                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
+                  ? {
+                      label: "الانتقال إلى مرحلة الاستلام",
+                      onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
+                      variant: 'default' as const,
+                    }
+                  : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
+                  ? {
+                      label: "إغلاق الطلب رسمياً",
+                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                      variant: 'default' as const,
+                    }
                   : undefined
               }
               additionalActions={
