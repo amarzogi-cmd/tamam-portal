@@ -37,7 +37,7 @@ const registerSchema = z.object({
   nationalId: z.string().optional(),
   city: z.string().optional(),
   requesterType: z.string().optional(),
-  proofFile: z.instanceof(File).optional(),
+  proofDocument: z.string().optional(),
 });
 
 // مخطط التحقق من بيانات تسجيل الدخول

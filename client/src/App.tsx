@@ -7,7 +7,9 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // الصفحات العامة
 import Home from "./pages/Home";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
 import Register from "./pages/Register";
 
 // لوحات التحكم
@@ -94,8 +96,9 @@ function Router() {
   return (
     <Switch>
       {/* الصفحات العامة */}
-      <Route path="/" component={Home} />
+      <Route path="/" component={LandingPage} />
       <Route path="/login" component={Login} />
+      <Route path="/admin/login" component={AdminLogin} />
       <Route path="/register" component={Register} />
       <Route path="/track" component={TrackRequest} />
       <Route path="/service-request" component={MosqueServiceRequest} />

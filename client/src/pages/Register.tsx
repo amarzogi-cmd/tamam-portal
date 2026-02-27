@@ -68,16 +68,12 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, proofFile: file }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("كلمتا المرور غير متطابقتين");
-      return;
-    }
 
-    if (formData.password.length < 8) {
-      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
+    // التحقق من تطابق كلمة المرور
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("كلمة المرور وتأكيد كلمة المرور غير متطابقين");
       return;
     }
 
@@ -99,6 +95,30 @@ export default function Register() {
       return;
     }
 
+    // رفع الملف إلى S3 إذا كان موجوداً
+    let proofFileUrl: string | undefined = undefined;
+    if (formData.proofFile) {
+      try {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append('file', formData.proofFile);
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataForUpload,
+        });
+        
+        if (!response.ok) {
+          throw new Error('فشل رفع الملف');
+        }
+        
+        const data = await response.json();
+        proofFileUrl = data.url;
+      } catch (error) {
+        toast.error("حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى.");
+        return;
+      }
+    }
+
     registerMutation.mutate({
       name: formData.name,
       email: formData.email,
@@ -107,7 +127,7 @@ export default function Register() {
       nationalId: formData.nationalId || undefined,
       city: formData.city || undefined,
       requesterType: formData.requesterType === "other" ? formData.otherType : formData.requesterType || undefined,
-      proofFile: formData.proofFile || undefined,
+      proofDocument: proofFileUrl,
     });
   };
 
@@ -148,11 +168,13 @@ export default function Register() {
       <div className="w-full max-w-lg p-8">
         <div className="w-full">
           {/* الشعار */}
-          <Link href="/" className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-              <Building2 className="w-7 h-7 text-white" />
-            </div>
-            <div>
+          <Link href="/" className="flex flex-col items-center mb-8">
+            <img 
+              src="/logo.svg" 
+              alt="شعار بوابة تمام" 
+              className="h-20 mb-3"
+            />
+            <div className="text-center">
               <h1 className="font-bold text-xl text-foreground">بوابة تمام</h1>
               <p className="text-sm text-muted-foreground">للعناية بالمساجد</p>
             </div>

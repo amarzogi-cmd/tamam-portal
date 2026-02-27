@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Eye, EyeOff, Phone, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
-export default function Login() {
+export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,25 +27,19 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!phone || !password) {
-      toast.error("يرجى إدخال رقم الجوال وكلمة المرور");
-      return;
-    }
-
-    // التحقق من صيغة رقم الجوال
-    if (!/^05\d{8}$/.test(phone)) {
-      toast.error("يرجى إدخال رقم جوال صحيح (05XXXXXXXX)");
+    if (!email || !password) {
+      toast.error("يرجى إدخال البريد الإلكتروني وكلمة المرور");
       return;
     }
 
     loginMutation.mutate({
-      phone,
+      email,
       password,
     });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-500 via-teal-600 to-blue-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 bg-white/95">
         {/* الشعار */}
         <div className="text-center mb-8">
@@ -55,33 +49,29 @@ export default function Login() {
             className="h-20 mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            تسجيل دخول المستفيدين
+            دخول الموظفين
           </h1>
           <p className="text-gray-600">
-            سجل دخولك للوصول إلى حسابك وطلباتك
+            تسجيل دخول للموظفين والمسؤولين
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* رقم الجوال */}
+          {/* البريد الإلكتروني */}
           <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              رقم الجوال
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              البريد الإلكتروني
             </Label>
             <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="05XXXXXXXX"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@tamam.sa"
               required
-              maxLength={10}
               className="text-right"
             />
-            <p className="text-xs text-gray-500">
-              أدخل رقم الجوال بصيغة 05XXXXXXXX (10 أرقام)
-            </p>
           </div>
 
           {/* كلمة المرور */}
@@ -113,22 +103,16 @@ export default function Login() {
           {/* زر تسجيل الدخول */}
           <Button
             type="submit"
-            className="w-full bg-teal-500 hover:bg-teal-600 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             disabled={loginMutation.isPending}
           >
             {loginMutation.isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
           </Button>
         </form>
 
-        {/* روابط إضافية */}
-        <div className="mt-6 space-y-3 text-center">
-          <p className="text-gray-600 text-sm">
-            ليس لديك حساب؟{" "}
-            <a href="/register" className="text-teal-600 hover:text-teal-700 font-medium">
-              سجل الآن
-            </a>
-          </p>
-          <a href="/" className="block text-gray-500 hover:text-gray-700 text-sm">
+        {/* رابط العودة */}
+        <div className="mt-6 text-center">
+          <a href="/" className="text-blue-600 hover:text-blue-700 text-sm">
             ← العودة إلى الصفحة الرئيسية
           </a>
         </div>
