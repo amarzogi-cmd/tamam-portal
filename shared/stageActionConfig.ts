@@ -86,7 +86,10 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         prerequisite: 'assign_field_team',
         nextAction: 'submit_field_report',
         relation: 'after',
-        checkCompletion: (request) => !!request.fieldVisitScheduledDate,
+        checkCompletion: (request) => {
+          // التحقق من وجود زيارة ميدانية مجدولة
+          return request.fieldVisits && request.fieldVisits.some((visit: any) => visit.scheduledDate);
+        },
       },
       {
         key: 'submit_field_report',
@@ -96,7 +99,10 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'field_team'],
         prerequisite: 'schedule_field_visit',
         relation: 'after',
-        checkCompletion: (request) => !!request.fieldInspectionReportId,
+        checkCompletion: (request) => {
+          // التحقق من وجود تقرير زيارة ميدانية مكتمل
+          return request.fieldVisits && request.fieldVisits.some((visit: any) => visit.status === 'completed');
+        },
       },
     ],
   },
@@ -128,7 +134,10 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         requiredRoles: ['super_admin', 'system_admin', 'projects_office'],
         nextAction: 'finalize_boq',
         relation: 'before',
-        checkCompletion: (request) => request.boqItemsCount > 0,
+        checkCompletion: (request) => {
+          // التحقق من وجود بنود في جدول الكميات
+          return request.quantitySchedules && request.quantitySchedules.length > 0;
+        },
       },
       {
         key: 'finalize_boq',
@@ -153,7 +162,10 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'financial'],
         nextAction: 'select_winning_quotation',
         relation: 'before',
-        checkCompletion: (request) => request.quotationsCount > 0,
+        checkCompletion: (request) => {
+          // التحقق من وجود عروض أسعار
+          return request.quotations && request.quotations.length > 0;
+        },
       },
       {
         key: 'select_winning_quotation',
