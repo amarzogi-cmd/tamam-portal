@@ -154,7 +154,7 @@ export default function RequesterDashboard() {
             </Card>
           </Link>
 
-          <Link href="/mosques/new">
+          <Link href="/requester/mosques/new">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -394,7 +394,7 @@ export default function RequesterDashboard() {
                   <Building2 className="w-6 h-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">لا توجد مساجد مسجلة</p>
-                <Link href="/mosques/new">
+                <Link href="/requester/mosques/new">
                   <Button variant="outline">
                     <Plus className="w-4 h-4 ml-2" />
                     تسجيل مسجد
