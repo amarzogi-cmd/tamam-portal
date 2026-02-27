@@ -622,3 +622,20 @@
 - [x] إضافة مسار جديد /requester/mosques/new في App.tsx
 - [x] تحديث جميع روابط تسجيل المسجد في RequesterDashboard
 - [x] اختبار الحل والتأكد من عمل الزر بنجاح
+
+## إضافة نظام اعتماد المساجد الجديدة
+
+- [x] تحديث قاعدة البيانات بإضافة حقل status للمساجد (موجود مسبقاً)
+  - [x] إضافة enum approvalStatus (pending, approved, rejected) في schema
+  - [x] تطبيق التغييرات على قاعدة البيانات
+  - [x] تعيين القيمة الافتراضية "pending" للمساجد الجديدة
+- [x] إنشاء procedures للاعتماد والرفض في Backend (موجودة مسبقاً)
+  - [x] إضافة approve procedure في mosquesRouter
+  - [x] إضافة reject procedure في mosquesRouter
+  - [x] إضافة getPendingMosques procedure لجلب المساجد قيد المراجعة
+- [x] إضافة واجهة اعتماد المساجد
+  - [x] إضافة زر "اعتماد" مميز في قائمة المساجد (فقط للمساجد pending)
+  - [x] إنشاء نافذة منبثقة لمراجعة بيانات المسجد
+  - [x] إضافة أزرار "اعتماد" و"رفض" في نافذة المراجعة
+  - [x] عرض حالة المسجد بألوان مميزة (pending: أصفر، approved: أخضر، rejected: أحمر)
+- [x] اختبار النظام وحفظ checkpoint

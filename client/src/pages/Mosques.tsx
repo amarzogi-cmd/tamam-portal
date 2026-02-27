@@ -321,30 +321,26 @@ export default function Mosques() {
                               {/* أزرار الاعتماد والرفض للمساجد قيد المراجعة */}
                               {mosque.approvalStatus === "pending" && (
                                 <>
-                                  <PermissionGuard permission="mosques.approve">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-green-600 border-green-300 hover:bg-green-50"
-                                      onClick={() => handleApprove(mosque.id)}
-                                      disabled={approveMutation.isPending}
-                                    >
-                                      <CheckCircle className="w-4 h-4 ml-1" />
-                                      اعتماد
-                                    </Button>
-                                  </PermissionGuard>
-                                  <PermissionGuard permission="mosques.reject">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-red-600 border-red-300 hover:bg-red-50"
-                                      onClick={() => openRejectDialog(mosque.id)}
-                                      disabled={rejectMutation.isPending}
-                                    >
-                                      <XCircle className="w-4 h-4 ml-1" />
-                                      رفض
-                                    </Button>
-                                  </PermissionGuard>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-green-600 border-green-300 hover:bg-green-50"
+                                    onClick={() => handleApprove(mosque.id)}
+                                    disabled={approveMutation.isPending}
+                                  >
+                                    <CheckCircle className="w-4 h-4 ml-1" />
+                                    اعتماد
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-600 border-red-300 hover:bg-red-50"
+                                    onClick={() => openRejectDialog(mosque.id)}
+                                    disabled={rejectMutation.isPending}
+                                  >
+                                    <XCircle className="w-4 h-4 ml-1" />
+                                    رفض
+                                  </Button>
                                 </>
                               )}
                               <DropdownMenu>
