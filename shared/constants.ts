@@ -1126,9 +1126,8 @@ export const WORKFLOW_STEPS = [
   { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
   { id: "technical_eval", label: "التقييم الفني", order: 4 },
   { id: "boq_preparation", label: "جدول الكميات", order: 5 },
-  { id: "financial_eval", label: "التقييم المالي", order: 6 },
-  { id: "quotation_approval", label: "اعتماد السعر", order: 7 },
-  { id: "contracting", label: "التعاقد", order: 8 },
-  { id: "execution", label: "التنفيذ", order: 9 },
-  { id: "closed", label: "الإغلاق", order: 10 },
+  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 6 },
+  { id: "contracting", label: "التعاقد", order: 7 },
+  { id: "execution", label: "التنفيذ", order: 8 },
+  { id: "closed", label: "الإغلاق", order: 9 },
 ] as const;

@@ -58,7 +58,7 @@ const stageSteps = [
   { key: "initial_review", label: "الفرز الأولي", icon: Eye },
   { key: "field_visit", label: "الزيارة الميدانية", icon: Building2 },
   { key: "technical_eval", label: "الدراسة الفنية", icon: FileText },
-  { key: "financial_eval", label: "الاعتماد المالي", icon: CheckCircle2 },
+  { key: "financial_eval_and_approval", label: "الاعتماد المالي", icon: CheckCircle2 },
   { key: "execution", label: "التنفيذ", icon: Clock },
   { key: "closed", label: "الإغلاق", icon: CheckCircle2 },
 ];

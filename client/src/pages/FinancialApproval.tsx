@@ -59,7 +59,7 @@ export default function FinancialApproval() {
 
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
-    currentStage: "financial_eval",
+    currentStage: "financial_eval_and_approval",
   });
 
   // جلب جدول الكميات للطلب

@@ -103,7 +103,7 @@ export default function BOQ() {
 
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
-    currentStage: "financial_eval",
+    currentStage: "financial_eval_and_approval",
   });
 
   // جلب جداول الكميات
@@ -560,7 +560,7 @@ export default function BOQ() {
                       if (confirm("هل أنت متأكد من إنهاء إعداد جدول الكميات والانتقال للمرحلة التالية؟")) {
                         completeBOQMutation.mutate({
                           requestId: parseInt(selectedRequestId),
-                          newStage: "financial_eval",
+                          newStage: "financial_eval_and_approval",
                           notes: "تم إنهاء إعداد جدول الكميات",
                         });
                       }

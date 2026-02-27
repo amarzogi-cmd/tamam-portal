@@ -127,7 +127,7 @@ export default function Quotations() {
 
   // جلب الطلبات في مرحلة التقييم المالي
   const { data: requests } = trpc.requests.search.useQuery({
-    currentStage: "financial_eval",
+    currentStage: "financial_eval_and_approval",
   });
 
   // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)

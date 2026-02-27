@@ -91,7 +91,7 @@ const stageSteps = [
   { key: "field_visit", label: "الزيارة الميدانية", order: 3 },
   { key: "technical_eval", label: "التقييم الفني", order: 4 },
   { key: "boq_preparation", label: "إعداد جدول الكميات", order: 5 },
-  { key: "financial_eval", label: "التقييم المالي", order: 6 },
+  { key: "financial_eval_and_approval", label: "التقييم المالي", order: 6 },
   { key: "quotation_approval", label: "اعتماد العرض", order: 7 },
   { key: "contracting", label: "التعاقد", order: 8 },
   { key: "execution", label: "التنفيذ", order: 9 },
@@ -133,17 +133,17 @@ export default function RequestDetails() {
   // جلب جدول الكميات وعروض الأسعار للتقييم المالي
   const { data: boqItems } = trpc.projects.getBOQ.useQuery(
     { requestId },
-    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+    { enabled: !!request && ['financial_eval_and_approval', 'execution', 'closed'].includes(request.currentStage) }
   );
   const { data: quotations } = trpc.projects.getQuotationsByRequest.useQuery(
     { requestId },
-    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+    { enabled: !!request && ['financial_eval_and_approval', 'execution', 'closed'].includes(request.currentStage) }
   );
   
   // جلب العقد المرتبط بالطلب
   const { data: existingContract } = trpc.contracts.getByRequestId.useQuery(
     { requestId },
-    { enabled: !!request && ['financial_eval', 'execution', 'closed'].includes(request.currentStage) }
+    { enabled: !!request && ['financial_eval_and_approval', 'execution', 'closed'].includes(request.currentStage) }
   );
   
   // جلب موظفي الفريق الميداني
@@ -358,7 +358,7 @@ export default function RequestDetails() {
   const handleAdvanceStage = () => {
     if (!request) return;
     // المراحل الـ 11 الجديدة
-    const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval", "quotation_approval", "contracting", "execution", "handover", "closed"];
+    const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval_and_approval", "quotation_approval", "contracting", "execution", "handover", "closed"];
     const quickResponseStages = ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"];
     
     // تحديد المسار بناءً على نوع الطلب
@@ -464,7 +464,7 @@ export default function RequestDetails() {
           { id: '2', label: 'اتخاذ قرار التقييم الفني', completed: hasTechnicalDecision, required: true }
         );
         break;
-      case 'financial_eval':
+      case 'financial_eval_and_approval':
         const hasApprovedQuotation = request.history?.some((h: any) => h.action === 'quotation_approved');
         checklist.push(
           { id: '1', label: 'إعداد جدول الكميات', completed: true, required: true },
@@ -669,7 +669,7 @@ export default function RequestDetails() {
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
                 {/* التقييم المالي - للموظفين فقط */}
-                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
@@ -850,7 +850,7 @@ export default function RequestDetails() {
               </TabsContent>
 
               {/* تبويب التقييم المالي - للموظفين فقط */}
-              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                 <TabsContent value="financial">
                   <div className="space-y-6">
                     {/* تفاصيل الاعتماد المالي - يظهر فقط بعد الاعتماد */}

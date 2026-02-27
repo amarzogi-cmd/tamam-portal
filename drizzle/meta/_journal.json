@@ -344,6 +344,20 @@
       "when": 1770733072759,
       "tag": "0048_curious_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "5",
+      "when": 1772154672996,
+      "tag": "0049_safe_mongoose",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1772155543035,
+      "tag": "0050_organic_sunset_bain",
+      "breakpoints": true
     }
   ]
 }

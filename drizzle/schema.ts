@@ -31,17 +31,16 @@ export const programTypes = [
 
 // المراحل الرئيسية للطلبات (11 مرحلة)
 export const requestStages = [
-  "submitted",           // تقديم الطلب
-  "initial_review",      // المراجعة الأولية
-  "field_visit",         // الزيارة الميدانية
-  "technical_eval",      // التقييم الفني
-  "boq_preparation",     // إعداد جدول الكميات
-  "financial_eval",      // التقييم المالي
-  "quotation_approval",  // اعتماد العرض
-  "contracting",         // التعاقد
-  "execution",           // التنفيذ
-  "handover",            // الاستلام
-  "closed"               // الإغلاق
+  "submitted",                  // تقديم الطلب
+  "initial_review",             // المراجعة الأولية
+  "field_visit",                // الزيارة الميدانية
+  "technical_eval",             // التقييم الفني
+  "boq_preparation",            // إعداد جدول الكميات
+  "financial_eval_and_approval", // التقييم المالي واعتماد العرض
+  "contracting",                // التعاقد
+  "execution",                  // التنفيذ
+  "handover",                   // الاستلام
+  "closed"                      // الإغلاق
 ] as const;
 
 // المراحل الفرعية (الإجراءات)
@@ -225,6 +224,10 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   assignedTo: int("assignedTo").references(() => users.id),
   currentResponsible: int("currentResponsible").references(() => users.id), // المسؤول الحالي عن الطلب
   currentResponsibleDepartment: varchar("currentResponsibleDepartment", { length: 100 }), // الإدارة المسؤولة الحالية
+  
+  // بيانات المراجعة الأولية
+  reviewCompleted: boolean("reviewCompleted").default(false), // هل تمت المراجعة الأولية
+  reviewNotes: text("reviewNotes"), // ملاحظات المراجعة الأولية
   
   // بيانات الزيارة الميدانية
   fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id), // الموظف المسند إليه الزيارة

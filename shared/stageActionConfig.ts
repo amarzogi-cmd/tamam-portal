@@ -61,6 +61,10 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         description: 'مراجعة بيانات الطلب والمستندات واعتماده للانتقال للزيارة الميدانية',
         requiredRoles: ['super_admin', 'system_admin', 'projects_office'],
         relation: 'independent',
+        checkCompletion: (request) => {
+          // التحقق من إتمام المراجعة الأولية
+          return !!request.reviewCompleted;
+        },
       },
     ],
   },
@@ -150,9 +154,9 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
     ],
   },
 
-  // ==================== 6. التقييم المالي ====================
+  // ==================== 6. التقييم المالي واعتماد العرض ====================
   {
-    stage: 'financial_eval',
+    stage: 'financial_eval_and_approval',
     actions: [
       {
         key: 'add_quotations',
@@ -160,7 +164,7 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         description: 'إضافة عروض الأسعار من الموردين',
         route: '/quotations',
         requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'financial'],
-        nextAction: 'select_winning_quotation',
+        nextAction: 'select_and_approve',
         relation: 'before',
         checkCompletion: (request) => {
           // التحقق من وجود عروض أسعار
@@ -168,38 +172,14 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         },
       },
       {
-        key: 'select_winning_quotation',
-        label: 'اختيار العرض الفائز',
-        description: 'اختيار عرض السعر الفائز من بين العروض المقدمة',
+        key: 'select_and_approve',
+        label: 'اختيار واعتماد العرض الفائز',
+        description: 'اختيار عرض السعر الفائز واعتماده مالياً للانتقال للتعاقد',
         route: '/financial-approval',
-        requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+        requiredRoles: ['super_admin', 'system_admin', 'financial'],
         prerequisite: 'add_quotations',
-        nextAction: 'approve_financially',
         relation: 'after',
-        checkCompletion: (request) => !!request.selectedQuotationId,
-      },
-      {
-        key: 'approve_financially',
-        label: 'اعتماد مالياً وانتقال للتعاقد',
-        description: 'الاعتماد المالي النهائي والانتقال لمرحلة التعاقد',
-        route: '/financial-approval',
-        requiredRoles: ['super_admin', 'system_admin', 'financial'],
-        prerequisite: 'select_winning_quotation',
-        relation: 'after',
-      },
-    ],
-  },
-
-  // ==================== 7. اعتماد العرض ====================
-  {
-    stage: 'quotation_approval',
-    actions: [
-      {
-        key: 'final_approval',
-        label: 'الاعتماد النهائي',
-        description: 'الاعتماد النهائي للعرض الفائز',
-        requiredRoles: ['super_admin', 'system_admin', 'financial'],
-        relation: 'independent',
+        checkCompletion: (request) => !!request.selectedQuotationId && !!request.financiallyApproved,
       },
     ],
   },

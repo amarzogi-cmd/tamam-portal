@@ -50,8 +50,8 @@ const programTypes = [
 // المراحل الـ 11
 const requestStages = [
   "submitted", "initial_review", "field_visit", 
-  "technical_eval", "boq_preparation", "financial_eval", 
-  "quotation_approval", "contracting", "execution", 
+  "technical_eval", "boq_preparation", "financial_eval_and_approval", 
+  "contracting", "execution", 
   "handover", "closed"
 ] as const;
 
@@ -249,7 +249,7 @@ export const requestsRouter = router({
       }
 
       // حساب نسبة التقدم
-      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval", "execution", "closed"];
+      const stages = ["submitted", "initial_review", "field_visit", "technical_eval", "financial_eval_and_approval", "execution", "closed"];
       const currentStageIndex = stages.indexOf(request.currentStage);
       const progressPercentage = Math.round(((currentStageIndex + 1) / stages.length) * 100);
 
@@ -434,7 +434,7 @@ export const requestsRouter = router({
 
       // التحقق من أن المرحلة الجديدة هي المرحلة التالية المنطقية
       // المراحل الـ 11 الجديدة
-      const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval", "quotation_approval", "contracting", "execution", "handover", "closed"];
+      const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const quickResponseStages = ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"];
       
       // تحديد المسار بناءً على نوع الطلب
@@ -523,8 +523,7 @@ export const requestsRouter = router({
         field_visit: "الفريق الميداني",
         technical_eval: "مكتب المشاريع",
         boq_preparation: "مكتب المشاريع",
-        financial_eval: "الإدارة المالية",
-        quotation_approval: "الإدارة المالية",
+        financial_eval_and_approval: "الإدارة المالية",
         contracting: "مكتب المشاريع",
         execution: requestTrack === 'quick_response' ? "فريق الاستجابة السريعة" : "مدير المشروع",
         handover: "مكتب المشاريع",
@@ -1263,8 +1262,8 @@ export const requestsRouter = router({
       }
 
       // التحقق من أن الطلب في مرحلة التقييم المالي
-      if (request[0].currentStage !== "financial_eval") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن اختيار عرض السعر فقط في مرحلة التقييم المالي" });
+      if (request[0].currentStage !== "financial_eval_and_approval") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن اختيار عرض السعر فقط في مرحلة التقييم المالي واعتماد العرض" });
       }
 
       // التحقق من وجود عرض السعر
@@ -1287,8 +1286,8 @@ export const requestsRouter = router({
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        fromStage: "financial_eval",
-        toStage: "financial_eval",
+        fromStage: "financial_eval_and_approval",
+        toStage: "financial_eval_and_approval",
         fromStatus: request[0].status,
         toStatus: request[0].status,
         action: "select_winning_quotation",
@@ -1320,8 +1319,8 @@ export const requestsRouter = router({
       }
 
       // التحقق من أن الطلب في مرحلة التقييم المالي
-      if (request[0].currentStage !== "financial_eval") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن الاعتماد المالي فقط في مرحلة التقييم المالي" });
+      if (request[0].currentStage !== "financial_eval_and_approval") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يمكن الاعتماد المالي فقط في مرحلة التقييم المالي واعتماد العرض" });
       }
 
       // التحقق من وجود عرض سعر مختار
@@ -1358,7 +1357,7 @@ export const requestsRouter = router({
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        fromStage: "financial_eval",
+        fromStage: "financial_eval_and_approval",
         toStage: "contracting",
         fromStatus: request[0].status,
         toStatus: "approved",
