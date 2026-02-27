@@ -11,7 +11,7 @@ import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
@@ -259,7 +259,7 @@ export default function RequestDetailsNew() {
                 <ProgramIcon program={request.programType} className="w-10 h-10" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">{request.requestNumber}</h1>
+                    <h1 className="text-xl font-bold text-muted-foreground font-mono">{request.requestNumber}</h1>
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
                         <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
@@ -269,77 +269,64 @@ export default function RequestDetailsNew() {
                       </Link>
                     )}
                   </div>
+                  <p className="text-lg font-bold text-foreground">
+                    {request.mosque?.name || "مسجد غير محدد"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {request.mosque?.name || "مسجد غير محدد"} • {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}
+                    {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setDetailsModalOpen(true)}
-              >
-                <FileText className="w-4 h-4 ml-2" />
-                عرض التفاصيل الكاملة
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setProjectInfoOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
-              >
-                <Building2 className="w-4 h-4 ml-2" />
-                معلومات المشروع
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setTimelineOpen(true)}
-                className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700"
-              >
-                <Clock className="w-4 h-4 ml-2" />
-                السجل الزمني
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setAttachmentsOpen(true)}
-                className="bg-orange-600 hover:bg-orange-700 text-white dark:bg-orange-600 dark:hover:bg-orange-700"
-              >
-                <Paperclip className="w-4 h-4 ml-2" />
-                المرفقات
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setBoqOpen(true)}
-                className="bg-teal-600 hover:bg-teal-700 text-white dark:bg-teal-600 dark:hover:bg-teal-700"
-              >
-                <Calculator className="w-4 h-4 ml-2" />
-                جداول الكميات
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCommentsOpen(true);
-                  markAsReadMutation.mutate({ requestId });
-                }}
-                className="bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 relative"
-              >
-                <MessageSquare className="w-4 h-4 ml-2" />
-                التعليقات
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {unreadCount}
-                  </span>
-                )}
-              </Button>
-            </div>
+            {/* Tabs - تظهر فقط للموظفين */}
+            {user?.role !== 'service_requester' && (
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setDetailsModalOpen(true)}
+                >
+                  <FileText className="w-4 h-4 ml-2" />
+                  عرض التفاصيل الكاملة
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setTimelineOpen(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-700"
+                >
+                  <Clock className="w-4 h-4 ml-2" />
+                  السجل الزمني
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setAttachmentsOpen(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white dark:bg-orange-600 dark:hover:bg-orange-700"
+                >
+                  <Paperclip className="w-4 h-4 ml-2" />
+                  المرفقات
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setCommentsOpen(true);
+                    markAsReadMutation.mutate({ requestId });
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-600 dark:hover:bg-purple-700 relative"
+                >
+                  <MessageSquare className="w-4 h-4 ml-2" />
+                  التعليقات
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -698,7 +685,7 @@ export default function RequestDetailsNew() {
           {history && history.length > 0 ? (
             history.map((item: any, index: number) => (
               <div key={index} className="bg-white dark:bg-gray-800 border-r-4 border-green-500 pr-4 p-4 rounded-lg shadow-sm">
-                <p className="font-semibold text-green-700 dark:text-green-300">{item.action}</p>
+                <p className="font-semibold text-green-700 dark:text-green-300">{AUDIT_ACTION_LABELS[item.action] || item.action}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {new Date(item.createdAt).toLocaleString("ar-SA")}
                 </p>

@@ -2,6 +2,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { 
   ArrowRight, 
   Building2, 
@@ -10,29 +11,17 @@ import {
   Phone,
   Mail,
   FileText,
-  Calendar,
   Edit,
   CheckCircle,
   Clock,
   ExternalLink,
   Copy,
 } from "lucide-react";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PROGRAM_LABELS } from "@shared/constants";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { PROGRAM_LABELS, STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
-
-const statusLabels: Record<string, string> = {
-  new: "جديد (مقترح)",
-  existing: "قائم",
-  under_construction: "تحت الإنشاء",
-};
-
-const ownershipLabels: Record<string, string> = {
-  government: "حكومي",
-  waqf: "وقف",
-  private: "أهلي",
-};
 
 const approvalLabels: Record<string, string> = {
   pending: "قيد المراجعة",
@@ -40,11 +29,24 @@ const approvalLabels: Record<string, string> = {
   rejected: "مرفوض",
 };
 
+const stageVariant = (stage: string): "default" | "secondary" | "destructive" | "outline" => {
+  if (stage === "closed") return "secondary";
+  if (stage === "initial_review") return "outline";
+  return "default";
+};
+
 export default function MosqueDetails() {
   const params = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const mosqueId = parseInt(params.id || "0");
 
   const { data: mosque, isLoading } = trpc.mosques.getById.useQuery({ id: mosqueId });
+  const { data: requestsData } = trpc.requests.search.useQuery(
+    { mosqueId, page: 1, limit: 50 },
+    { enabled: !!mosqueId }
+  );
+  const mosqueRequests = requestsData?.requests || [];
 
   if (isLoading) {
     return (
@@ -94,7 +96,7 @@ export default function MosqueDetails() {
               </div>
             </div>
           </div>
-          <span className={`badge ${
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
             mosque.approvalStatus === "approved" ? "bg-green-100 text-green-800" :
             mosque.approvalStatus === "rejected" ? "bg-red-100 text-red-800" :
             "bg-yellow-100 text-yellow-800"
@@ -114,9 +116,7 @@ export default function MosqueDetails() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">نوع المسجد</p>
-                  <p className="text-xl font-bold text-foreground mt-1">
-                    مسجد
-                  </p>
+                  <p className="text-xl font-bold text-foreground mt-1">مسجد</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-primary" />
@@ -176,7 +176,14 @@ export default function MosqueDetails() {
             <Tabs defaultValue="info" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="info">المعلومات</TabsTrigger>
-                <TabsTrigger value="requests">الطلبات</TabsTrigger>
+                <TabsTrigger value="requests">
+                  الطلبات
+                  {mosqueRequests.length > 0 && (
+                    <span className="mr-2 bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5">
+                      {mosqueRequests.length}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="images">الصور</TabsTrigger>
               </TabsList>
 
@@ -253,22 +260,60 @@ export default function MosqueDetails() {
 
               <TabsContent value="requests">
                 <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد طلبات لهذا المسجد</p>
-                    <Link href={`/service-request?mosqueId=${mosque.id}`}>
-                      <Button className="mt-4 gradient-primary text-white">تقديم طلب جديد</Button>
-                    </Link>
+                  <CardContent className="p-4">
+                    {mosqueRequests.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">لا توجد طلبات لهذا المسجد</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {mosqueRequests.map((req: any) => (
+                          <div
+                            key={req.id}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => setLocation(`/requests/${req.id}`)}
+                          >
+                            <div className="space-y-1">
+                              <p className="font-mono text-sm font-semibold text-muted-foreground">{req.requestNumber}</p>
+                              <p className="font-medium">{PROGRAM_LABELS[req.programType as keyof typeof PROGRAM_LABELS] || req.programType}</p>
+                              <p className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleDateString('ar-SA')}</p>
+                            </div>
+                            <div className="text-left">
+                              <Badge variant="outline">
+                                {STAGE_LABELS[req.currentStage as keyof typeof STAGE_LABELS] || req.currentStage}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="images">
                 <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد صور للمسجد</p>
-                    <Button variant="outline" className="mt-4">رفع صور</Button>
+                  <CardContent className="p-4">
+                    {mosque.images && mosque.images.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {mosque.images.map((img: any) => (
+                          <div key={img.id} className="aspect-square rounded-lg overflow-hidden border">
+                            <img
+                              src={img.imageUrl}
+                              alt="صورة المسجد"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                              onClick={() => window.open(img.imageUrl, '_blank')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">لا توجد صور للمسجد</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -311,20 +356,35 @@ export default function MosqueDetails() {
               </CardContent>
             </Card>
 
-            {/* الإجراءات */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>الإجراءات</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Link href={`/service-request?mosqueId=${mosque.id}`}>
-                  <Button className="w-full gradient-primary text-white">
-                    <FileText className="w-4 h-4 ml-2" />
-                    تقديم طلب
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {/* إحصائيات الطلبات */}
+            {mosqueRequests.length > 0 && (
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    إحصائيات الطلبات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">إجمالي الطلبات</span>
+                    <span className="font-bold">{mosqueRequests.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">المكتملة</span>
+                    <span className="font-bold text-green-600">
+                      {mosqueRequests.filter((r: any) => r.currentStage === 'closed').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">قيد التنفيذ</span>
+                    <span className="font-bold text-blue-600">
+                      {mosqueRequests.filter((r: any) => r.currentStage !== 'closed').length}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

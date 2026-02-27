@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PROGRAM_DATA_LABELS, PROGRAM_LABELS } from "../../../shared/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -176,15 +177,31 @@ export function RequestDetailsModal({ requestId, open, onOpenChange }: RequestDe
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">الوصف</p>
-                  <p className="text-sm leading-relaxed bg-muted/50 p-3 rounded-md">
-                    {request.programData ? JSON.stringify(request.programData, null, 2) : 'لا توجد تفاصيل'}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2 font-semibold">تفاصيل البرنامج</p>
+                  {request.programData && typeof request.programData === 'object' ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {Object.entries(request.programData as Record<string, unknown>).map(([key, value]) => {
+                        const label = PROGRAM_DATA_LABELS[key] || key;
+                        const displayValue = value === true ? 'نعم'
+                          : value === false ? 'لا'
+                          : String(value ?? '');
+                        if (!displayValue) return null;
+                        return (
+                          <div key={key} className="flex gap-2 bg-muted/50 p-2 rounded-md">
+                            <span className="text-sm text-muted-foreground min-w-[180px]">{label}:</span>
+                            <span className="text-sm font-medium">{displayValue}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">لا توجد تفاصيل</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-sm text-muted-foreground">البرنامج</p>
-                    <p className="font-medium">{request.programType || 'غير محدد'}</p>
+                    <p className="font-medium">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType || 'غير محدد'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">الأولوية</p>

@@ -1,16 +1,23 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-// توليد رقم مشروع فريد
-function generateProjectNumber(): string {
-  const prefix = "PRJ";
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
+// توليد رقم مشروع بمنهجية سنوية
+async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  const [existing] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
+  let sequence: number;
+  if (existing) {
+    sequence = existing.lastSequence + 1;
+    await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
+  } else {
+    sequence = 1;
+    await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
+  }
+  return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
 }
 
 // توليد رقم عقد فريد
@@ -221,7 +228,7 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "يوجد مشروع مرتبط بهذا الطلب بالفعل" });
       }
 
-      const projectNumber = generateProjectNumber();
+      const projectNumber = await generateProjectNumber(db);
 
       const [newProject] = await db.insert(projects).values({
         projectNumber,

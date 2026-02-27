@@ -110,8 +110,8 @@ async function generateContractNumber(db: NonNullable<Awaited<ReturnType<typeof 
     });
   }
   
-  // تنسيق الرقم: YYYY-XXXX
-  const contractNumber = `${currentYear}-${String(sequence).padStart(4, "0")}`;
+  // تنسيق الرقم: CNT-YYYY-XXXX
+  const contractNumber = `CNT-${currentYear}-${String(sequence).padStart(4, "0")}`;
   
   return { number: contractNumber, year: currentYear, sequence };
 }

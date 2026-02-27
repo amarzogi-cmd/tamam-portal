@@ -35,6 +35,7 @@ import MyRequests from "./pages/MyRequests";
 // صفحات المستخدمين
 import UsersManagement from "./pages/UsersManagement";
 import UserDetails from "./pages/UserDetails";
+import UserEdit from "./pages/UserEdit";
 
 // صفحات المشاريع
 import Projects from "./pages/Projects";
@@ -140,6 +141,7 @@ function Router() {
       {/* المستخدمون - إدارية */}
       <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
+      <Route path="/users/:id/edit">{() => <AdminRoute component={UserEdit} />}</Route>
       
       {/* المشاريع - إدارية */}
       <Route path="/projects">{() => <AdminRoute component={Projects} />}</Route>

@@ -1166,6 +1166,20 @@ export const escalationLogs = mysqlTable("escalation_logs", {
 });
 
 // سجل ترقيم العقود
+export const projectNumberSequence = mysqlTable("project_number_sequence", {
+  id: int("id").autoincrement().primaryKey(),
+  year: int("year").notNull().unique(),
+  lastSequence: int("lastSequence").notNull().default(0),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const requestNumberSequence = mysqlTable("request_number_sequence", {
+  id: int("id").autoincrement().primaryKey(),
+  year: int("year").notNull().unique(),
+  lastSequence: int("lastSequence").notNull().default(0),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const contractNumberSequence = mysqlTable("contract_number_sequence", {
   id: int("id").autoincrement().primaryKey(),
   year: int("year").notNull().unique(),

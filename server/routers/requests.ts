@@ -20,6 +20,7 @@ import {
   stageSettings,
   requestStageTracking,
   contractsEnhanced,
+  requestNumberSequence,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -34,12 +35,35 @@ import {
   type PrerequisiteType,
 } from "@shared/constants";
 
-// دالة إنشاء رقم طلب فريد
-function generateRequestNumber(programType: string): string {
+// دالة إنشاء رقم طلب فريد بمنهجية سنوية
+async function generateRequestNumber(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  programType: string
+): Promise<string> {
+  const currentYear = new Date().getFullYear();
   const prefix = programType.substring(0, 3).toUpperCase();
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = randomBytes(2).toString("hex").toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
+
+  const [existing] = await db
+    .select()
+    .from(requestNumberSequence)
+    .where(eq(requestNumberSequence.year, currentYear));
+
+  let sequence: number;
+  if (existing) {
+    sequence = existing.lastSequence + 1;
+    await db
+      .update(requestNumberSequence)
+      .set({ lastSequence: sequence })
+      .where(eq(requestNumberSequence.year, currentYear));
+  } else {
+    sequence = 1;
+    await db.insert(requestNumberSequence).values({
+      year: currentYear,
+      lastSequence: sequence,
+    });
+  }
+  // تنسيق: REQ-YYYY-PGM-XXXX
+  return `REQ-${currentYear}-${prefix}-${String(sequence).padStart(4, "0")}`;
 }
 
 // البرامج التسعة
@@ -112,7 +136,7 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "المسجد غير معتمد بعد" });
       }
 
-      const requestNumber = generateRequestNumber(input.programType);
+      const requestNumber = await generateRequestNumber(db, input.programType);
       const programDataJson = input.programData ? JSON.stringify(input.programData) : null;
 
       const result = await db.insert(mosqueRequests).values({

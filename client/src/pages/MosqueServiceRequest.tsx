@@ -110,6 +110,17 @@ export default function MosqueServiceRequest() {
   // تحويل البيانات للتوافق مع الكود الحالي
   const userMosques = { mosques: myMosques || [] };
 
+  // استرجاع بيانات المسجد تلقائياً عند اختياره
+  useEffect(() => {
+    if (selectedMosque && myMosques) {
+      const mosque = myMosques.find(m => m.id === selectedMosque);
+      if (mosque) {
+        if (mosque.area) handleInputChange("mosqueArea", mosque.area.toString());
+        if (mosque.capacity) handleInputChange("actualWorshippers", mosque.capacity.toString());
+      }
+    }
+  }, [selectedMosque, myMosques]);
+
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
 

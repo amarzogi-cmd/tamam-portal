@@ -1178,3 +1178,70 @@ export function getWorkflowForRequest(requestTrack: 'standard' | 'quick_response
   }
   return WORKFLOW_STEPS;
 }
+
+// ترجمة أحداث السجل الزمني
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  // طلبات
+  request_created: "تم تقديم الطلب",
+  stage_updated: "تم تحديث مرحلة الطلب",
+  status_updated: "تم تحديث حالة الطلب",
+  select_winning_quotation: "تم اختيار عرض السعر الفائز",
+  financial_approval: "تمت الموافقة المالية",
+  field_visit_assigned: "تم تعيين فريق الزيارة الميدانية",
+  field_visit_scheduled: "تم جدولة الزيارة الميدانية",
+  // مساجد
+  mosque_created: "تم تسجيل المسجد",
+  mosque_updated: "تم تحديث بيانات المسجد",
+  mosque_approved: "تم اعتماد المسجد",
+  mosque_rejected: "تم رفض المسجد",
+  mosque_exemption_granted: "تم منح إعفاء للمسجد",
+  mosque_exemption_revoked: "تم إلغاء إعفاء المسجد",
+  // مستخدمون
+  user_registered: "تم تسجيل المستخدم",
+  user_login: "تسجيل دخول",
+  user_logout: "تسجيل خروج",
+  user_approved: "تم اعتماد المستخدم",
+  user_rejected: "تم رفض المستخدم",
+  user_suspended: "تم إيقاف المستخدم",
+  user_role_changed: "تم تغيير دور المستخدم",
+  employee_created: "تم إنشاء حساب موظف",
+  // كلمات المرور
+  password_changed: "تم تغيير كلمة المرور",
+  password_reset_by_admin: "تم إعادة تعيين كلمة المرور بواسطة المدير",
+  password_set: "تم تعيين كلمة المرور",
+  // عقود
+  "اعتماد العقد": "تم اعتماد العقد",
+};
+
+// ترجمة حقول بيانات البرنامج (programData)
+export const PROGRAM_DATA_LABELS: Record<string, string> = {
+  // حقول مشتركة
+  workDescription: "وصف الأعمال المطلوبة",
+  mosqueArea: "مساحة المسجد (م²)",
+  actualWorshippers: "عدد المصلين الفعلي",
+  hasDonorForMaintenance: "وجود متبرع للصيانة",
+  willingToVolunteer: "الاستعداد لتأسيس فريق تطوعي",
+  // بنيان
+  hasLand: "وجود أرض",
+  landOwnership: "ملكية الأرض",
+  landArea: "مساحة الأرض (م²)",
+  hasDonor: "وجود متبرع",
+  donationAmount: "مبلغ التبرع",
+  fundingProposal: "مقترح التمويل",
+  landProposal: "مقترح الأرض",
+  nearestMosque: "أقرب مسجد",
+  distanceToMosque: "المسافة لأقرب مسجد (كم)",
+  neighborhoodName: "اسم الحي",
+  // سقيا
+  cartonsNeeded: "عدد الكراتين المطلوبة",
+  monthlyCartonNeed: "الاحتياج الشهري (كرتون)",
+  hasWaterFridge: "وجود ثلاجة مياه",
+};
+
+// ترجمة قيم نعم/لا
+export const BOOL_LABELS: Record<string, string> = {
+  "true": "نعم",
+  "false": "لا",
+  "yes": "نعم",
+  "no": "لا",
+};
