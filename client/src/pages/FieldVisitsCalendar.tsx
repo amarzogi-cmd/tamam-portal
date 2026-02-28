@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PROGRAM_LABELS } from "../../../shared/constants";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import { ar } from "date-fns/locale";
+import DashboardLayout from "@/components/DashboardLayout";
 
 const PROGRAM_COLORS: Record<string, string> = {
   bunyan: "bg-blue-600",
@@ -47,7 +48,7 @@ const PROGRAM_TEXT_COLORS: Record<string, string> = {
   suqya: "text-indigo-700 dark:text-indigo-300",
 };
 
-export default function FieldVisitsCalendar() {
+function FieldVisitsCalendarContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const currentMonth = startOfMonth(selectedDate);
   const monthEnd = endOfMonth(selectedDate);
@@ -97,19 +98,12 @@ export default function FieldVisitsCalendar() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">جدول الزيارات الميدانية</h1>
-            <p className="text-muted-foreground">عرض تقويمي للزيارات المجدولة مع كشف التعارضات</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold">جدول الزيارات الميدانية</h1>
+          <p className="text-muted-foreground">عرض تقويمي للزيارات المجدولة مع كشف التعارضات</p>
         </div>
       </div>
 
@@ -311,5 +305,13 @@ export default function FieldVisitsCalendar() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function FieldVisitsCalendar() {
+  return (
+    <DashboardLayout>
+      <FieldVisitsCalendarContent />
+    </DashboardLayout>
   );
 }

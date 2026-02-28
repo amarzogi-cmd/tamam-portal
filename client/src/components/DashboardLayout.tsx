@@ -365,12 +365,12 @@ function DashboardLayoutContent({
                           isActive={isActive}
                           onClick={() => setLocation(item.path)}
                           tooltip={item.label}
-                          className={`h-9 transition-all font-normal text-sm`}
+                          className={`h-9 transition-all font-normal text-sm ${isActive ? 'bg-white/20 !text-white' : ''}`}
                         >
                           <item.icon
-                            className={`h-4 w-4 shrink-0 ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`}
+                            className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
                           />
-                          <span className={isActive ? "text-sidebar-primary font-semibold" : "text-sidebar-foreground"}>{item.label}</span>
+                          <span className={isActive ? "text-white font-bold" : "text-sidebar-foreground"}>{item.label}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );

@@ -88,6 +88,10 @@ export default function Branding() {
     try {
       await updateSettingsMutation.mutateAsync({
         organizationName: orgSettings.organizationName || "بوابة تمام",
+        // الحفاظ على الشعارات الموجودة عند حفظ الألوان
+        logoUrl: mainLogo || orgSettings.logoUrl || undefined,
+        secondaryLogoUrl: whiteLogo || orgSettings.secondaryLogoUrl || undefined,
+        stampUrl: darkLogo || orgSettings.stampUrl || undefined,
         colorPrimary1,
         colorPrimary2,
         colorSecondary1,
@@ -137,8 +141,10 @@ export default function Branding() {
         toast.success("تم رفع الشعار بنجاح");
         refetch();
       }
-    } catch (error) {
-      toast.error("فشل في رفع الشعار");
+    } catch (error: any) {
+      console.error('[uploadLogo] Error:', error);
+      const msg = error?.message || error?.data?.message || JSON.stringify(error);
+      toast.error(`فشل في رفع الشعار: ${msg}`);
     } finally {
       setUploading(null);
     }

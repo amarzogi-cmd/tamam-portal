@@ -102,12 +102,12 @@
   /* القائمة الجانبية - لون #09707e حسب طلب المستخدم */
   --sidebar: oklch(0.45 0.09 192);          /* #09707e - تركواز متوسط */
   --sidebar-foreground: oklch(0.97 0.005 192); /* نص أبيض */
-  --sidebar-primary: oklch(0.97 0.005 192);  /* عنصر نشط - أبيض */
-  --sidebar-primary-foreground: oklch(0.45 0.09 192);
-  --sidebar-accent: oklch(0.52 0.09 192);   /* hover - أفتح قليلاً */
-  --sidebar-accent-foreground: oklch(0.97 0.005 192);
+  --sidebar-primary: oklch(0.82 0.15 75);   /* عنصر نشط - ذهبي مميز */
+  --sidebar-primary-foreground: oklch(0.20 0.05 75); /* نص داكن على الذهبي */
+  --sidebar-accent: oklch(0.55 0.09 192);   /* hover - أفتح قليلاً */
+  --sidebar-accent-foreground: oklch(0.99 0.005 192); /* نص أبيض ساطع */
   --sidebar-border: oklch(1 0 0 / 15%);
-  --sidebar-ring: oklch(0.97 0.005 192);
+  --sidebar-ring: oklch(0.82 0.15 75);
 
   /* الرسوم البيانية */
   --chart-1: oklch(0.55 0.14 174);          /* تركواز */
@@ -154,12 +154,12 @@
   /* القائمة الجانبية - لون #09707e حسب طلب المستخدم (ثيم داكن) */
   --sidebar: oklch(0.45 0.09 192);
   --sidebar-foreground: oklch(0.97 0.005 192);
-  --sidebar-primary: oklch(0.97 0.005 192);
-  --sidebar-primary-foreground: oklch(0.45 0.09 192);
-  --sidebar-accent: oklch(0.52 0.09 192);
-  --sidebar-accent-foreground: oklch(0.97 0.005 192);
+  --sidebar-primary: oklch(0.82 0.15 75);   /* ذهبي مميز */
+  --sidebar-primary-foreground: oklch(0.20 0.05 75);
+  --sidebar-accent: oklch(0.55 0.09 192);
+  --sidebar-accent-foreground: oklch(0.99 0.005 192);
   --sidebar-border: oklch(1 0 0 / 15%);
-  --sidebar-ring: oklch(0.97 0.005 192);
+  --sidebar-ring: oklch(0.82 0.15 75);
 
   /* الرسوم البيانية - داكن */
   --chart-1: oklch(0.65 0.14 174);

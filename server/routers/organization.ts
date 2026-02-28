@@ -115,6 +115,8 @@ export const organizationRouter = router({
       // التحقق من وجود إعدادات سابقة
       const existingSettings = await db.select().from(organizationSettings).limit(1);
 
+      // الحفاظ على الشعارات الموجودة إذا لم تُمرر قيمة جديدة
+      const existing = existingSettings[0];
       const settingsData = {
         organizationName: input.organizationName,
         organizationNameShort: input.organizationNameShort || null,
@@ -130,9 +132,10 @@ export const organizationRouter = router({
         phone: input.phone || null,
         email: input.email || null,
         website: input.website || null,
-        logoUrl: input.logoUrl || null,
-        stampUrl: input.stampUrl || null,
-        secondaryLogoUrl: input.secondaryLogoUrl || null,
+        // الحفاظ على الشعارات الموجودة إذا لم تُمرر قيمة جديدة
+        logoUrl: input.logoUrl !== undefined ? (input.logoUrl || null) : (existing?.logoUrl || null),
+        stampUrl: input.stampUrl !== undefined ? (input.stampUrl || null) : (existing?.stampUrl || null),
+        secondaryLogoUrl: input.secondaryLogoUrl !== undefined ? (input.secondaryLogoUrl || null) : (existing?.secondaryLogoUrl || null),
         bankName: input.bankName || null,
         bankAccountName: input.bankAccountName || null,
         iban: input.iban || null,
@@ -198,7 +201,14 @@ export const organizationRouter = router({
       const fileKey = `organization/${input.type}-${timestamp}-${randomSuffix}.${extension}`;
 
       // رفع الملف
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      let url: string;
+      try {
+        const result = await storagePut(fileKey, buffer, input.mimeType);
+        url = result.url;
+      } catch (storageError: any) {
+        console.error('[uploadLogo] Storage error:', storageError?.message || storageError);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `فشل رفع الملف: ${storageError?.message || 'خطأ في التخزين'}` });
+      }
 
       // تحديث الإعدادات
       const existingSettings = await db.select().from(organizationSettings).limit(1);
