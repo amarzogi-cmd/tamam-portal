@@ -89,6 +89,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
         { icon: FileText, label: "الطلبات", path: "/requests" },
         { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
         { icon: ClipboardList, label: "المشاريع", path: "/projects" },
+        { icon: CheckSquare, label: "اعتماد حسابات طالبي الخدمة", path: "/requester-approvals" },
       ],
     });
     groups.push({
@@ -164,16 +165,12 @@ const getMenuGroups = (role: string): MenuGroup[] => {
     });
   }
 
-  // الإعدادات (للمدراء)
+  // الإعدادات (للمدراء) - مركز إعدادات موحد
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
-      label: "الإعدادات والتقارير",
+      label: "الإعدادات",
       items: [
-        { icon: BarChart3, label: "مؤشرات الأداء", path: "/kpi-dashboard" },
-        { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
-        { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },
-        { icon: Settings, label: "الإعدادات", path: "/settings" },
-        { icon: Clock, label: "إعدادات المراحل", path: "/stage-settings" },
+        { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
       ],
     });
   }

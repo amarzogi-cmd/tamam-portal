@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 // لوحات التحكم
 import Dashboard from "./pages/Dashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
+import RequesterApprovals from "./pages/RequesterApprovals";
 
 // صفحات المساجد
 import Mosques from "./pages/Mosques";
@@ -140,6 +141,7 @@ function Router() {
       
       {/* المستخدمون - إدارية */}
       <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
+      <Route path="/requester-approvals">{() => <AdminRoute component={RequesterApprovals} />}</Route>
       <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
       <Route path="/users/:id/edit">{() => <AdminRoute component={UserEdit} />}</Route>
       
