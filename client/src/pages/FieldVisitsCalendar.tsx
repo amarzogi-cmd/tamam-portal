@@ -10,15 +10,41 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseIS
 import { ar } from "date-fns/locale";
 
 const PROGRAM_COLORS: Record<string, string> = {
-  bunyan: "bg-blue-500",
-  daaem: "bg-green-500",
-  enaya: "bg-purple-500",
+  bunyan: "bg-blue-600",
+  daaem: "bg-emerald-500",
+  enaya: "bg-violet-500",
   emdad: "bg-orange-500",
-  ethraa: "bg-pink-500",
+  ethraa: "bg-rose-500",
   sedana: "bg-teal-500",
-  taqa: "bg-yellow-500",
-  miyah: "bg-cyan-500",
+  taqa: "bg-amber-400",
+  miyah: "bg-sky-500",
   suqya: "bg-indigo-500",
+};
+
+// ألوان خلفية البطاقات للبرامج (أفتح)
+const PROGRAM_BG_COLORS: Record<string, string> = {
+  bunyan: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
+  daaem: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
+  enaya: "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800",
+  emdad: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
+  ethraa: "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800",
+  sedana: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800",
+  taqa: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
+  miyah: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800",
+  suqya: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800",
+};
+
+// ألوان النص للبرامج
+const PROGRAM_TEXT_COLORS: Record<string, string> = {
+  bunyan: "text-blue-700 dark:text-blue-300",
+  daaem: "text-emerald-700 dark:text-emerald-300",
+  enaya: "text-violet-700 dark:text-violet-300",
+  emdad: "text-orange-700 dark:text-orange-300",
+  ethraa: "text-rose-700 dark:text-rose-300",
+  sedana: "text-teal-700 dark:text-teal-300",
+  taqa: "text-amber-700 dark:text-amber-300",
+  miyah: "text-sky-700 dark:text-sky-300",
+  suqya: "text-indigo-700 dark:text-indigo-300",
 };
 
 export default function FieldVisitsCalendar() {
@@ -124,39 +150,55 @@ export default function FieldVisitsCalendar() {
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1.5">
               {daysInMonth.map((day) => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayVisits = visitsByDate[dateKey] || [];
                 const isSelected = isSameDay(day, selectedDate);
+                const isToday = isSameDay(day, new Date());
                 const hasVisits = dayVisits.length > 0;
+                const visitCount = dayVisits.length;
 
                 return (
                   <button
                     key={day.toISOString()}
                     onClick={() => setSelectedDate(day)}
                     className={`
-                      relative p-3 rounded-lg border transition-all
-                      ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent'}
-                      ${hasVisits && !isSelected ? 'border-teal-300 bg-teal-50 dark:bg-teal-950/20' : ''}
+                      relative p-2 rounded-xl border-2 transition-all duration-200 min-h-[60px] flex flex-col items-center justify-start gap-1
+                      ${isSelected 
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105' 
+                        : isToday
+                          ? 'border-primary/50 bg-primary/5 hover:bg-primary/10'
+                          : hasVisits 
+                            ? 'border-teal-200 bg-gradient-to-b from-teal-50 to-white dark:from-teal-950/30 dark:to-transparent hover:border-teal-400 hover:shadow-sm'
+                            : 'border-transparent hover:bg-accent hover:border-border'
+                      }
                     `}
                   >
-                    <div className="text-center">
-                      <div className="text-sm font-medium">{format(day, 'd')}</div>
-                      {hasVisits && (
-                        <div className="mt-1 flex justify-center gap-0.5">
-                          {dayVisits.slice(0, 3).map((visit: any, i: number) => (
+                    <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full
+                      ${isSelected ? 'text-primary-foreground' : isToday ? 'bg-primary text-primary-foreground' : ''}
+                    `}>
+                      {format(day, 'd')}
+                    </div>
+                    {hasVisits && (
+                      <div className="flex flex-col items-center gap-0.5 w-full">
+                        <div className="flex justify-center gap-0.5 flex-wrap">
+                          {dayVisits.slice(0, 4).map((visit: any, i: number) => (
                             <div
                               key={i}
-                              className={`w-1.5 h-1.5 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`}
+                              className={`w-2 h-2 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'} ${isSelected ? 'opacity-80' : ''}`}
                             />
                           ))}
-                          {dayVisits.length > 3 && (
-                            <div className="text-[10px] text-muted-foreground">+{dayVisits.length - 3}</div>
-                          )}
                         </div>
-                      )}
-                    </div>
+                        {visitCount > 0 && (
+                          <span className={`text-[9px] font-bold leading-none
+                            ${isSelected ? 'text-primary-foreground/80' : 'text-teal-600 dark:text-teal-400'}
+                          `}>
+                            {visitCount > 4 ? `+${visitCount}` : visitCount === 1 ? '1 زيارة' : `${visitCount}`}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -178,16 +220,19 @@ export default function FieldVisitsCalendar() {
               <div className="space-y-3">
                 {selectedDateVisits.map((visit: any) => (
                   <Link key={visit.id} href={`/requests/${visit.id}`}>
-                    <Card className="hover:bg-accent transition-colors cursor-pointer">
+                    <Card className={`hover:shadow-md transition-all cursor-pointer border-2 ${PROGRAM_BG_COLORS[visit.programType] || 'border-border'}`}>
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
-                          <Badge className={PROGRAM_COLORS[visit.programType]}>
-                            {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground font-mono">{visit.requestNumber}</span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
+                            <span className={`text-sm font-semibold ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
+                              {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">{visit.requestNumber}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Clock className={`h-4 w-4 ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-muted-foreground'}`} />
                           <span>{visit.scheduledTime}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
@@ -222,18 +267,22 @@ export default function FieldVisitsCalendar() {
             <div className="space-y-2">
               {visits.map((visit: any) => {
                 const isConflict = conflicts.some((c: any) => c.id === visit.id);
+                const bgColor = isConflict 
+                  ? 'border-red-300 bg-red-50 dark:bg-red-950/10' 
+                  : (PROGRAM_BG_COLORS[visit.programType] || 'border-border');
                 return (
                   <Link key={visit.id} href={`/requests/${visit.id}`}>
-                    <Card className={`hover:bg-accent transition-colors cursor-pointer ${isConflict ? 'border-red-300 bg-red-50 dark:bg-red-950/10' : ''}`}>
+                    <Card className={`hover:shadow-md transition-all cursor-pointer border-2 ${bgColor}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             {isConflict && <AlertTriangle className="h-5 w-5 text-red-600" />}
-                            <Badge className={PROGRAM_COLORS[visit.programType]}>
+                            <div className={`w-3 h-3 rounded-full shrink-0 ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
+                            <span className={`text-sm font-semibold ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
                               {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
-                            </Badge>
-                            <span className="font-mono text-sm">{visit.requestNumber}</span>
-                            <span className="text-sm">{visit.mosqueName}</span>
+                            </span>
+                            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{visit.requestNumber}</span>
+                            <span className="text-sm font-medium">{visit.mosqueName}</span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">

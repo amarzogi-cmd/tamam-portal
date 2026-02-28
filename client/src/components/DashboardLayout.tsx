@@ -68,16 +68,8 @@ const getMenuGroups = (role: string): MenuGroup[] => {
     });
   }
 
-  // إدارة المستخدمين (للمدراء)
-  if (["super_admin", "system_admin"].includes(role)) {
-    groups.push({
-      label: "إدارة المستخدمين",
-      items: [
-        { icon: Users, label: "المستخدمون", path: "/users" },
-        { icon: UserCog, label: "الأدوار والصلاحيات", path: "/roles" },
-      ],
-    });
-  }
+  // إدارة المستخدمين والأدوار تمت نقلها إلى مركز الإعدادات (/settings)
+  // تم حذفها من القائمة الجانبية بناءً على طلب المستخدم
 
   // المساجد والطلبات
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
@@ -328,19 +320,17 @@ function DashboardLayoutContent({
           side="right"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center border-b">
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <img src={logoSrc} alt="شعار بوابة تمام" className="w-9 h-9 shrink-0" />
+              <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-9 h-9 shrink-0" />
               {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <div>
-                    <span className="font-bold text-foreground block leading-tight">
-                      بوابة تمام
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      للعناية بالمساجد
-                    </span>
-                  </div>
+                <div>
+                  <span className="font-bold text-sidebar-foreground block leading-tight">
+                    بوابة تمام
+                  </span>
+                  <span className="text-xs text-sidebar-foreground/50">
+                    للعناية بالمساجد
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -350,10 +340,10 @@ function DashboardLayoutContent({
             {menuGroups.map((group, groupIdx) => (
               <div key={group.label}>
                 {groupIdx > 0 && !isCollapsed && (
-                  <div className="mx-3 my-1 border-t border-border/50" />
+                  <div className="mx-3 my-1 border-t border-sidebar-border" />
                 )}
                 {!isCollapsed && menuGroups.length > 1 && (
-                  <p className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                  <p className="px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
                     {group.label}
                   </p>
                 )}
@@ -369,9 +359,9 @@ function DashboardLayoutContent({
                           className={`h-9 transition-all font-normal text-sm`}
                         >
                           <item.icon
-                            className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                            className={`h-4 w-4 shrink-0 ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`}
                           />
-                          <span className={isActive ? "text-primary font-medium" : ""}>{item.label}</span>
+                          <span className={isActive ? "text-sidebar-primary font-semibold" : "text-sidebar-foreground"}>{item.label}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
@@ -381,24 +371,24 @@ function DashboardLayoutContent({
             ))}
           </SidebarContent>
 
-          <SidebarFooter className="p-3 border-t">
+          <SidebarFooter className="p-3 border-t border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+                  <Avatar className="h-9 w-9 border border-sidebar-border shrink-0">
+                    <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
                       {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
+                    <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
                       {user?.name || "-"}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1">
+                    <p className="text-xs text-sidebar-foreground/50 truncate mt-1">
                       {ROLE_LABELS[user?.role || ""] || user?.role}
                     </p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                  <ChevronDown className="w-4 h-4 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

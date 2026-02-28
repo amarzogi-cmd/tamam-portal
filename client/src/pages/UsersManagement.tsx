@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs removed - طالبو الخدمة منقولون إلى صفحة اعتماد الحسابات
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,6 @@ import { Search, MoreVertical, Shield, UserCheck, UserX, Edit, Trash2, ArrowRigh
 export default function UsersManagement() {
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("staff");
 
   // Fetch all users
   const { data: users, isLoading, refetch } = trpc.users.getAll.useQuery();
@@ -58,16 +57,7 @@ export default function UsersManagement() {
     (u: any) => u.role !== "service_requester" && u.role !== "imam" && u.role !== "muezzin"
   ) || [];
   
-  const serviceUsers = users?.filter(
-    (u: any) => u.role === "service_requester" || u.role === "imam" || u.role === "muezzin"
-  ) || [];
-
   const filteredStaff = staffUsers.filter((u: any) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredService = serviceUsers.filter((u: any) =>
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -228,24 +218,22 @@ export default function UsersManagement() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-6">
-          <div className="text-2xl font-bold">{users?.length || 0}</div>
-          <div className="text-sm text-muted-foreground">إجمالي المستخدمين</div>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Card className="p-6">
           <div className="text-2xl font-bold">{staffUsers.length}</div>
-          <div className="text-sm text-muted-foreground">الموظفين</div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-2xl font-bold">{serviceUsers.length}</div>
-          <div className="text-sm text-muted-foreground">طالبي الخدمة</div>
+          <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
         </Card>
         <Card className="p-6">
           <div className="text-2xl font-bold">
-            {users?.filter((u: any) => u.status === "active").length || 0}
+            {staffUsers.filter((u: any) => u.status === "active").length}
           </div>
           <div className="text-sm text-muted-foreground">الحسابات النشطة</div>
+        </Card>
+        <Card className="p-6">
+          <div className="text-2xl font-bold">
+            {staffUsers.filter((u: any) => u.status === "pending").length}
+          </div>
+          <div className="text-sm text-muted-foreground">قيد المراجعة</div>
         </Card>
       </div>
 
@@ -262,29 +250,10 @@ export default function UsersManagement() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="staff">
-            الموظفين ({staffUsers.length})
-          </TabsTrigger>
-          <TabsTrigger value="service">
-            طالبي الخدمة ({serviceUsers.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="staff">
-          <Card>
-            <UserTable users={filteredStaff} />
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="service">
-          <Card>
-            <UserTable users={filteredService} />
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* جدول الموظفين فقط (تم حذف تبويب طالبي الخدمة - متاحون في صفحة اعتماد الحسابات) */}
+      <Card>
+        <UserTable users={filteredStaff} />
+      </Card>
     </div>
   );
 }

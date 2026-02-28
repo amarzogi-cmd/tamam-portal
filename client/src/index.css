@@ -99,15 +99,15 @@
   --input: oklch(0.90 0.006 174);
   --ring: oklch(0.55 0.14 174);             /* تركواز للتركيز */
 
-  /* القائمة الجانبية - فاتح */
-  --sidebar: oklch(0.975 0.005 174);        /* خلفية القائمة */
-  --sidebar-foreground: oklch(0.25 0.015 65);
-  --sidebar-primary: oklch(0.55 0.14 174);  /* عنصر نشط */
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.92 0.012 174);  /* hover */
-  --sidebar-accent-foreground: oklch(0.30 0.12 174);
-  --sidebar-border: oklch(0.88 0.008 174);
-  --sidebar-ring: oklch(0.55 0.14 174);
+  /* القائمة الجانبية - داكنة دائماً (تركواز داكن) */
+  --sidebar: oklch(0.18 0.025 174);         /* خلفية داكنة تركوازية */
+  --sidebar-foreground: oklch(0.92 0.008 174); /* نص أبيض مائل للتركواز */
+  --sidebar-primary: oklch(0.65 0.14 174);  /* عنصر نشط - تركواز فاتح */
+  --sidebar-primary-foreground: oklch(0.10 0.01 174);
+  --sidebar-accent: oklch(0.25 0.020 174);  /* hover - أفتح قليلاً */
+  --sidebar-accent-foreground: oklch(0.95 0.005 174);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.65 0.14 174);
 
   /* الرسوم البيانية */
   --chart-1: oklch(0.55 0.14 174);          /* تركواز */
@@ -142,13 +142,13 @@
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.65 0.14 174);
 
-  /* القائمة الجانبية - داكن */
-  --sidebar: oklch(0.15 0.010 174);
-  --sidebar-foreground: oklch(0.88 0.005 174);
+  /* القائمة الجانبية - داكن (توافق مع الثيم الداكن) */
+  --sidebar: oklch(0.13 0.020 174);
+  --sidebar-foreground: oklch(0.92 0.008 174);
   --sidebar-primary: oklch(0.65 0.14 174);
   --sidebar-primary-foreground: oklch(0.10 0.01 174);
-  --sidebar-accent: oklch(0.22 0.015 174);
-  --sidebar-accent-foreground: oklch(0.90 0.005 174);
+  --sidebar-accent: oklch(0.22 0.018 174);
+  --sidebar-accent-foreground: oklch(0.95 0.005 174);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.65 0.14 174);
 
