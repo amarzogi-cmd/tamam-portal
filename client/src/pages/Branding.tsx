@@ -383,8 +383,8 @@ export default function Branding() {
           </CardHeader>
           <CardContent>
             <div className="rounded-lg overflow-hidden border">
-              {/* معاينة القائمة الجانبية الداكنة */}
-              <div className="h-16 flex items-center px-6" style={{ backgroundColor: '#1a2e2a' }}>
+              {/* معاينة القائمة الجانبية */}
+              <div className="h-16 flex items-center px-6" style={{ backgroundColor: '#09707e' }}>
                 <div className="flex items-center gap-3">
                   {whiteLogo ? (
                     <img src={whiteLogo} alt="الشعار الأبيض" className="h-9 w-auto" />

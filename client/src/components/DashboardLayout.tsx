@@ -47,6 +47,7 @@ import {
   Clock,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
@@ -273,7 +274,15 @@ function DashboardLayoutContent({
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
-  const logoSrc = theme === 'dark' ? '/logo-white.svg' : '/logo.svg';
+  // جلب الشعار من قاعدة البيانات
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+  // الشعار الأبيض (للقائمة الجانبية الداكنة) أو الرئيسي كاحتياط
+  const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
+  // الشعار الرئيسي (للهيدر في الموبايل)
+  const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
+  // اسم الجمعية
+  const orgName = orgSettings?.organizationName || 'بوابة تمام';
+  const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -322,14 +331,14 @@ function DashboardLayoutContent({
         >
           <SidebarHeader className="h-16 justify-center border-b border-sidebar-border">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-9 h-9 shrink-0" />
+              <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
               {!isCollapsed ? (
                 <div>
                   <span className="font-bold text-sidebar-foreground block leading-tight">
-                    بوابة تمام
+                    {orgName}
                   </span>
                   <span className="text-xs text-sidebar-foreground/50">
-                    للعناية بالمساجد
+                    {orgNameShort}
                   </span>
                 </div>
               ) : null}
@@ -443,7 +452,7 @@ function DashboardLayoutContent({
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="شعار بوابة تمام" className="w-8 h-8" />
+                <img src={mainLogoSrc} alt="شعار" className="w-8 h-8 object-contain" />
                 <span className="font-semibold text-foreground">
                   {activeMenuItem?.label || "بوابة تمام"}
                 </span>
