@@ -25,6 +25,7 @@ const categoryTypeNames: Record<string, string> = {
   nationality: "الجنسيات",
   work_field: "مجالات العمل",
   unit: "الوحدات",
+  boq_unit: "وحدات جدول الكميات (BOQ)",
   item_category: "فئات البنود",
   item_type: "أنواع البنود",
   bank: "البنوك",

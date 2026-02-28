@@ -10,6 +10,7 @@ interface ColoredDialogProps {
   children: ReactNode;
   color: "blue" | "green" | "orange" | "purple" | "teal";
   icon?: ReactNode;
+  wide?: boolean; // نافذة عريضة لجداول الكميات
 }
 
 const colorClasses = {
@@ -50,12 +51,12 @@ const colorClasses = {
   },
 };
 
-export function ColoredDialog({ open, onOpenChange, title, children, color, icon }: ColoredDialogProps) {
+export function ColoredDialog({ open, onOpenChange, title, children, color, icon, wide }: ColoredDialogProps) {
   const colors = colorClasses[color];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0 ${colors.border} border-2`}>
+      <DialogContent className={`${wide ? 'max-w-6xl w-[95vw]' : 'max-w-3xl'} max-h-[90vh] overflow-hidden flex flex-col p-0 ${colors.border} border-2`}>
         {/* Header with color */}
         <DialogHeader className={`${colors.header} ${colors.text} p-6 pb-4 border-b ${colors.border}`}>
           <div className="flex items-center justify-between">

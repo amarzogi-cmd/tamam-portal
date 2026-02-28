@@ -53,9 +53,9 @@ const PROGRAM_LABELS: Record<string, string> = {
   suqya: "سقيا",
 };
 
-// مسار خط عربي
-const ARABIC_FONT_PATH = path.join(process.cwd(), "server", "fonts", "Amiri-Regular.ttf");
-const ARABIC_FONT_BOLD_PATH = path.join(process.cwd(), "server", "fonts", "Amiri-Bold.ttf");
+// مسار خط Cairo
+const ARABIC_FONT_PATH = path.join(process.cwd(), "server", "fonts", "Cairo.ttf");
+const ARABIC_FONT_BOLD_PATH = path.join(process.cwd(), "server", "fonts", "Cairo.ttf");
 
 // دالة مساعدة لعكس النص العربي (RTL)
 function rtl(text: string): string {
@@ -177,13 +177,12 @@ router.get("/request/:requestId/pdf", async (req, res) => {
     );
     doc.pipe(res);
 
-    // التحقق من وجود خط عربي
-    const hasArabicFont =
-      fs.existsSync(ARABIC_FONT_PATH) && fs.existsSync(ARABIC_FONT_BOLD_PATH);
+    // تحميل خط Cairo
+    const hasArabicFont = fs.existsSync(ARABIC_FONT_PATH);
 
     if (hasArabicFont) {
       doc.registerFont("Arabic", ARABIC_FONT_PATH);
-      doc.registerFont("ArabicBold", ARABIC_FONT_BOLD_PATH);
+      doc.registerFont("ArabicBold", ARABIC_FONT_PATH);
     }
 
     const regularFont = hasArabicFont ? "Arabic" : "Helvetica";

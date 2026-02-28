@@ -369,20 +369,7 @@ export default function RequestDetailsNew() {
                     </span>
                   )}
                 </Button>
-                {/* زر الرجوع للمرحلة السابقة - للمدراء فقط */}
-                {['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '') &&
-                  !['submitted', 'closed'].includes(request.currentStage) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowRevertDialog(true)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-500 dark:hover:bg-amber-600"
-                    title="الرجوع للمرحلة السابقة"
-                  >
-                    <RotateCcw className="w-4 h-4 ml-2" />
-                    رجوع للمرحلة السابقة
-                  </Button>
-                )}
+
               </div>
             )}
           </div>
@@ -445,7 +432,13 @@ export default function RequestDetailsNew() {
                   : undefined
               }
               secondaryButton={
-                request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction
+                request.currentStage === 'boq_preparation' && activeAction.canPerformAction
+                  ? {
+                      label: "الانتقال إلى التقييم المالي",
+                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval' as any }),
+                      variant: 'default' as const,
+                    }
+                : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction
                   ? {
                       label: "إدارة عروض الأسعار",
                       onClick: () => setLocation('/quotations'),
@@ -485,6 +478,22 @@ export default function RequestDetailsNew() {
               }
             />
             
+            {/* زر الرجوع للمرحلة السابقة - يظهر أسفل بطاقة الإجراء النشط */}
+            {['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '') &&
+              !['submitted', 'closed'].includes(request.currentStage) && (
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRevertDialog(true)}
+                  className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                >
+                  <RotateCcw className="w-4 h-4 ml-2" />
+                  رجوع للمرحلة السابقة
+                </Button>
+              </div>
+            )}
+
             {/* قسم المراجعة الأولية */}
             {request.currentStage === 'initial_review' && (
               <div className="mt-6 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border-2 border-blue-200">
@@ -713,17 +722,7 @@ export default function RequestDetailsNew() {
               </div>
             )}
             
-            {/* قسم جدول الكميات */}
-            {request.currentStage === 'boq_preparation' && (
-              <div className="mt-6 bg-teal-50 dark:bg-teal-950/20 p-6 rounded-lg border-2 border-teal-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <Calculator className="w-6 h-6 text-teal-600" />
-                  <h4 className="font-bold text-teal-800 text-lg">جدول الكميات (BOQ)</h4>
-                </div>
-                <p className="text-sm text-teal-600 mb-4">إدارة جداول الكميات المرتبطة بهذا الطلب</p>
-                <BoqTab requestId={requestId} />
-              </div>
-            )}
+            {/* قسم جدول الكميات - يُفتح من النافذة المنبثقة فقط */}
           </div>
         )}
       </div>
@@ -1054,12 +1053,13 @@ export default function RequestDetailsNew() {
         </div>
       </ColoredDialog>
 
-      {/* نافذة جداول الكميات */}
+      {/* نافذة جداول الكميات - عريضة لعرض الجدول بشكل كامل */}
       <ColoredDialog
         open={boqOpen}
         onOpenChange={setBoqOpen}
-        title="جداول الكميات"
+        title="جداول الكميات (BOQ)"
         color="teal"
+        wide={true}
       >
         <BoqTab requestId={requestId} />
       </ColoredDialog>

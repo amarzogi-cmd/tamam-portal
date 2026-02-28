@@ -104,8 +104,7 @@ const getMenuItems = (role: string) => {
   // لفريق الاستجابة السريعة
   if (role === "quick_response") {
     items.push(
-      { icon: FileText, label: "الطلبات العاجلة", path: "/urgent-requests" },
-      { icon: ClipboardList, label: "تقاريري", path: "/my-reports" },
+      { icon: FileText, label: "الطلبات", path: "/requests" },
     );
   }
 
@@ -118,8 +117,7 @@ const getMenuItems = (role: string) => {
       { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
-      { icon: Wallet, label: "الدفعات", path: "/payments" },
-      { icon: BarChart3, label: "التقارير المالية", path: "/financial-reports" },
+
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
@@ -129,7 +127,7 @@ const getMenuItems = (role: string) => {
   // لمدير المشروع
   if (role === "project_manager") {
     items.push(
-      { icon: ClipboardList, label: "مشاريعي", path: "/my-projects" },
+      { icon: ClipboardList, label: "المشاريع", path: "/projects" },
       { icon: FileText, label: "التقارير", path: "/reports" },
     );
   }

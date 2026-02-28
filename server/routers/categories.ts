@@ -98,6 +98,36 @@ export const categoriesRouter = router({
       };
     }),
 
+  // الحصول على وحدات BOQ
+  getBoqUnits: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    return db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.type, "boq_unit"), eq(categories.isActive, true)))
+      .orderBy(categories.sortOrder);
+  }),
+
+  // إضافة وحدة BOQ جديدة
+  addBoqUnit: protectedProcedure
+    .input(z.object({ nameAr: z.string().min(1), name: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      await db.insert(categories).values({
+        name: input.name,
+        nameAr: input.nameAr,
+        type: "boq_unit",
+        isActive: true,
+      });
+      return { success: true };
+    }),
+
   // إنشاء تصنيف جديد (محمي)
   createCategory: protectedProcedure
     .input(

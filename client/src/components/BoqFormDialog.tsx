@@ -18,9 +18,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BoqFormDialogProps {
   requestId: number;
@@ -48,6 +62,8 @@ export default function BoqFormDialog({
   item,
 }: BoqFormDialogProps) {
   const isEditMode = !!item;
+  const [unitPopoverOpen, setUnitPopoverOpen] = useState(false);
+  const [unitSearch, setUnitSearch] = useState("");
 
   const [formData, setFormData] = useState({
     category: "",
@@ -57,6 +73,9 @@ export default function BoqFormDialog({
     quantity: "",
     unitPrice: "",
   });
+
+  // جلب الوحدات من قاعدة البيانات
+  const { data: boqUnits = [] } = trpc.categories.getBoqUnits.useQuery();
 
   // تعبئة البيانات في حالة التعديل
   useEffect(() => {
@@ -69,8 +88,19 @@ export default function BoqFormDialog({
         quantity: item.quantity?.toString() || "",
         unitPrice: item.unitPrice?.toString() || "",
       });
+    } else {
+      setFormData({ category: "", itemName: "", description: "", unit: "", quantity: "", unitPrice: "" });
     }
-  }, [item]);
+  }, [item, open]);
+
+  // فلترة الوحدات بناءً على البحث
+  const filteredUnits = boqUnits.filter((u: any) =>
+    u.nameAr.toLowerCase().includes(unitSearch.toLowerCase()) ||
+    u.name.toLowerCase().includes(unitSearch.toLowerCase())
+  );
+
+  // الوحدة المختارة
+  const selectedUnit = boqUnits.find((u: any) => u.nameAr === formData.unit);
 
   // إضافة بند
   const addItemMutation = trpc.projects.addBOQItem.useMutation({
@@ -127,7 +157,7 @@ export default function BoqFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? "تعديل بند في جدول الكميات" : "إضافة بند جديد"}
@@ -145,9 +175,7 @@ export default function BoqFormDialog({
             <Label htmlFor="category">التصنيف</Label>
             <Select
               value={formData.category}
-              onValueChange={(value) =>
-                setFormData({ ...formData, category: value })
-              }
+              onValueChange={(value) => setFormData({ ...formData, category: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="اختر التصنيف" />
@@ -187,24 +215,80 @@ export default function BoqFormDialog({
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="وصف تفصيلي للبند (اختياري)"
-              rows={3}
+              rows={2}
             />
           </div>
 
-          {/* الوحدة والكمية */}
+          {/* الوحدة والكمية في صف واحد */}
           <div className="grid grid-cols-2 gap-4">
+            {/* الوحدة - Combobox مع إمكانية الكتابة اليدوية */}
             <div className="grid gap-2">
-              <Label htmlFor="unit">
+              <Label>
                 الوحدة <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="unit"
-                value={formData.unit}
-                onChange={(e) =>
-                  setFormData({ ...formData, unit: e.target.value })
-                }
-                placeholder="مثال: متر مكعب"
-              />
+              <Popover open={unitPopoverOpen} onOpenChange={setUnitPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={unitPopoverOpen}
+                    className="justify-between font-normal"
+                  >
+                    {formData.unit || "اختر أو اكتب الوحدة"}
+                    <ChevronsUpDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="بحث أو كتابة وحدة..."
+                      value={unitSearch}
+                      onValueChange={setUnitSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="p-2">
+                          <p className="text-sm text-muted-foreground mb-2">لا توجد وحدة بهذا الاسم</p>
+                          {unitSearch && (
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                setFormData({ ...formData, unit: unitSearch });
+                                setUnitSearch("");
+                                setUnitPopoverOpen(false);
+                              }}
+                            >
+                              استخدام "{unitSearch}"
+                            </Button>
+                          )}
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredUnits.map((u: any) => (
+                          <CommandItem
+                            key={u.id}
+                            value={u.nameAr}
+                            onSelect={(currentValue) => {
+                              setFormData({ ...formData, unit: currentValue });
+                              setUnitSearch("");
+                              setUnitPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "ml-2 h-4 w-4",
+                                formData.unit === u.nameAr ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {u.nameAr}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="grid gap-2">
