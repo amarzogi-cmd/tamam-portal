@@ -53,108 +53,136 @@ import { Button } from "./ui/button";
 import { ROLE_LABELS } from "@shared/constants";
 import { useTheme } from "@/contexts/ThemeContext";
 
-// عناصر القائمة حسب الدور
-const getMenuItems = (role: string) => {
-  const items: { icon: any; label: string; path: string }[] = [];
-  
-  // لوحة التحكم لغير طالبي الخدمة فقط
+// مجموعات القائمة حسب الدور
+type MenuItem = { icon: any; label: string; path: string };
+type MenuGroup = { label: string; items: MenuItem[] };
+
+const getMenuGroups = (role: string): MenuGroup[] => {
+  const groups: MenuGroup[] = [];
+
+  // الرئيسية
   if (role !== "service_requester") {
-    items.push({ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" });
+    groups.push({
+      label: "الرئيسية",
+      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+    });
   }
 
-  // للمدراء
+  // إدارة المستخدمين (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
-    items.push(
-      { icon: Users, label: "إدارة المستخدمين", path: "/users" },
-      { icon: UserCog, label: "الأدوار والصلاحيات", path: "/roles" },
-    );
+    groups.push({
+      label: "إدارة المستخدمين",
+      items: [
+        { icon: Users, label: "المستخدمون", path: "/users" },
+        { icon: UserCog, label: "الأدوار والصلاحيات", path: "/roles" },
+      ],
+    });
   }
 
-  // للمدراء ومكتب المشاريع
+  // المساجد والطلبات
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
-    items.push(
-      { icon: Building2, label: "المساجد", path: "/mosques" },
-      { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
-      { icon: FileText, label: "الطلبات", path: "/requests" },
-      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-      { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-      // تم نقل جداول الكميات إلى داخل صفحة الطلب
-      // { icon: Calculator, label: "جداول الكميات", path: "/boq" },
-      { icon: Truck, label: "الموردين", path: "/suppliers" },
-      { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
-      { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-      { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
-      { icon: FileText, label: "العقود", path: "/contracts" },
-      { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
-      { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
-      { icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" },
-      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
-    );
+    groups.push({
+      label: "المساجد والطلبات",
+      items: [
+        { icon: Building2, label: "المساجد", path: "/mosques" },
+        { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
+        { icon: FileText, label: "الطلبات", path: "/requests" },
+        { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
+        { icon: ClipboardList, label: "المشاريع", path: "/projects" },
+      ],
+    });
+    groups.push({
+      label: "المالية والعقود",
+      items: [
+        { icon: Truck, label: "الموردون", path: "/suppliers" },
+        { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+        { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
+        { icon: FileText, label: "العقود", path: "/contracts" },
+        { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
+        { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
+        { icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" },
+        { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
+      ],
+    });
   }
 
-  // للفريق الميداني
+  // الفريق الميداني
   if (role === "field_team") {
-    items.push(
-      { icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" },
-      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-      { icon: FileText, label: "طلباتي", path: "/my-requests" },
-    );
+    groups.push({
+      label: "الميدان",
+      items: [
+        { icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" },
+        { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
+        { icon: FileText, label: "طلباتي", path: "/my-requests" },
+      ],
+    });
   }
 
-  // لفريق الاستجابة السريعة
+  // الاستجابة السريعة
   if (role === "quick_response") {
-    items.push(
-      { icon: FileText, label: "الطلبات", path: "/requests" },
-    );
+    groups.push({
+      label: "الطلبات",
+      items: [{ icon: FileText, label: "الطلبات", path: "/requests" }],
+    });
   }
 
-  // للإدارة المالية
+  // الإدارة المالية
   if (role === "financial") {
-    items.push(
-      // تم نقل جداول الكميات إلى داخل صفحة الطلب
-      // { icon: Calculator, label: "جداول الكميات", path: "/boq" },
-      { icon: Truck, label: "الموردين", path: "/suppliers" },
-      { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
-      { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-      { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
-
-      { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
-      { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
-      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
-    );
+    groups.push({
+      label: "المالية والعقود",
+      items: [
+        { icon: Truck, label: "الموردون", path: "/suppliers" },
+        { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+        { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
+        { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
+        { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
+        { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
+      ],
+    });
   }
 
-  // لمدير المشروع
+  // مدير المشروع
   if (role === "project_manager") {
-    items.push(
-      { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-      { icon: FileText, label: "التقارير", path: "/reports" },
-    );
+    groups.push({
+      label: "المشاريع",
+      items: [
+        { icon: ClipboardList, label: "المشاريع", path: "/projects" },
+        { icon: FileText, label: "التقارير", path: "/reports" },
+      ],
+    });
   }
 
-  // للاتصال المؤسسي
+  // الاتصال المؤسسي
   if (role === "corporate_comm") {
-    items.push(
-      { icon: Handshake, label: "الشركاء", path: "/partners" },
-      { icon: Palette, label: "الهوية البصرية", path: "/branding" },
-      { icon: BarChart3, label: "التقارير", path: "/reports" },
-    );
+    groups.push({
+      label: "الاتصال المؤسسي",
+      items: [
+        { icon: Handshake, label: "الشركاء", path: "/partners" },
+        { icon: Palette, label: "الهوية البصرية", path: "/branding" },
+        { icon: BarChart3, label: "التقارير", path: "/reports" },
+      ],
+    });
   }
 
-  // للمدراء فقط
+  // الإعدادات (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
-    items.push(
-      { icon: BarChart3, label: "لوحة مؤشرات الأداء", path: "/kpi-dashboard" },
-      { icon: Handshake, label: "الشركاء", path: "/partners" },
-      { icon: Palette, label: "الهوية البصرية", path: "/branding" },
-      { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },
-      { icon: Settings, label: "الإعدادات", path: "/settings" },
-      { icon: Clock, label: "إعدادات المراحل", path: "/stage-settings" },
-    );
+    groups.push({
+      label: "الإعدادات والتقارير",
+      items: [
+        { icon: BarChart3, label: "مؤشرات الأداء", path: "/kpi-dashboard" },
+        { icon: Settings, label: "إدارة التصنيفات", path: "/categories" },
+        { icon: Building2, label: "إعدادات الجمعية", path: "/organization-settings" },
+        { icon: Settings, label: "الإعدادات", path: "/settings" },
+        { icon: Clock, label: "إعدادات المراحل", path: "/stage-settings" },
+      ],
+    });
   }
 
-  return items;
+  return groups;
 };
+
+// دالة مساعدة لاستخراج جميع العناصر بالترتيب
+const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -251,10 +279,12 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const menuGroups = getMenuGroups(user?.role || "");
   const menuItems = getMenuItems(user?.role || "");
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
+  const logoSrc = theme === 'dark' ? '/logo-white.svg' : '/logo.svg';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -303,7 +333,7 @@ function DashboardLayoutContent({
         >
           <SidebarHeader className="h-16 justify-center border-b">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <img src="/logo.svg" alt="شعار بوابة تمام" className="w-9 h-9 shrink-0" />
+              <img src={logoSrc} alt="شعار بوابة تمام" className="w-9 h-9 shrink-0" />
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
                   <div>
@@ -319,27 +349,39 @@ function DashboardLayoutContent({
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0 py-2">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+          <SidebarContent className="gap-0 py-2 overflow-y-auto">
+            {menuGroups.map((group, groupIdx) => (
+              <div key={group.label}>
+                {groupIdx > 0 && !isCollapsed && (
+                  <div className="mx-3 my-1 border-t border-border/50" />
+                )}
+                {!isCollapsed && menuGroups.length > 1 && (
+                  <p className="px-4 py-1.5 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                    {group.label}
+                  </p>
+                )}
+                <SidebarMenu className="px-2 py-0.5">
+                  {group.items.map(item => {
+                    const isActive = location === item.path;
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          onClick={() => setLocation(item.path)}
+                          tooltip={item.label}
+                          className={`h-9 transition-all font-normal text-sm`}
+                        >
+                          <item.icon
+                            className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                          />
+                          <span className={isActive ? "text-primary font-medium" : ""}>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </div>
+            ))}
           </SidebarContent>
 
           <SidebarFooter className="p-3 border-t">

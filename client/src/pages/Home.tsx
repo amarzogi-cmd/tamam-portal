@@ -51,9 +51,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.svg" alt="شعار بوابة تمام" className="w-10 h-10" />
               <div>
                 <h1 className="font-bold text-lg text-foreground">بوابة تمام</h1>
                 <p className="text-xs text-muted-foreground">للعناية بالمساجد</p>
@@ -243,9 +241,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                  <Building2 className="w-6 h-6" />
-                </div>
+                <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-10 h-10" />
                 <div>
                   <h3 className="font-bold text-lg">بوابة تمام</h3>
                   <p className="text-xs opacity-70">للعناية بالمساجد</p>
