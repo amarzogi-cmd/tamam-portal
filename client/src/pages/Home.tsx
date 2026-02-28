@@ -19,6 +19,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 // خدمات المساجد
 const services = [
@@ -43,6 +44,11 @@ const stats = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+  // الشعار الرئيسي (ملون) للهيدر ذو الخلفية الفاتحة
+  const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
+  const orgName = orgSettings?.organizationName || 'بوابة تمام';
+  const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -51,10 +57,10 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src="/logo.svg" alt="شعار بوابة تمام" className="w-10 h-10" />
+              <img src={mainLogoSrc} alt="شعار" className="w-10 h-10 object-contain" />
               <div>
-                <h1 className="font-bold text-lg text-foreground">بوابة تمام</h1>
-                <p className="text-xs text-muted-foreground">للعناية بالمساجد</p>
+                <h1 className="font-bold text-lg text-foreground">{orgName}</h1>
+                <p className="text-xs text-muted-foreground">{orgNameShort}</p>
               </div>
             </div>
             
@@ -88,12 +94,24 @@ export default function Home() {
       </header>
 
       {/* قسم البطل */}
-      <section className="relative py-20 lg:py-32" style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #6366f1 100%)' }}>
+      <section className="relative py-20 lg:py-32" style={{ background: `linear-gradient(135deg, ${(orgSettings as any)?.colorPrimary1 || '#09707e'} 0%, ${(orgSettings as any)?.colorPrimary2 || '#0891b2'} 100%)` }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
+            {/* شعار القسم الرئيسي */}
+            {(orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl) && (
+              <div className="flex justify-center mb-6">
+                <div className="w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm p-3 flex items-center justify-center shadow-xl">
+                  <img
+                    src={orgSettings.secondaryLogoUrl || orgSettings.logoUrl || ''}
+                    alt="شعار"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
             <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
-              بوابة تمام للعناية بالمساجد
+              {orgName}
             </h1>
             <p className="text-lg lg:text-xl mb-8 leading-relaxed text-white/95 drop-shadow">
               منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله

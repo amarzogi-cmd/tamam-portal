@@ -115,6 +115,15 @@
   --chart-3: oklch(0.45 0.15 250);          /* أزرق داكن */
   --chart-4: oklch(0.60 0.18 70);           /* برتقالي */
   --chart-5: oklch(0.55 0.20 290);          /* بنفسجي */
+
+  /* ألوان الهوية البصرية الديناميكية (تُحدَّث من قاعدة البيانات) */
+  --brand-primary-1: #09707e;
+  --brand-primary-2: #0891b2;
+  --brand-secondary-1: #6366f1;
+  --brand-secondary-2: #f59e0b;
+  --brand-secondary-3: #ef4444;
+  --brand-secondary-4: #8b5cf6;
+  --brand-secondary-5: #10b981;
 }
 
 .dark {

@@ -90,6 +90,28 @@ import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import AdminGuard from "./components/AdminGuard";
 import DebugUser from "./pages/DebugUser";
+import { useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+
+// مكوّن يطبّق ألوان الهوية البصرية على متغيرات CSS عند تحميل التطبيق
+function BrandColorApplier() {
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+  useEffect(() => {
+    if (!orgSettings) return;
+    const s = orgSettings as any;
+    const root = document.documentElement;
+    if (s.colorPrimary1) root.style.setProperty("--brand-primary-1", s.colorPrimary1);
+    if (s.colorPrimary2) root.style.setProperty("--brand-primary-2", s.colorPrimary2);
+    if (s.colorSecondary1) root.style.setProperty("--brand-secondary-1", s.colorSecondary1);
+    if (s.colorSecondary2) root.style.setProperty("--brand-secondary-2", s.colorSecondary2);
+    if (s.colorSecondary3) root.style.setProperty("--brand-secondary-3", s.colorSecondary3);
+    if (s.colorSecondary4) root.style.setProperty("--brand-secondary-4", s.colorSecondary4);
+    if (s.colorSecondary5) root.style.setProperty("--brand-secondary-5", s.colorSecondary5);
+    // تطبيق اللون الرئيسي الأول على --sidebar-background
+    if (s.colorPrimary1) root.style.setProperty("--sidebar-background", s.colorPrimary1);
+  }, [orgSettings]);
+  return null;
+}
 
 // مكون لحماية المسارات الإدارية
 const AdminRoute = ({ component: Component }: { component: React.ComponentType }) => (
@@ -232,6 +254,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
+          <BrandColorApplier />
           <Toaster />
           <Router />
         </TooltipProvider>
