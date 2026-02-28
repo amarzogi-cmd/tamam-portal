@@ -57,7 +57,12 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src={mainLogoSrc} alt="شعار" className="w-10 h-10 object-contain" />
+              <img 
+                src={mainLogoSrc} 
+                alt="شعار" 
+                className="w-10 h-10 object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.svg'; }}
+              />
               <div>
                 <h1 className="font-bold text-lg text-foreground">{orgName}</h1>
                 <p className="text-xs text-muted-foreground">{orgNameShort}</p>
@@ -98,18 +103,17 @@ export default function Home() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            {/* شعار القسم الرئيسي */}
-            {(orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl) && (
-              <div className="flex justify-center mb-6">
-                <div className="w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm p-3 flex items-center justify-center shadow-xl">
-                  <img
-                    src={orgSettings.secondaryLogoUrl || orgSettings.logoUrl || ''}
-                    alt="شعار"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+            {/* شعار القسم الرئيسي - يظهر دائماً */}
+            <div className="flex justify-center mb-6">
+              <div className="w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm p-3 flex items-center justify-center shadow-xl">
+                <img
+                  src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo.svg'}
+                  alt="شعار"
+                  className="w-full h-full object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/logo.svg'; }}
+                />
               </div>
-            )}
+            </div>
             <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
               {orgName}
             </h1>

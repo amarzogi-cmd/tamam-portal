@@ -14,6 +14,9 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // جلب إعدادات الجمعية لعرض الشعار والألوان
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
       toast.success("تم تسجيل الدخول بنجاح");
@@ -38,16 +41,36 @@ export default function AdminLogin() {
     });
   };
 
+  // استخدام اللون الرئيسي من الهوية البصرية أو الافتراضي
+  const primaryColor = orgSettings?.colorPrimary1 || "#09707e";
+  const secondaryColor = orgSettings?.colorPrimary2 || "#0D9488";
+
+  // الشعار: الشعار الثانوي (الأبيض/الأيقونة) للخلفيات الداكنة، ثم الرئيسي، ثم الافتراضي
+  const logoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo.svg";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 bg-white/95">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
+      }}
+    >
+      <Card className="w-full max-w-md p-8 bg-white/95 shadow-2xl">
         {/* الشعار */}
         <div className="text-center mb-8">
-          <img 
-            src="/logo.svg" 
-            alt="شعار بوابة تمام" 
-            className="h-20 mx-auto mb-4"
-          />
+          <div 
+            className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center overflow-hidden"
+            style={{ backgroundColor: primaryColor }}
+          >
+            <img 
+              src={logoSrc}
+              alt="شعار بوابة تمام" 
+              className="h-14 w-14 object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/logo.svg";
+              }}
+            />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             دخول الموظفين
           </h1>
@@ -103,7 +126,8 @@ export default function AdminLogin() {
           {/* زر تسجيل الدخول */}
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full text-white font-semibold"
+            style={{ backgroundColor: primaryColor }}
             disabled={loginMutation.isPending}
           >
             {loginMutation.isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
@@ -112,7 +136,11 @@ export default function AdminLogin() {
 
         {/* رابط العودة */}
         <div className="mt-6 text-center">
-          <a href="/" className="text-blue-600 hover:text-blue-700 text-sm">
+          <a 
+            href="/" 
+            className="text-sm hover:underline"
+            style={{ color: primaryColor }}
+          >
             ← العودة إلى الصفحة الرئيسية
           </a>
         </div>
