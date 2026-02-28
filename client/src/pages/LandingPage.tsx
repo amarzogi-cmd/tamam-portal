@@ -58,7 +58,10 @@ export default function LandingPage() {
       </header>
 
       {/* ═══════════════ قسم الهيرو ═══════════════ */}
-      <section className="relative overflow-hidden gradient-hero islamic-pattern">
+      <section
+        className="relative overflow-hidden islamic-pattern"
+        style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
+      >
         <div className="container mx-auto px-6 py-20 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
             {/* الشعار الكبير */}
