@@ -105,9 +105,9 @@ export default function RequesterApprovals() {
             <CheckSquare className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">اعتماد حسابات طالبي الخدمة</h1>
+            <h1 className="text-2xl font-bold text-foreground">حسابات طالبي الخدمة</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              مراجعة واعتماد حسابات الأئمة والمؤذنين والمتبرعين وطالبي الخدمة
+              إدارة حسابات طالبي الخدمة ومراجعتها
             </p>
           </div>
         </div>

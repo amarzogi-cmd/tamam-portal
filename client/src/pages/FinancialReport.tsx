@@ -25,6 +25,8 @@ import {
   Wallet,
   Download,
   Printer,
+  ScrollText,
+  Percent,
 } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -97,7 +99,7 @@ export default function FinancialReport() {
         </div>
 
         {/* بطاقات الإحصائيات الرئيسية */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">إجمالي طلبات الصرف</CardTitle>
@@ -153,17 +155,105 @@ export default function FinancialReport() {
               </p>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">إجمالي العقود</CardTitle>
+              <ScrollText className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary?.totalContracts || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {formatAmount(summary?.totalContractAmount || 0)} ريال
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">نسبة الصرف من العقود</CardTitle>
+              <Percent className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">
+                {summary?.totalContractAmount ? 
+                  `${((( summary.totalPaidAmount) / summary.totalContractAmount) * 100).toFixed(1)}%`
+                  : "0%"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                متبقي: {formatAmount((summary?.totalContractAmount || 0) - (summary?.totalPaidAmount || 0))} ريال
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="print:hidden">
           <TabsList>
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="contracts">العقود ونسبة الصرف</TabsTrigger>
             <TabsTrigger value="byProject">حسب المشروع</TabsTrigger>
             <TabsTrigger value="byMonth">حسب الشهر</TabsTrigger>
             <TabsTrigger value="byFunding">حسب مصدر الدعم</TabsTrigger>
             <TabsTrigger value="orders">أوامر الصرف</TabsTrigger>
           </TabsList>
+
+          {/* تبويب العقود ونسبة الصرف */}
+          <TabsContent value="contracts">
+            <Card>
+              <CardHeader>
+                <CardTitle>ملخص العقود ونسبة الصرف</CardTitle>
+                <CardDescription>مقارنة قيمة العقود بالمبالغ المصروفة فعلياً</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>رقم العقد</TableHead>
+                        <TableHead>عنوان العقد</TableHead>
+                        <TableHead>المشروع</TableHead>
+                        <TableHead>المورد / المقاول</TableHead>
+                        <TableHead>قيمة العقد</TableHead>
+                        <TableHead>المصروف</TableHead>
+                        <TableHead>المتبقي</TableHead>
+                        <TableHead>نسبة الصرف</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData?.contractsSummary?.map((contract) => (
+                        <TableRow key={contract.contractId}>
+                          <TableCell className="font-mono text-sm">{contract.contractNumber}</TableCell>
+                          <TableCell className="font-medium">{contract.contractTitle}</TableCell>
+                          <TableCell>{contract.projectName || "-"}</TableCell>
+                          <TableCell>{contract.supplierName || "-"}</TableCell>
+                          <TableCell>{formatAmount(contract.contractAmount)} ريال</TableCell>
+                          <TableCell className="text-green-600">{formatAmount(contract.totalPaid)} ريال</TableCell>
+                          <TableCell className="text-orange-600">{formatAmount(contract.remainingAmount)} ريال</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-16">
+                                <div
+                                  className="bg-primary h-2 rounded-full"
+                                  style={{ width: `${Math.min(contract.disbursementPercentage, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-10">{contract.disbursementPercentage}%</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(!reportData?.contractsSummary || reportData.contractsSummary.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            لا توجد عقود مسجلة
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* نظرة عامة */}
           <TabsContent value="overview" className="space-y-4">

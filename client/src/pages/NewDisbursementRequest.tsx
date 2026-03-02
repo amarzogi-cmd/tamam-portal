@@ -171,16 +171,16 @@ export default function NewDisbursementRequest() {
     if (contractDetails) {
       const supplierFromContract: SupplierEntry = {
         id: crypto.randomUUID(),
-        name: (contractDetails.contract as any).secondPartyName || "",
-        work: (contractDetails.contract as any).subject || "",
-        amount: parseFloat((contractDetails.contract as any).totalValue || "0"),
-        iban: (contractDetails.contract as any).secondPartyIban || "",
-        bank: (contractDetails.contract as any).secondPartyBank || "",
+        name: contractDetails.contract.secondPartyName || "",
+        work: contractDetails.contract.contractTitle || "",
+        amount: parseFloat(String(contractDetails.contract.contractAmount || "0")),
+        iban: contractDetails.contract.secondPartyIban || "",
+        bank: contractDetails.contract.secondPartyBankName || "",
       };
       setSuppliers([supplierFromContract]);
       setFormData(prev => ({
         ...prev,
-        actualCost: parseFloat((contractDetails.contract as any).totalValue || "0"),
+        actualCost: parseFloat(String(contractDetails.contract.contractAmount || "0")),
       }));
     }
   }, [contractDetails]);

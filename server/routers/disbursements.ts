@@ -964,11 +964,57 @@ export const disbursementsRouter = router({
         })
         .from(disbursementOrders);
 
+      // إجماليات العقود
+      const [contractTotals] = await db
+        .select({
+          totalContracts: sql<number>`COUNT(*)`,
+          totalContractAmount: sql<number>`COALESCE(SUM(CAST(${contractsEnhanced.contractAmount} AS DECIMAL(15,2))), 0)`,
+          activeContracts: sql<number>`SUM(CASE WHEN ${contractsEnhanced.status} IN ('active', 'approved') THEN 1 ELSE 0 END)`,
+        })
+        .from(contractsEnhanced);
+      // ملخص العقود مع نسبة الصرف
+      const contractsSummary = await db
+        .select({
+          contractId: contractsEnhanced.id,
+          contractNumber: contractsEnhanced.contractNumber,
+          contractTitle: contractsEnhanced.contractTitle,
+          contractAmount: contractsEnhanced.contractAmount,
+          contractStatus: contractsEnhanced.status,
+          projectId: projects.id,
+          projectName: projects.name,
+          supplierName: contractsEnhanced.secondPartyName,
+        })
+        .from(contractsEnhanced)
+        .leftJoin(projects, eq(contractsEnhanced.projectId, projects.id))
+        .orderBy(desc(contractsEnhanced.createdAt))
+        .limit(20);
+      // حساب المصروف لكل عقد
+      const contractsWithDisbursements = await Promise.all(
+        contractsSummary.map(async (contract) => {
+          const [paid] = await db
+            .select({ total: sql<number>`COALESCE(SUM(CAST(${disbursementRequests.amount} AS DECIMAL(15,2))), 0)` })
+            .from(disbursementRequests)
+            .where(and(
+              eq(disbursementRequests.contractId, contract.contractId),
+              eq(disbursementRequests.status, "paid")
+            ));
+          const contractAmount = Number(contract.contractAmount || 0);
+          const totalPaid = Number(paid?.total || 0);
+          return {
+            ...contract,
+            contractAmount,
+            totalPaid,
+            remainingAmount: contractAmount - totalPaid,
+            disbursementPercentage: contractAmount > 0 ? Math.round((totalPaid / contractAmount) * 100) : 0,
+          };
+        })
+      );
       return {
         byProject,
         byMonth,
         byFundingSource,
         ordersByStatus,
+        contractsSummary: contractsWithDisbursements,
         summary: {
           totalRequests: totals?.totalRequests || 0,
           totalRequestedAmount: Number(totals?.totalRequestedAmount || 0),
@@ -977,6 +1023,9 @@ export const disbursementsRouter = router({
           totalOrders: orderTotals?.totalOrders || 0,
           totalOrderAmount: Number(orderTotals?.totalOrderAmount || 0),
           executedAmount: Number(orderTotals?.executedAmount || 0),
+          totalContracts: contractTotals?.totalContracts || 0,
+          totalContractAmount: Number(contractTotals?.totalContractAmount || 0),
+          activeContracts: contractTotals?.activeContracts || 0,
         },
       };
     }),

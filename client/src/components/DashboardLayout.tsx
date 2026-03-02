@@ -82,7 +82,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
         { icon: FileText, label: "الطلبات", path: "/requests" },
         { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
         { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-        { icon: CheckSquare, label: "اعتماد حسابات طالبي الخدمة", path: "/requester-approvals" },
+        { icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" },
       ],
     });
     groups.push({

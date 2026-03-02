@@ -142,34 +142,25 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Hero Section - رسالة الترحيب */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 text-white">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-6 py-4 text-white">
           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
-          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <Activity className="w-4 h-4" />
+          <div className="relative flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-white/60 text-xs">
+                <Activity className="w-3.5 h-3.5" />
                 <span>لوحة التحكم</span>
               </div>
-              <h1 className="text-3xl font-bold">
+              <div className="w-px h-4 bg-white/30" />
+              <h1 className="text-xl font-bold">
                 مرحباً، {user?.name || "المستخدم"}
               </h1>
-              <p className="text-white/80 text-lg">
+              <span className="text-white/70 text-sm hidden sm:inline">
                 {ROLE_LABELS[user?.role || ""] || user?.role}
-              </p>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5">
-                  <Target className="w-4 h-4" />
-                  <span className="text-sm font-medium">نسبة الإنجاز: {completionRate}%</span>
-                </div>
-              </div>
+              </span>
             </div>
-            <div className="flex gap-3">
-              <Link href="/service-request">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg">
-                  <Plus className="w-5 h-5 ml-2" />
-                  طلب جديد
-                </Button>
-              </Link>
+            <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1">
+              <Target className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">نسبة الإنجاز: {completionRate}%</span>
             </div>
           </div>
         </div>
@@ -200,9 +191,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* الطلبات حسب البرنامج */}
-          <Card className="lg:col-span-2 border-0 shadow-md">
+          <Card className="border-0 shadow-md">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -248,33 +239,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* روابط سريعة */}
-          <Card className="border-0 shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                روابط سريعة
-              </CardTitle>
-              <CardDescription>الوصول السريع للصفحات الرئيسية</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {getQuickLinks().map((link, index) => (
-                  <Link key={index} href={link.href}>
-                    <div className="group flex items-center gap-3 p-3 rounded-xl hover:bg-muted/80 transition-colors cursor-pointer">
-                      <div className={`w-10 h-10 rounded-lg ${link.bg} flex items-center justify-center`}>
-                        <link.icon className={`w-5 h-5 ${link.color}`} />
-                      </div>
-                      <span className="flex-1 font-medium text-foreground group-hover:text-primary transition-colors">
-                        {link.title}
-                      </span>
-                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* الطلبات حسب المرحلة والحالة */}
