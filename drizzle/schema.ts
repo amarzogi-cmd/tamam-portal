@@ -1791,3 +1791,17 @@ export type UserPermission = typeof userPermissions.$inferSelect;
 export type InsertUserPermission = typeof userPermissions.$inferInsert;
 export type PermissionsAuditLog = typeof permissionsAuditLog.$inferSelect;
 export type InsertPermissionsAuditLog = typeof permissionsAuditLog.$inferInsert;
+
+// ==================== الأدوار الوظيفية المخصصة ====================
+export const jobPositions = mysqlTable("job_positions", {
+  id: int("id").primaryKey().autoincrement(),
+  nameAr: varchar("nameAr", { length: 100 }).notNull(),
+  nameEn: varchar("nameEn", { length: 100 }),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type JobPosition = typeof jobPositions.$inferSelect;
+export type InsertJobPosition = typeof jobPositions.$inferInsert;

@@ -48,6 +48,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -91,6 +92,7 @@ export default function UsersManagement() {
 
   const { data: users, isLoading, refetch } = trpc.users.getAll.useQuery();
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
+  const { data: jobPositions } = trpc.jobPositions.getActive.useQuery();
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: () => {
@@ -237,9 +239,17 @@ export default function UsersManagement() {
       <div className="container py-8">
         {/* رأس الصفحة */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">إدارة المستخدمين</h1>
-            <p className="text-muted-foreground">إدارة حسابات الموظفين وصلاحياتهم</p>
+          <div className="flex items-center gap-3">
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
+                <ArrowRight className="h-4 w-4" />
+                رجوع
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold mb-1">إدارة المستخدمين</h1>
+              <p className="text-muted-foreground">إدارة حسابات الموظفين وصلاحياتهم</p>
+            </div>
           </div>
           <Button
             className="gradient-primary text-white gap-2"
@@ -515,12 +525,30 @@ export default function UsersManagement() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="new-position">المسمى الوظيفي</Label>
-                    <Input
-                      id="new-position"
-                      placeholder="مثال: مشرف مشاريع"
-                      value={formData.position}
-                      onChange={(e) => setFormData((p) => ({ ...p, position: e.target.value }))}
-                    />
+                    {jobPositions && jobPositions.length > 0 ? (
+                      <Select
+                        value={formData.position}
+                        onValueChange={(v) => setFormData((p) => ({ ...p, position: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر المسمى الوظيفي" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobPositions.map((jp: any) => (
+                            <SelectItem key={jp.id} value={jp.nameAr}>
+                              {jp.nameAr}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="new-position"
+                        placeholder="مثال: مشرف مشاريع"
+                        value={formData.position}
+                        onChange={(e) => setFormData((p) => ({ ...p, position: e.target.value }))}
+                      />
+                    )}
                   </div>
                 </div>
               </div>

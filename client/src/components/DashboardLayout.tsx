@@ -45,6 +45,8 @@ import {
   Banknote,
   TrendingUp,
   Clock,
+  Shield,
+  Briefcase,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -158,6 +160,17 @@ const getMenuGroups = (role: string): MenuGroup[] => {
     });
   }
 
+  // إدارة المستخدمين (للمدراء)
+  if (["super_admin", "system_admin"].includes(role)) {
+    groups.push({
+      label: "إدارة المستخدمين",
+      items: [
+        { icon: Users, label: "المستخدمون", path: "/users" },
+        { icon: Shield, label: "الأدوار والصلاحيات", path: "/roles" },
+        { icon: Briefcase, label: "الأدوار الوظيفية", path: "/job-positions" },
+      ],
+    });
+  }
   // الإعدادات (للمدراء) - مركز إعدادات موحد
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({

@@ -105,8 +105,10 @@ export default function RoleEdit() {
           variant="ghost"
           size="sm"
           onClick={() => setLocation("/roles")}
+          className="gap-1 text-muted-foreground hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" />
+          رجوع
         </Button>
         <div className="p-2 bg-primary/10 rounded-lg">
           <Shield className="h-6 w-6 text-primary" />

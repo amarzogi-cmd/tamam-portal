@@ -22,6 +22,7 @@ import { usersRouter } from "./routers/users";
 import { fieldVisitsRouter } from "./routers/fieldVisits";
 import { finalReportsRouter } from "./routers/finalReports";
 import { analyticsRouter } from "./routers/analytics";
+import { jobPositionsRouter } from "./routers/jobPositions";
 
 export const appRouter = router({
   system: systemRouter,
@@ -83,6 +84,7 @@ export const appRouter = router({
 
   // الإحصاءات والتحليلات
   analytics: analyticsRouter,
+  jobPositions: jobPositionsRouter,
 });
 
 export type AppRouter = typeof appRouter;

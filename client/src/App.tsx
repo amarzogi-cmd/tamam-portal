@@ -88,6 +88,7 @@ import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
+import JobPositions from "./pages/JobPositions";
 import AdminGuard from "./components/AdminGuard";
 import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
@@ -237,6 +238,7 @@ function Router() {
       <Route path="/action-settings">{() => <AdminRoute component={ActionSettings} />}</Route>
       
       {/* إدارة الأدوار والصلاحيات - إدارية */}
+      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
