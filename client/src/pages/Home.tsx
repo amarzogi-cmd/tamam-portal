@@ -121,7 +121,7 @@ export default function Home() {
               منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={isAuthenticated ? "/service-request" : "/login"}>
+              <Link href={isAuthenticated ? "/request-form-dynamic" : "/login"}>
                 <Button size="lg" className="bg-white text-primary hover:bg-white/90 px-8 text-lg font-semibold">
                   تقدم بطلبك الآن
                   <ArrowLeft className="w-5 h-5 mr-2" />
@@ -192,7 +192,7 @@ export default function Home() {
 
           {/* زر تقديم الطلب الموحد */}
           <div className="text-center">
-            <Link href={isAuthenticated ? "/service-request" : "/login"}>
+            <Link href={isAuthenticated ? "/request-form-dynamic" : "/login"}>
               <Button size="lg" className="gradient-primary text-white px-12 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow">
                 تقدم بطلبك الآن
                 <ArrowLeft className="w-6 h-6 mr-2" />

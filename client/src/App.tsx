@@ -90,6 +90,7 @@ import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import JobPositions from "./pages/JobPositions";
+import ProgramCustomization from "./pages/ProgramCustomization";
 import AdminGuard from "./components/AdminGuard";
 import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
@@ -160,12 +161,11 @@ function Router() {
       <Route path="/field-visits/calendar">{() => <AdminRoute component={FieldVisitsCalendar} />}</Route>
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
-      <Route path="/requester/requests/:id" component={RequestDetails} />
-      {/* <Route path="/requester/requests/:id/old" component={RequestDetailsOld} /> */}
+      <Route path="/requester/requests/:id" component={RequestDetails} />      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
+      <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
-      <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />
-      
+      <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />      
       {/* المستخدمون - إدارية */}
       <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
       <Route path="/requester-approvals">{() => <AdminRoute component={RequesterApprovals} />}</Route>
