@@ -50,9 +50,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
-  active: "bg-green-100 text-green-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  suspended: "bg-red-100 text-red-800",
+  active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  suspended: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 const statusLabels: Record<string, string> = {
@@ -155,7 +155,7 @@ export default function Users() {
         </div>
 
         {/* فلاتر البحث */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm bg-card">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
@@ -164,7 +164,7 @@ export default function Users() {
                   placeholder="البحث عن مستخدم..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 bg-background text-foreground"
                 />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -194,7 +194,7 @@ export default function Users() {
         </Card>
 
         {/* جدول المستخدمين */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm bg-card">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center">
@@ -204,20 +204,20 @@ export default function Users() {
             ) : users && users.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">المستخدم</TableHead>
-                      <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                      <TableHead className="text-right">الدور</TableHead>
-                      <TableHead className="text-right">الحالة</TableHead>
-                      <TableHead className="text-right">تاريخ التسجيل</TableHead>
-                      <TableHead className="text-right">الإجراءات</TableHead>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="border-b border-border">
+                      <TableHead className="text-right text-foreground font-semibold">المستخدم</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">البريد الإلكتروني</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">الدور</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">الحالة</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">تاريخ التسجيل</TableHead>
+                      <TableHead className="text-right text-foreground font-semibold">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
+                      <TableRow key={user.id} className="border-b border-border hover:bg-muted/50">
+                        <TableCell className="text-foreground">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10 border">
                               <AvatarFallback className="bg-primary/10 text-primary">
@@ -229,8 +229,8 @@ export default function Users() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-foreground">{user.email}</TableCell>
+                        <TableCell className="text-foreground">
                           <span className="flex items-center gap-1">
                             <Shield className="w-3 h-3" />
                             {ROLE_LABELS[user.role] || user.role}
@@ -241,7 +241,7 @@ export default function Users() {
                             {statusLabels[user.status] || "غير محدد"}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-foreground">
                           {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "-"}
                         </TableCell>
                         <TableCell>
