@@ -32,6 +32,7 @@ import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
 import MyRequests from "./pages/MyRequests";
+import { DynamicServiceRequestForm } from "./pages/DynamicServiceRequestForm";
 
 // صفحات المستخدمين
 import UsersManagement from "./pages/UsersManagement";
@@ -161,6 +162,9 @@ function Router() {
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id" component={RequestDetails} />
       {/* <Route path="/requester/requests/:id/old" component={RequestDetailsOld} /> */}
+      
+      {/* النموذج الديناميكي - طلب خدمة موحد */}
+      <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />
       
       {/* المستخدمون - إدارية */}
       <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
