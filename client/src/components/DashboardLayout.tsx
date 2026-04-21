@@ -47,6 +47,7 @@ import {
   Clock,
   Shield,
   Briefcase,
+  Layers,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -177,6 +178,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       label: "الإعدادات",
       items: [
         { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
+        { icon: Layers, label: "إدارة البرامج", path: "/program-customization" },
       ],
     });
   }

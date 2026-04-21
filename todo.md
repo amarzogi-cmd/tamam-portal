@@ -884,3 +884,15 @@
 - [x] إنشاء إجراءات الخادم لإدارة الأدوار الوظيفية (CRUD) - jobPositionsRouter
 - [x] بناء واجهة إدارة الأدوار الوظيفية (إضافة/تعديل/حذف) ضمن إعدادات النظام (/job-positions)
 - [x] ربط قائمة الأدوار الوظيفية في نموذج إضافة المستخدم بقاعدة البيانات
+
+## المرحلة الأخيرة: إصلاح الوضع الداكن وإضافة رابط إدارة البرامج
+
+- [x] إصلاح badge classes في index.css للوضع الداكن
+  - .badge-success: إضافة dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700
+  - .badge-warning: إضافة dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700
+  - .badge-danger: إضافة dark:bg-red-900/30 dark:text-red-300 dark:border-red-700
+  - .badge-info: إضافة dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700
+- [x] إضافة رابط "إدارة البرامج" في القائمة الجانبية (قسم الإعدادات)
+  - يظهر فقط لـ super_admin و system_admin
+  - يشير إلى /program-customization
+  - أيقونة Layers من lucide-react

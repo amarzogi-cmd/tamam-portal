@@ -34,11 +34,11 @@ import { Progress } from "@/components/ui/progress";
 // تم استبدال programIcons بمكون ProgramIcon
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-800",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
 };
 
 // حساب نسبة التقدم بناءً على المرحلة
@@ -73,9 +73,9 @@ export default function RequesterDashboard() {
   const unreadNotifications = notifications?.notifications?.filter((n: any) => !n.isRead) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       {/* شريط التنقل */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-3">
@@ -152,7 +152,7 @@ export default function RequesterDashboard() {
 
         {/* أزرار الإجراءات الرئيسية */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
-          <Link href="/service-request">
+          <Link href="/request-form-dynamic">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-primary to-primary/80 text-white">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -197,8 +197,8 @@ export default function RequesterDashboard() {
 
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <p className="text-2xl font-bold text-foreground">{pendingRequests.length}</p>
               <p className="text-xs text-muted-foreground">قيد الانتظار</p>
@@ -207,8 +207,8 @@ export default function RequesterDashboard() {
 
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-2">
+                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <p className="text-2xl font-bold text-foreground">{inProgressRequests.length}</p>
               <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
@@ -217,8 +217,8 @@ export default function RequesterDashboard() {
 
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <p className="text-2xl font-bold text-foreground">{completedRequests.length}</p>
               <p className="text-xs text-muted-foreground">مكتملة</p>
@@ -294,7 +294,7 @@ export default function RequesterDashboard() {
                     <FileText className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <p className="text-muted-foreground mb-4">لا توجد طلبات حتى الآن</p>
-                  <Link href="/service-request">
+                  <Link href="/request-form-dynamic">
                     <Button className="gradient-primary text-white">
                       <Plus className="w-4 h-4 ml-2" />
                       تقديم طلب جديد
