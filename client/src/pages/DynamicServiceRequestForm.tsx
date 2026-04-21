@@ -205,24 +205,24 @@ export const DynamicServiceRequestForm: React.FC = () => {
                 <p className="text-gray-600">اختر البرنامج الذي تريد تقديم طلب خدمة له</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                 {Object.values(PROGRAM_CONFIGS).map((program) => {
                   const Icon = program.icon;
                   return (
                     <Card
                       key={program.id}
-                      className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
+                      className={`p-2 sm:p-3 cursor-pointer transition-all hover:shadow-md ${
                         selectedService === program.id
                           ? 'ring-2 ring-blue-600 bg-blue-50'
                           : 'hover:border-blue-300'
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-12 h-12 rounded-lg ${program.color} flex items-center justify-center mb-3`}>
-                        <Icon className="w-6 h-6 text-white" />
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color} flex items-center justify-center mb-2`}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
-                      <h3 className="font-bold text-gray-900">{program.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{program.description}</p>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">{program.name}</h3>
+                      <p className="text-xs text-gray-600 mt-1 hidden sm:block">{program.description}</p>
                     </Card>
                   );
                 })}
@@ -361,6 +361,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     onChange={(value) => handleFieldChange(field.name, value)}
                     error={errors[field.name]}
                     mosqueOptions={userMosques}
+                    onAddMosque={() => navigate('/mosques/add')}
                   />
                 ))}
               </div>

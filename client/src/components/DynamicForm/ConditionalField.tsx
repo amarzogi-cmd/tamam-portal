@@ -10,6 +10,7 @@ interface ConditionalFieldProps {
   error?: string;
   disabled?: boolean;
   mosqueOptions?: Array<{ id: number; name: string; city?: string }>;
+  onAddMosque?: () => void;
 }
 
 export const ConditionalField: React.FC<ConditionalFieldProps> = ({
@@ -20,6 +21,7 @@ export const ConditionalField: React.FC<ConditionalFieldProps> = ({
   error,
   disabled,
   mosqueOptions,
+  onAddMosque,
 }) => {
   // التحقق من الشروط
   if (!shouldShowField(field, formData)) {
@@ -34,6 +36,7 @@ export const ConditionalField: React.FC<ConditionalFieldProps> = ({
       error={error}
       disabled={disabled}
       options={mosqueOptions}
+      onAddMosque={onAddMosque}
     />
   );
 };

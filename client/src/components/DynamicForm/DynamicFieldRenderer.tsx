@@ -5,6 +5,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, AlertTriangle } from 'lucide-react';
 
 interface DynamicFieldRendererProps {
   field: FormField;
@@ -13,6 +16,7 @@ interface DynamicFieldRendererProps {
   error?: string;
   disabled?: boolean;
   options?: Array<{ id: number; name: string; city?: string }>;
+  onAddMosque?: () => void;
 }
 
 export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
@@ -22,6 +26,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   error,
   disabled,
   options,
+  onAddMosque,
 }) => {
   const renderField = () => {
     switch (field.type) {
@@ -53,7 +58,29 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
       case 'select':
         // معالجة خاصة لحقل المسجد
-        if (field.name === 'mosqueId' && options) {
+        if (field.name === 'mosqueId') {
+          if (!options || options.length === 0) {
+            return (
+              <div className="space-y-3">
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    <p className="font-medium mb-2">لا توجد مساجد مسجلة</p>
+                    <p className="text-sm">هل تريد إضافة مسجد جديد؟</p>
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  type="button"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={onAddMosque}
+                >
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة مسجد جديد
+                </Button>
+              </div>
+            );
+          }
+          
           return (
             <Select value={value?.toString() || ''} onValueChange={(val) => onChange(parseInt(val))} disabled={disabled}>
               <SelectTrigger className={error ? 'border-red-500' : ''}>
