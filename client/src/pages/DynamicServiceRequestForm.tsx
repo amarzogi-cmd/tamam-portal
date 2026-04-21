@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, AlertTriangle } from 'lucide-react';
 
 type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
 
@@ -316,6 +316,40 @@ export const DynamicServiceRequestForm: React.FC = () => {
                 </h2>
                 <p className="text-gray-600">{selectedProgramConfig?.description}</p>
               </div>
+
+              {/* تنبيه بيانات المسجد الناقصة */}
+              {formData.mosqueId && userMosques && (
+                (() => {
+                  const selectedMosque = userMosques.find((m: any) => m.id === parseInt(formData.mosqueId));
+                  const missingFields = [];
+                  if (!selectedMosque?.imamName) missingFields.push('بيانات الإمام');
+                  if (!selectedMosque?.address) missingFields.push('العنوان التفصيلي');
+                  
+                  return missingFields.length > 0 ? (
+                    <Alert className="bg-amber-50 border-amber-200">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-800">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-medium mb-1">بيانات المسجد غير مكتملة</p>
+                            <p className="text-sm">البيانات الناقصة: {missingFields.join('، ')}</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            className="bg-amber-600 hover:bg-amber-700 text-white whitespace-nowrap"
+                            onClick={() => {
+                              alert('سيتم فتح نموذج تسجيل بيانات المسجد');
+                            }}
+                          >
+                            <Plus className="w-4 h-4 ml-1" />
+                            إضافة البيانات
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null;
+                })()
+              )}
 
               <div className="space-y-6">
                 {visibleFields.map((field) => (
