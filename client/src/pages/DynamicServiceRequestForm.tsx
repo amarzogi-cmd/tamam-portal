@@ -44,15 +44,27 @@ export const DynamicServiceRequestForm: React.FC = () => {
     { enabled: currentStep === 'details' }
   );
   // undefined = جاري التحميل، [] = لا توجد مساجد، [...] = توجد مساجد
-  const userMosques: Array<{ id: number; name: string; city?: string }> | undefined =
+  const userMosques: Array<{ id: number; name: string; city?: string; area?: string | null; capacity?: number | null }> | undefined =
     mosquesLoading ? undefined : (mosquesResult?.mosques ?? []);
+
+  // ملء بيانات المسجد تلقائياً عند اختياره
+  const handleMosqueSelect = (mosqueId: number) => {
+    const selectedMosque = userMosques?.find((m) => m.id === mosqueId);
+    setFormData((prev) => ({
+      ...prev,
+      mosqueId,
+      // ملء المساحة وعدد المصلين تلقائياً من بيانات المسجد
+      ...(selectedMosque?.area ? { mosqueArea: parseFloat(selectedMosque.area) } : {}),
+      ...(selectedMosque?.capacity ? { actualWorshippers: selectedMosque.capacity } : {}),
+    }));
+  };
 
   // معالج نجاح إضافة المسجد من الـ Modal
   const handleMosqueAdded = (mosqueId: number, _mosqueName: string) => {
     setShowAddMosqueModal(false);
     // تحديث قائمة المساجد
     utils.mosques.search.invalidate();
-    // تحديد المسجد الجديد تلقائياً في النموذج
+    // تحديد المسجد الجديد تلقائياً في النموذج (بدون بيانات مساحة لأنه جديد)
     setFormData((prev) => ({ ...prev, mosqueId }));
   };
 
@@ -118,13 +130,15 @@ export const DynamicServiceRequestForm: React.FC = () => {
     try {
       const programData: Record<string, any> = {};
       for (const field of visibleFields) {
-        if (formData[field.name] !== undefined) programData[field.name] = formData[field.name];
-      }
-      if (selectedProgramConfig?.requiresMosque && formData.mosqueId) {
-        programData.mosqueId = formData.mosqueId;
+        // استثناء mosqueId من programData لأنه يُرسل كحقل مستقل
+        if (field.name !== 'mosqueId' && formData[field.name] !== undefined) {
+          programData[field.name] = formData[field.name];
+        }
       }
       await createRequestMutation.mutateAsync({
         programType: selectedService as any,
+        // إرسال mosqueId كحقل مستقل وليس داخل programData
+        mosqueId: selectedProgramConfig?.requiresMosque ? formData.mosqueId : undefined,
         programData,
         priority: 'normal',
       });
@@ -303,7 +317,14 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     field={field}
                     formData={formData}
                     value={formData[field.name]}
-                    onChange={(value) => handleFieldChange(field.name, value)}
+                    onChange={(value) => {
+                      // عند اختيار المسجد: ملء بياناته تلقائياً
+                      if (field.name === 'mosqueId') {
+                        handleMosqueSelect(value);
+                      } else {
+                        handleFieldChange(field.name, value);
+                      }
+                    }}
                     error={errors[field.name]}
                     mosqueOptions={userMosques}
                     onAddMosque={() => setShowAddMosqueModal(true)}
