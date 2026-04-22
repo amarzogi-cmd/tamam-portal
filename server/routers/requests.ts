@@ -28,6 +28,7 @@ import {
 import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
+import { notifyOwner } from "../_core/notification";
 import { 
   STAGE_TRANSITION_PERMISSIONS, 
   STATUS_CHANGE_PERMISSIONS, 
@@ -186,6 +187,23 @@ export const requestsRouter = router({
           relatedType: "request",
           relatedId: requestId,
         });
+      }
+
+      // إرسال إشعار Manus لمالك المشروع عند تقديم طلب جديد
+      try {
+        const mosqueName = mosqueData?.name || 'غير محدد';
+        const programNames: Record<string, string> = {
+          bunyan: 'بنيان', daaem: 'داعم', enaya: 'عناية', emdad: 'إمداد',
+          ethraa: 'إثراء', sedana: 'سدانة', taqa: 'طاقة', miyah: 'مياه', suqya: 'سقيا'
+        };
+        const programName = programNames[input.programType] || input.programType;
+        await notifyOwner({
+          title: `طلب جديد - ${programName} (${requestNumber})`,
+          content: `تم تقديم طلب خدمة جديد:\n\n• رقم الطلب: ${requestNumber}\n• البرنامج: ${programName}\n• المسجد: ${mosqueName}\n• مقدم الطلب: ${ctx.user.name || ctx.user.email}\n• الأولوية: ${input.priority === 'urgent' ? 'عاجل' : input.priority === 'medium' ? 'متوسط' : 'عادي'}`,
+        });
+      } catch (notifyErr) {
+        // الإشعار اختياري، لا يوقف العملية عند الفشل
+        console.warn('[Notification] Failed to notify owner on new request:', notifyErr);
       }
 
       return { success: true, requestId, requestNumber, message: "تم تقديم الطلب بنجاح" };

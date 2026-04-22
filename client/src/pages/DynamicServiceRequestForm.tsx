@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, Loader2, Building2, Users, Ruler, MapPin, Info } from 'lucide-react';
 
 type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
 
@@ -311,25 +311,64 @@ export const DynamicServiceRequestForm: React.FC = () => {
               )}
 
               <div className="space-y-6">
-                {visibleFields.map((field) => (
-                  <ConditionalField
-                    key={field.name}
-                    field={field}
-                    formData={formData}
-                    value={formData[field.name]}
-                    onChange={(value) => {
-                      // عند اختيار المسجد: ملء بياناته تلقائياً
-                      if (field.name === 'mosqueId') {
-                        handleMosqueSelect(value);
-                      } else {
-                        handleFieldChange(field.name, value);
-                      }
-                    }}
-                    error={errors[field.name]}
-                    mosqueOptions={userMosques}
-                    onAddMosque={() => setShowAddMosqueModal(true)}
-                  />
-                ))}
+                {visibleFields.map((field) => {
+                  // حقلا المساحة وعدد المصلين: عرضهما كـ read-only إذا كانت بيانات المسجد موجودة
+                  const selectedMosque = userMosques?.find((m) => m.id === formData.mosqueId);
+                  const isAutoFilledFromMosque =
+                    (field.name === 'mosqueArea' && selectedMosque?.area) ||
+                    (field.name === 'actualWorshippers' && selectedMosque?.capacity);
+
+                  if (isAutoFilledFromMosque) {
+                    return (
+                      <div key={field.name} className="space-y-1">
+                        <label className="text-sm font-medium text-foreground">{field.label}</label>
+                        <div className="flex items-center gap-3 p-3 bg-muted/40 border border-border rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">
+                              {field.name === 'mosqueArea'
+                                ? `${formData[field.name]} م²`
+                                : `${formData[field.name]} مصلٍّ`}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Info className="w-3 h-3" />
+                              مُعبَّأ تلقائياً من بيانات المسجد المسجلة
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-xs text-primary hover:underline shrink-0"
+                            onClick={() => {
+                              // إرسال طلب تعديل بيانات المسجد
+                              alert('سيتم إضافة ميزة طلب تعديل بيانات المسجد قريباً. يرجى التواصل مع الإدارة لتعديل بيانات المسجد.');
+                            }}
+                          >
+                            طلب تعديل البيانات
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <ConditionalField
+                      key={field.name}
+                      field={field}
+                      formData={formData}
+                      value={formData[field.name]}
+                      onChange={(value) => {
+                        // عند اختيار المسجد: ملء بياناته تلقائياً
+                        if (field.name === 'mosqueId') {
+                          handleMosqueSelect(value);
+                        } else {
+                          handleFieldChange(field.name, value);
+                        }
+                      }}
+                      error={errors[field.name]}
+                      mosqueOptions={userMosques}
+                      onAddMosque={() => setShowAddMosqueModal(true)}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -379,18 +418,66 @@ export const DynamicServiceRequestForm: React.FC = () => {
                   </div>
                 </div>
                 <hr className="border-border" />
+                {/* بطاقة معلومات المسجد */}
+                {(() => {
+                  const reviewMosque = userMosques?.find((m) => m.id === formData.mosqueId);
+                  return reviewMosque ? (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-3">المسجد المختار</p>
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-foreground text-base">{reviewMosque.name}</p>
+                            {reviewMosque.city && (
+                              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                <MapPin className="w-3 h-3" />
+                                {reviewMosque.city}
+                              </p>
+                            )}
+                            <div className="grid grid-cols-2 gap-3 mt-3">
+                              {reviewMosque.area && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Ruler className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-muted-foreground">المساحة:</span>
+                                  <span className="font-medium text-foreground">{reviewMosque.area} م²</span>
+                                </div>
+                              )}
+                              {reviewMosque.capacity && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Users className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-muted-foreground">الطاقة:</span>
+                                  <span className="font-medium text-foreground">{reviewMosque.capacity} مصلٍّ</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+                <hr className="border-border" />
                 {/* تفاصيل الطلب */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-4">تفاصيل الطلب</p>
                   <div className="space-y-3">
-                    {visibleFields.map((field) => (
-                      <div key={field.name}>
-                        <p className="text-sm text-muted-foreground">{field.label}</p>
-                        <p className="font-medium text-foreground">
-                          {formData[field.name] ? String(formData[field.name]) : '-'}
-                        </p>
-                      </div>
-                    ))}
+                    {visibleFields
+                      .filter((field) => field.name !== 'mosqueId')
+                      .map((field) => (
+                        <div key={field.name}>
+                          <p className="text-sm text-muted-foreground">{field.label}</p>
+                          <p className="font-medium text-foreground">
+                            {field.name === 'mosqueArea' && formData[field.name]
+                              ? `${formData[field.name]} م²`
+                              : field.name === 'actualWorshippers' && formData[field.name]
+                              ? `${formData[field.name]} مصلٍّ`
+                              : formData[field.name] ? String(formData[field.name]) : '-'}
+                          </p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>
