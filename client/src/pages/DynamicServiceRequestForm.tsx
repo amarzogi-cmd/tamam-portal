@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
+import { AddMosqueModal } from '@/components/AddMosqueModal';
 import { 
   PROGRAM_CONFIGS, 
   getAllFieldsForProgram,
@@ -34,8 +35,10 @@ export const DynamicServiceRequestForm: React.FC = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showAddMosqueModal, setShowAddMosqueModal] = useState(false);
 
   // الحصول على بيانات المساجد
+  const utils = trpc.useUtils();
   const { data: mosquesResult, isLoading: mosquesLoading } = trpc.mosques.search.useQuery(
     { page: 1, limit: 100 },
     { enabled: currentStep === 'details' }
@@ -43,6 +46,15 @@ export const DynamicServiceRequestForm: React.FC = () => {
   // undefined = جاري التحميل، [] = لا توجد مساجد، [...] = توجد مساجد
   const userMosques: Array<{ id: number; name: string; city?: string }> | undefined =
     mosquesLoading ? undefined : (mosquesResult?.mosques ?? []);
+
+  // معالج نجاح إضافة المسجد من الـ Modal
+  const handleMosqueAdded = (mosqueId: number, _mosqueName: string) => {
+    setShowAddMosqueModal(false);
+    // تحديث قائمة المساجد
+    utils.mosques.search.invalidate();
+    // تحديد المسجد الجديد تلقائياً في النموذج
+    setFormData((prev) => ({ ...prev, mosqueId }));
+  };
 
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
@@ -294,7 +306,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     onChange={(value) => handleFieldChange(field.name, value)}
                     error={errors[field.name]}
                     mosqueOptions={userMosques}
-                    onAddMosque={() => navigate('/requester/mosques/new')}
+                    onAddMosque={() => setShowAddMosqueModal(true)}
                   />
                 ))}
               </div>
@@ -394,6 +406,13 @@ export const DynamicServiceRequestForm: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Modal إضافة مسجد جديد */}
+      <AddMosqueModal
+        open={showAddMosqueModal}
+        onClose={() => setShowAddMosqueModal(false)}
+        onSuccess={handleMosqueAdded}
+      />
     </div>
   );
 };
