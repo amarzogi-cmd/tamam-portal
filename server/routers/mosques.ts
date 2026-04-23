@@ -2,8 +2,9 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { mosques, mosqueImages, auditLogs, InsertMosque } from "../../drizzle/schema";
+import { mosques, mosqueImages, auditLogs, InsertMosque, mosqueRequests, notifications, users } from "../../drizzle/schema";
 import { eq, and, like, desc, sql } from "drizzle-orm";
+import { notifyOwner } from "../_core/notification";
 
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
@@ -230,6 +231,13 @@ export const mosquesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // جلب بيانات المسجد
+      const mosqueResult = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      if (mosqueResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+      const mosqueData = mosqueResult[0];
+
       await db.update(mosques).set({
         approvalStatus: "approved",
         approvedBy: ctx.user.id,
@@ -243,7 +251,40 @@ export const mosquesRouter = router({
         entityId: input.id,
       });
 
-      return { success: true, message: "تم اعتماد المسجد بنجاح" };
+      // تفعيل الطلبات المعلقة بانتظار اعتماد هذا المسجد
+      const pendingRequests = await db.select()
+        .from(mosqueRequests)
+        .where(and(
+          eq(mosqueRequests.mosqueId, input.id),
+          eq(mosqueRequests.status, "pending_mosque_approval")
+        ));
+
+      for (const req of pendingRequests) {
+        // تحديث حالة الطلب إلى pending (قيد المراجعة)
+        await db.update(mosqueRequests)
+          .set({ status: "pending" })
+          .where(eq(mosqueRequests.id, req.id));
+
+        // إرسال إشعار لمقدم الطلب
+        await db.insert(notifications).values({
+          userId: req.userId,
+          title: "تم اعتماد مسجدك وانطلق طلبك",
+          message: `تم اعتماد مسجد "${mosqueData.name}" بنجاح. طلبك رقم ${req.requestNumber} أصبح الآن قيد المراجعة.`,
+          type: "success",
+          relatedType: "request",
+          relatedId: req.id,
+        });
+
+        // إشعار Manus لمالك المشروع
+        try {
+          await notifyOwner({
+            title: `اعتماد مسجد وتفعيل طلب`,
+            content: `تم اعتماد مسجد "${mosqueData.name}" وتفعيل طلب ${req.requestNumber} تلقائياً.`,
+          });
+        } catch (_) { /* الإشعار اختياري */ }
+      }
+
+      return { success: true, message: "تم اعتماد المسجد بنجاح", activatedRequests: pendingRequests.length };
     }),
 
   // رفض مسجد
@@ -256,6 +297,13 @@ export const mosquesRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // جلب بيانات المسجد
+      const mosqueResult = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      if (mosqueResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+      const mosqueData = mosqueResult[0];
 
       await db.update(mosques).set({
         approvalStatus: "rejected",
@@ -270,7 +318,37 @@ export const mosquesRouter = router({
         newValues: { reason: input.reason },
       });
 
-      return { success: true, message: "تم رفض المسجد" };
+      // إلغاء الطلبات المعلقة وإشعار مقدميها
+      const pendingRequests = await db.select()
+        .from(mosqueRequests)
+        .where(and(
+          eq(mosqueRequests.mosqueId, input.id),
+          eq(mosqueRequests.status, "pending_mosque_approval")
+        ));
+
+      for (const req of pendingRequests) {
+        // تحديث حالة الطلب إلى rejected
+        await db.update(mosqueRequests)
+          .set({
+            status: "rejected",
+            rejectionReason: input.reason
+              ? `تم رفض المسجد: ${input.reason}`
+              : "تم رفض المسجد من قبل الإدارة",
+          })
+          .where(eq(mosqueRequests.id, req.id));
+
+        // إرسال إشعار لمقدم الطلب
+        await db.insert(notifications).values({
+          userId: req.userId,
+          title: "للأسف - تم رفض طلبك",
+          message: `تم رفض مسجد "${mosqueData.name}" وبالتالي لن يتم معالجة طلبك رقم ${req.requestNumber}.${input.reason ? ` السبب: ${input.reason}` : ''}`,
+          type: "warning",
+          relatedType: "request",
+          relatedId: req.id,
+        });
+      }
+
+      return { success: true, message: "تم رفض المسجد", cancelledRequests: pendingRequests.length };
     }),
 
   // إضافة صورة للمسجد

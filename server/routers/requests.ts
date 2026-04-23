@@ -136,13 +136,11 @@ export const requestsRouter = router({
       }
       // برنامج بنيان - لا يتطلب مسجد موجود
 
-      // التحقق من اعتماد المسجد (فقط إذا كان البرنامج يتطلب مسجد)
-      if (mosqueData && mosqueData.approvalStatus !== "approved" && ctx.user.role === "service_requester") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "المسجد غير معتمد بعد" });
-      }
+      // تحديد حالة الطلب: إذا كان المسجد غير معتمد يتم حفظ الطلب بحالة pending_mosque_approval
+      const isMosqueApproved = !mosqueData || mosqueData.approvalStatus === "approved";
+      const initialStatus = isMosqueApproved ? "pending" : "pending_mosque_approval";
 
       const requestNumber = await generateRequestNumber(db, input.programType);
-      const programDataJson = input.programData ? JSON.stringify(input.programData) : null;
 
       const result = await db.insert(mosqueRequests).values({
         requestNumber,
@@ -150,7 +148,7 @@ export const requestsRouter = router({
         userId: ctx.user.id,
         programType: input.programType,
         currentStage: "submitted",
-        status: "pending",
+        status: initialStatus,
         priority: input.priority,
         programData: input.programData || {},
       });
@@ -158,13 +156,16 @@ export const requestsRouter = router({
       const requestId = Number(result[0].insertId);
 
       // إضافة سجل في تاريخ الطلب
+      const historyNotes = isMosqueApproved
+        ? (input.description || "تم تقديم الطلب")
+        : "تم تقديم الطلب - في انتظار اعتماد المسجد";
       await db.insert(requestHistory).values({
         requestId,
         userId: ctx.user.id,
         toStage: "submitted",
-        toStatus: "pending",
+        toStatus: initialStatus,
         action: "request_created",
-        notes: input.description || "تم تقديم الطلب",
+        notes: historyNotes,
       });
 
       // تسجيل في سجل التدقيق
@@ -706,45 +707,70 @@ export const requestsRouter = router({
       requestId: z.number(),
       newStatus: z.enum(requestStatuses),
       notes: z.string().optional(),
+      rejectionReason: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const allowedRoles = ["super_admin", "system_admin", "projects_office"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث حالة الطلب" });
       }
-
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
-
       const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
       if (request.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
-
       const oldStatus = request[0].status;
 
-      await db.update(mosqueRequests).set({
+      // بناء كائن التحديث
+      const updateFields: Record<string, any> = {
         status: input.newStatus,
         reviewedAt: input.newStatus === "under_review" ? new Date() : request[0].reviewedAt,
         approvedAt: input.newStatus === "approved" ? new Date() : request[0].approvedAt,
         completedAt: input.newStatus === "completed" ? new Date() : request[0].completedAt,
-      }).where(eq(mosqueRequests.id, input.requestId));
+      };
+      if (input.newStatus === "rejected" && input.rejectionReason) {
+        updateFields.rejectionReason = input.rejectionReason;
+      }
 
+      await db.update(mosqueRequests).set(updateFields).where(eq(mosqueRequests.id, input.requestId));
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
         fromStatus: oldStatus,
         toStatus: input.newStatus,
         action: "status_updated",
-        notes: input.notes || `تم تغيير الحالة من ${oldStatus} إلى ${input.newStatus}`,
+        notes: input.rejectionReason || input.notes || `تم تغيير الحالة من ${oldStatus} إلى ${input.newStatus}`,
       });
 
-      // إرسال إشعار لمقدم الطلب
+      // إعداد رسالة الإشعار حسب الحالة
+      let notifTitle = "تحديث حالة الطلب";
+      let notifMessage = `تم تحديث حالة طلبك رقم ${request[0].requestNumber}`;
+      let notifType: "success" | "warning" | "info" | "error" | "request_update" | "system" = "request_update";
+
+      if (input.newStatus === "approved") {
+        notifTitle = "مبروك! تم قبول طلبك";
+        notifMessage = `يسعدنا إخبارك بأنه تم قبول طلبك رقم ${request[0].requestNumber}. سيتم التواصل معك لترتيب الخطوات التالية.`;
+        notifType = "success";
+      } else if (input.newStatus === "rejected") {
+        notifTitle = "للأسف - تم رفض طلبك";
+        notifMessage = `نعتذر عن إخبارك بأنه تم رفض طلبك رقم ${request[0].requestNumber}.${input.rejectionReason ? ` السبب: ${input.rejectionReason}` : ""}`;
+        notifType = "warning";
+      } else if (input.newStatus === "under_review") {
+        notifTitle = "طلبك قيد المراجعة";
+        notifMessage = `يجري فريقنا مراجعة طلبك رقم ${request[0].requestNumber}. سنتواصل معك قريباً.`;
+        notifType = "info";
+      } else if (input.newStatus === "completed") {
+        notifTitle = "تم إنجاز طلبك";
+        notifMessage = `يسعدنا إخبارك بأنه تم إنجاز طلبك رقم ${request[0].requestNumber} بنجاح. شكراً لثقتكم.`;
+        notifType = "success";
+      }
+
       await db.insert(notifications).values({
         userId: request[0].userId,
-        title: "تحديث حالة الطلب",
-        message: `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى ${input.newStatus}`,
-        type: "request_update",
+        title: notifTitle,
+        message: notifMessage,
+        type: notifType,
         relatedType: "request",
         relatedId: input.requestId,
       });

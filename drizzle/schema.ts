@@ -94,13 +94,14 @@ export const technicalDecisions = [
 
 // حالات الطلب
 export const requestStatuses = [
-  "pending",           // قيد الانتظار
-  "under_review",      // قيد المراجعة
-  "approved",          // معتمد
-  "rejected",          // مرفوض
-  "suspended",         // معلق
-  "in_progress",       // قيد التنفيذ
-  "completed"          // مكتمل
+  "pending",                    // قيد الانتظار
+  "pending_mosque_approval",    // معلق - بانتظار اعتماد المسجد
+  "under_review",               // قيد المراجعة
+  "approved",                   // معتمد
+  "rejected",                   // مرفوض
+  "suspended",                  // معلق
+  "in_progress",                // قيد التنفيذ
+  "completed"                   // مكتمل
 ] as const;
 
 // حالات المسجد
@@ -254,6 +255,9 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   
   // عرض السعر المختار للاعتماد المالي (quotationNumber)
   selectedQuotationId: varchar("selectedQuotationId", { length: 50 }),
+  
+  // سبب الرفض
+  rejectionReason: text("rejectionReason"),
   
   // التواريخ
   submittedAt: timestamp("submittedAt").defaultNow().notNull(),

@@ -118,6 +118,9 @@ export default function RequestDetails() {
   // حالات إسناد المهمة وجدولة الزيارة
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  // حالات نافذة رفض الطلب
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
   const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -385,12 +388,26 @@ export default function RequestDetails() {
     });
   };
 
-  // دالة لرفض الطلب
+  // دالة لفتح نافذة رفض الطلب
   const handleReject = () => {
+    setRejectionReason("");
+    setShowRejectDialog(true);
+  };
+  // دالة لتأكيد رفض الطلب مع سبب الرفض
+  const handleConfirmReject = () => {
+    if (!rejectionReason.trim()) {
+      toast.error("يرجى إدخال سبب الرفض");
+      return;
+    }
     updateStatusMutation.mutate({
       requestId,
       newStatus: "rejected",
-      notes: "تم رفض الطلب",
+      rejectionReason: rejectionReason.trim(),
+    }, {
+      onSuccess: () => {
+        setShowRejectDialog(false);
+        setRejectionReason("");
+      }
     });
   };
 
@@ -1870,6 +1887,41 @@ export default function RequestDetails() {
             >
               {scheduleFieldVisitMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
               جدولة الزيارة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة رفض الطلب مع سبب الرفض */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">رفض الطلب</DialogTitle>
+            <DialogDescription>
+              سيتلقى مقدم الطلب إشعاراً بسبب الرفض. يرجى كتابة سبب واضح ومفصّل.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label className="text-sm font-medium">سبب الرفض <span className="text-destructive">*</span></Label>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="مثال: الطلب لا يستوفي شروط البرنامج، أو البيانات غير مكتملة..."
+              className="mt-1 min-h-[100px]"
+              rows={4}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmReject}
+              disabled={updateStatusMutation.isPending || !rejectionReason.trim()}
+            >
+              {updateStatusMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+              تأكيد الرفض
             </Button>
           </DialogFooter>
         </DialogContent>

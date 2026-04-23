@@ -393,6 +393,13 @@
       "when": 1772456189129,
       "tag": "0055_brief_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "5",
+      "when": 1776912360186,
+      "tag": "0056_lying_giant_man",
+      "breakpoints": true
     }
   ]
 }

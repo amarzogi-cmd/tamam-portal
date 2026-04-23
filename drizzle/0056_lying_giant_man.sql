@@ -1,0 +1,2 @@
+ALTER TABLE `mosque_requests` MODIFY COLUMN `status` enum('pending','pending_mosque_approval','under_review','approved','rejected','suspended','in_progress','completed') NOT NULL DEFAULT 'pending';--> statement-breakpoint
+ALTER TABLE `mosque_requests` ADD `rejectionReason` text;
